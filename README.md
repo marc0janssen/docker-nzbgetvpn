@@ -1,23 +1,30 @@
-**Application**
+# Docker-NZBgetVPN
+
+Is version is a fork but is the NZBGET updated to the latest version. I did this because I couldn't find a decent version that was upgrade to the latest version and also pushed to Docker Hub.
+
+Current version NZBGET: 21.1
+
+## Application
 
 [Nzbget website](http://nzbget.net/)  
 [OpenVPN website](https://openvpn.net/)  
 
-**Description**
+## Description
 
 NZBGet is a cross-platform binary newsgrabber for nzb files, written in C++. It supports client/server mode, automatic par-check/-repair, web-interface, command-line interface, etc. NZBGet requires low system resources and runs great on routers, NAS-devices and media players.
 
 This Docker includes OpenVPN and WireGuard to ensure a secure and private connection to the Internet, including use of iptables to prevent IP leakage when the tunnel is down. It also includes Privoxy to allow unfiltered access to index sites, to use Privoxy please point your application at `http://<host ip>:8118`.
 
-**Build notes**
+## Build notes
 
 Latest stable NZBGet release from Arch Linux repo (v21.0)
 Latest stable Privoxy release from Arch Linux repo.  
 Latest stable OpenVPN release from Arch Linux repo.  
 Latest stable WireGuard release from Arch Linux repo.
 
-**Usage**
-```
+## Usage
+
+```shell
 docker run -d \
     --cap-add=NET_ADMIN \
     -p 6789:6789 \
@@ -45,19 +52,20 @@ docker run -d \
 
 Please replace all user variables in the above command defined by <> with the correct values.
 
-**Access NZBGet**
+## Access NZBGet
 
 `http://<host ip>:6789`
 
 username:- nzbget
 password:- tegbzn6789
 
-**PIA provider**
+## PIA provider
 
-PIA users will need to supply VPN_USER and VPN_PASS, optionally define VPN_REMOTE (list of gateways https://www.privateinternetaccess.com/pages/client-support) if you wish to use another remote gateway other than the Netherlands.
+PIA users will need to supply VPN_USER and VPN_PASS, optionally define VPN_REMOTE [list of gateways](https://www.privateinternetaccess.com/pages/client-support) if you wish to use another remote gateway other than the Netherlands.
 
-**PIA example**
-```
+## PIA example
+
+```shell
 docker run -d \
     --cap-add=NET_ADMIN \
     -p 6789:6789 \
@@ -82,9 +90,9 @@ docker run -d \
     jshridha/docker-nzbgetvpn:latest
 ```
 
-**AirVPN provider**
+## AirVPN provider
 
-AirVPN users will need to generate a unique OpenVPN configuration file by using the following link https://airvpn.org/generator/
+AirVPN users will need to generate a unique OpenVPN configuration file by using the following [link](https://airvpn.org/generator/)
 
 1. Please select Linux and then choose the country you want to connect to
 2. Save the ovpn file to somewhere safe
@@ -93,8 +101,9 @@ AirVPN users will need to generate a unique OpenVPN configuration file by using 
 5. Start nzbgetvpn docker
 6. Check supervisor.log to make sure you are connected to the tunnel
 
-**AirVPN example**
-```
+## AirVPN example
+
+```shell
 docker run -d \
     --cap-add=NET_ADMIN \
     -p 6789:6789 \
@@ -116,26 +125,29 @@ docker run -d \
     jshridha/docker-nzbgetvpn:latest
 ```
 
-**OpenVPN**  
+## OpenVPN
+
 Please note this Docker image does not include the required OpenVPN configuration file and certificates. These will typically be downloaded from your VPN providers website (look for OpenVPN configuration files), and generally are zipped.
 
-PIA users - The URL to download the OpenVPN configuration files and certs is:-
-
-https://www.privateinternetaccess.com/openvpn/openvpn.zip
+PIA users - The URL to download the [OpenVPN](https://www.privateinternetaccess.com/openvpn/openvpn.zip) configuration files and certs is:-
 
 Once you have downloaded the zip (normally a zip as they contain multiple ovpn files) then extract it to /config/openvpn/ folder (if that folder doesn't exist then start and stop the docker container to force the creation of the folder).
 
 If there are multiple ovpn files then please delete the ones you don't want to use (normally filename follows location of the endpoint) leaving just a single ovpn file and the certificates referenced in the ovpn file (certificates will normally have a crt and/or pem extension).
 
-**WireGuard**  
-If you wish to use WireGuard (defined via 'VPN_CLIENT' env var value ) then due to the enhanced security and kernel integration WireGuard will require the container to be defined with privileged permissions and sysctl support, so please ensure you change the following docker options:-    
+## WireGuard
+
+If you wish to use WireGuard (defined via 'VPN_CLIENT' env var value ) then due to the enhanced security and kernel integration WireGuard will require the container to be defined with privileged permissions and sysctl support, so please ensure you change the following docker options:-
 
 from
-```
+
+```shell
     --cap-add=NET_ADMIN \
 ```
+
 to
-```
+
+```shell
     --sysctl="net.ipv4.conf.all.src_valid_mark=1" \
     --privileged=true \
 ```
@@ -144,11 +156,9 @@ PIA users - The WireGuard configuration file will be auto generated and will be 
 
 Other users - Please download your WireGuard configuration file from your VPN provider, start and stop the container to generate the folder ```/config/wireguard/``` and then place your WireGuard configuration file in there.
 
+## Docker Compose Example
 
-
-**Docker Compose Example**
-
-```
+```Docker
 version: "3"
 services:
   nzbget:
@@ -172,9 +182,8 @@ services:
     restart: unless-stopped
 ```
 
+## Notes
 
-
-**Notes**  
 Due to Google and OpenDNS supporting EDNS Client Subnet it is recommended NOT to use either of these NS providers.
 The list of default NS providers in the above example(s) is as follows:-
 
