@@ -1,6 +1,6 @@
 # Docker-NZBgetVPN
 
-In version is a fork but is the NZBGET updated to the latest version. I did this because I couldn't find a decent version that was upgrade to the latest version and also pushed to Docker Hub. This not to shamelessly copy someone's work.
+This version is a fork but is the NZBGET updated to the latest version. I did this because I couldn't find a decent version that was upgrade to the latest version and also pushed to Docker Hub. This not to shamelessly copy someone's work.
 
 Current version NZBGET: 21.1
 
