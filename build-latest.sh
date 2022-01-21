@@ -11,6 +11,6 @@ docker image rm marc0janssen/docker-nzbgetvpn:latest
 # docker push marc0janssen/docker-nzbgetvpn:latest
 
 docker buildx build --platform linux/amd64,linux/arm64 --push -t marc0janssen/docker-nzbgetvpn:latest -f ./Dockerfile-latest .
-docker buildx build --platform linux/amd64,linux/arm64 --push -t marc0janssen/docker-nzbgetvpn:21.2-testing-r2333 -f ./Dockerfile-latest .
+docker buildx build --platform linux/amd64,linux/arm64 --push -t marc0janssen/docker-nzbgetvpn:21.2-r2333 -f ./Dockerfile-latest .
 
 docker pushrm marc0janssen/docker-nzbgetvpn:latest
