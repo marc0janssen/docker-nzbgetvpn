@@ -10,21 +10,21 @@ Current latest version NZBGET: 21.2-r2333
 Stable
 
 ```shell
-docker pull marc0janssen/pixlovarr:stable
+docker pull marc0janssen/docker-nzbgetvpn:stable
 ```
 
 ```shell
-docker pull marc0janssen/pixlovarr:21.1
+docker pull marc0janssen/docker-nzbgetvpn:21.1
 ```
 
 Latest (experimental)
 
 ```shell
-docker pull marc0janssen/pixlovarr:latest
+docker pull marc0janssen/docker-nzbgetvpn:latest
 ```
 
 ```shell
-docker pull marc0janssen/pixlovarr:21.2-r2333
+docker pull marc0janssen/docker-nzbgetvpn:21.2-r2333
 ```
 
 ## Application
