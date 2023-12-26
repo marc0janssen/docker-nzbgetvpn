@@ -1,9 +1,10 @@
-# Docker-NZBgetVPN
+# NZBgetVPN
 
 This version is a fork with the NZBGET updated to the latest version. I did this because I couldn't find a decent version that was upgraded to the latest version and also available on Docker Hub. This is not intended as a shameless copy of someone's work.
 
-Current stable version NZBGET: 21.1\
-Current latest version NZBGET: 21.2-r2333
+**[[ This build holds a fork of nzbget since the original maintainer stopped his work on NZBGET. The fork I'm using is from nzbgetcom https://github.com/nzbgetcom/nzbget ]]**
+
+Current stable version NZBGET: 22.0
 
 ## Versions
 
@@ -14,17 +15,7 @@ docker pull marc0janssen/docker-nzbgetvpn:stable
 ```
 
 ```shell
-docker pull marc0janssen/docker-nzbgetvpn:21.1
-```
-
-Latest (experimental)
-
-```shell
-docker pull marc0janssen/docker-nzbgetvpn:latest
-```
-
-```shell
-docker pull marc0janssen/docker-nzbgetvpn:21.2-r2333
+docker pull marc0janssen/docker-nzbgetvpn:22.0
 ```
 
 ## Application
