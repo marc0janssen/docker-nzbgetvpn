@@ -5,7 +5,7 @@
 # date: 2021-11-28 14:24:26
 # update: 2021-11-28 14:24:32
 
-docker image rm marc0janssen/nzbgetvpn:latest
+docker image rm marc0janssen/nzbgetvpn:stable
 
 # docker build -t marc0janssen/docker-nzbgetvpn -f ./Dockerfile .
 # docker push marc0janssen/docker-nzbgetvpn:latest
