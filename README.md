@@ -2,15 +2,15 @@
 
 This version is a fork with the NZBGET updated to the latest version. I did this because I couldn't find a decent version that was upgraded to the latest version and also available on Docker Hub. This is not intended as a shameless copy of someone's work.
 
-**[[ This build holds a fork of nzbget since the original maintainer stopped his work on NZBGET. The fork I'm using is from [https://github.com/nzbgetcom/nzbget](nzbgetcom) ]]**
+**[[ This build holds a fork of nzbget since the original maintainer stopped his work on NZBGET. The fork I'm using is from [nzbgetcom](https://github.com/nzbgetcom/nzbget) ]]**
 
 
 ## Versions
 
 [Vesion information](https://github.com/nzbgetcom/nzbget/releases)
 
-Current stable version NZBGET: 22.0
-Current testing versio NZBGET: 22.2-testing-20231227
+* Current stable version NZBGET: 22.0
+* Current testing version NZBGET: 22.2-testing-20231227
 
 Stable
 
@@ -34,7 +34,7 @@ docker pull marc0janssen/docker-nzbgetvpn:22.2-testing-20231227
 
 ## Application
 
-[Nzbget website](http://nzbget.net/)  
+[Nzbget website](http://nzbget.com/)  
 [OpenVPN website](https://openvpn.net/)  
 
 ## Description
