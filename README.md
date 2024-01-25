@@ -29,7 +29,7 @@ docker pull marc0janssen/docker-nzbgetvpn:testing
 ```
 
 ```shell
-docker pull marc0janssen/docker-nzbgetvpn:22.2-testing-202401
+docker pull marc0janssen/docker-nzbgetvpn:22.2-testing-20240124
 ```
 
 ## Application
