@@ -5,7 +5,7 @@
 # date: 2021-11-28 14:24:26
 # update: 2021-11-28 14:24:32
 
-VERSION="22.2-testing-20240124"
+VERSION="22.2-testing-20240202"
 
 docker image rm marc0janssen/nzbgetvpn:testing
 docker image rm marc0janssen/nzbgetvpn:${VERSION}
