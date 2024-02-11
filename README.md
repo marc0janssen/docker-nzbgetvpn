@@ -9,7 +9,7 @@ This version is a fork with the NZBGET updated to the latest version. I did this
 
 [Vesion information](https://github.com/nzbgetcom/nzbget/releases)
 
-* Current stable version NZBGET: 22.0
+* Current stable version NZBGET: 23.0
 * Current testing version NZBGET: 22.2-testing-20240208
 
 Stable
@@ -19,7 +19,7 @@ docker pull marc0janssen/docker-nzbgetvpn:stable
 ```
 
 ```shell
-docker pull marc0janssen/docker-nzbgetvpn:22.0
+docker pull marc0janssen/docker-nzbgetvpn:23.0
 ```
 
 Testing
@@ -45,7 +45,7 @@ This Docker includes OpenVPN and WireGuard to ensure a secure and private connec
 
 ## Build notes
 
-Latest stable NZBGet release from Arch Linux repo (v21.0)
+Latest stable NZBGet release from Arch Linux repo (v23.0)
 Latest stable Privoxy release from Arch Linux repo.  
 Latest stable OpenVPN release from Arch Linux repo.  
 Latest stable WireGuard release from Arch Linux repo.
