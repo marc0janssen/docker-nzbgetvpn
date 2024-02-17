@@ -75,7 +75,7 @@ docker run -d \
     -e UMASK=<umask for created files> \
     -e PUID=<uid for user> \
     -e PGID=<gid for user> \
-    marc0janssen/docker-nzbgetvpn:latest
+    marc0janssen/docker-nzbgetvpn:stable
 ```
 
 Please replace all user variables in the above command defined by <> with the correct values.
@@ -115,7 +115,7 @@ docker run -d \
     -e UMASK=000 \
     -e PUID=0 \
     -e PGID=0 \
-    marc0janssen/docker-nzbgetvpn:latest
+    marc0janssen/docker-nzbgetvpn:stable
 ```
 
 ## AirVPN provider
@@ -150,7 +150,7 @@ docker run -d \
     -e UMASK=000 \
     -e PUID=0 \
     -e PGID=0 \
-    marc0janssen/docker-nzbgetvpn:latest
+    marc0janssen/docker-nzbgetvpn:stable
 ```
 
 ## OpenVPN
@@ -191,7 +191,7 @@ version: "3"
 services:
   nzbget:
     container_name: nzbget
-    image: marc0janssen/docker-nzbgetvpn:latest
+    image: marc0janssen/docker-nzbgetvpn:stable
     volumes:
       - /root/docker/config:/config
       - /root/docker/data:/data
