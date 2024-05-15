@@ -1,7 +1,7 @@
 FROM binhex/arch-int-vpn:latest
 
-ENV NZBGET_VERSION=23.0
-ENV NZBGET_VERSION_DIR=v23.0
+ENV NZBGET_VERSION=24.0
+ENV NZBGET_VERSION_DIR=v24.0
 
 # additional files
 ##################
