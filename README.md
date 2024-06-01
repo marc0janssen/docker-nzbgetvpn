@@ -10,7 +10,7 @@ This version is a fork with the NZBGET updated to the latest version. I did this
 [Vesion information](https://github.com/nzbgetcom/nzbget/releases)
 
 * Current stable version NZBGET: 24.1
-* Current testing version NZBGET: 24.1-testing-20240530
+* Current testing version NZBGET: 24.2-testing-20240530
 
 Stable
 
@@ -29,7 +29,7 @@ docker pull marc0janssen/docker-nzbgetvpn:testing
 ```
 
 ```shell
-docker pull marc0janssen/docker-nzbgetvpn:24.1-testing-20240530
+docker pull marc0janssen/docker-nzbgetvpn:24.2-testing-20240530
 ```
 
 ## Application
