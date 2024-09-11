@@ -10,7 +10,7 @@ This version is a fork with the NZBGET updated to the latest version. I did this
 [Vesion information](https://github.com/nzbgetcom/nzbget/releases)
 
 * Current stable version NZBGET: 24.2
-* Current testing version NZBGET: 24.3-testing-20240806
+* Current testing version NZBGET: 24.3-testing-20240911
 
 Stable
 
