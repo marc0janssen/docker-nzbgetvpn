@@ -29,7 +29,7 @@ fi
 yes | pacman -Syyu
 
 # define pacman packages
-pacman_packages="git python python-pyopenssl python-feedparser p7zip ipcalc unzip unrar python3 wget \
+pacman_packages="git p7zip ipcalc unzip unrar python3 wget \
 python-requests-oauthlib \
 python-markdown python-decorator"
 
@@ -52,6 +52,9 @@ source aur.sh
 wget -O /tmp/nzbget.run "https://github.com/nzbgetcom/nzbget/releases/download/${NZBGET_VERSION_DIR}/nzbget-${NZBGET_VERSION}-bin-linux.run"
 sh /tmp/nzbget.run --destdir /usr/sbin/nzbget_bin
 ln -s /usr/sbin/nzbget_bin/nzbget /usr/sbin/nzbget
+
+# Install new certificate file
+wget -O /usr/sbin/nzbget_bin/cacert.pem https://nzbget.net/info/cacert.pem
 
 # config
 ####
