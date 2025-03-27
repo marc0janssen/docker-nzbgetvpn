@@ -29,9 +29,7 @@ fi
 yes | pacman -Syyu
 
 # define pacman packages
-pacman_packages="git p7zip ipcalc unzip unrar python3 wget \
-python-requests-oauthlib \
-python-markdown python-decorator"
+pacman_packages="git p7zip ipcalc unzip unrar python3 wget python-requests-oauthlib python-markdown python-decorator"
 
 # install compiled packages using pacman
 if [[ ! -z "${pacman_packages}" ]]; then
@@ -48,7 +46,7 @@ aur_packages=""
 source aur.sh
 
 # install nzbget
-# wget -O /tmp/nzbget.run "https://github.com/nzbget/nzbget/releases/download/v${NZBGET_VERSION_DIR}/nzbget-${NZBGET_VERSION}-bin-linux.run"
+#wget -O /tmp/nzbget.run "https://github.com/nzbget/nzbget/releases/download/v${NZBGET_VERSION_DIR}/nzbget-${NZBGET_VERSION}-bin-linux.run"
 wget -O /tmp/nzbget.run "https://github.com/nzbgetcom/nzbget/releases/download/${NZBGET_VERSION_DIR}/nzbget-${NZBGET_VERSION}-bin-linux.run"
 sh /tmp/nzbget.run --destdir /usr/sbin/nzbget_bin
 ln -s /usr/sbin/nzbget_bin/nzbget /usr/sbin/nzbget
