@@ -1,17 +1,19 @@
 #!/bin/sh
 
 # Name: docker-nzbgetvpn
-# Coder: Marco Janssen (twitter @marc0janssen)
+# Coder: Marco Janssen (micro.blog @marc0janssen https://micro.mjanssen.nl)
 # date: 2021-11-28 14:24:26
 # update: 2021-11-28 14:24:32
 
-VERSION="24.5"
+VERSION_FILE=".version"
 
-docker image rm marc0janssen/nzbgetvpn:stable
-docker image rm marc0janssen/nzbgetvpn:${VERSION}
+# Read release number from file
+VERSION=$(cat ${VERSION_FILE})
 
-# docker build -t marc0janssen/docker-nzbgetvpn -f ./Dockerfile .
-# docker push marc0janssen/docker-nzbgetvpn:latest
+# Change new releasenumber in files
+sed -i '' "s/NZBGET Current stable version: .*/\NZBGET Current stable version: ${VERSION}/" ./README.md
+sed -i '' "s/NZBGET_VERSION=.*/\NZBGET_VERSION=${VERSION}/" ./Dockerfile
+sed -i '' "s/NZBGET_VERSION_DIR=.*/\NZBGET_VERSION_DIR=${VERSION}/" ./Dockerfile
 
 docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push -t marc0janssen/nzbgetvpn:stable -f ./Dockerfile .
 docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push -t marc0janssen/nzbgetvpn:${VERSION} -f ./Dockerfile .
