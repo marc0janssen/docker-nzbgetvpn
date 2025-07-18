@@ -28,6 +28,7 @@ fi
 #source upd.sh
 yes | pacman -Syyu
 
+
 # define pacman packages
 pacman_packages="git p7zip ipcalc unzip unrar python3 wget python-requests-oauthlib python-markdown python-decorator"
 
@@ -101,7 +102,7 @@ EOF
 sed -i '/# PERMISSIONS_PLACEHOLDER/{
     s/# PERMISSIONS_PLACEHOLDER//g
     r /tmp/permissions_heredoc
-}' /usr/local/bin/init.sh
+}' /usr/bin/init.sh
 rm /tmp/permissions_heredoc
 
 # env vars
@@ -115,7 +116,7 @@ EOF
 sed -i '/# ENVVARS_PLACEHOLDER/{
     s/# ENVVARS_PLACEHOLDER//g
     r /tmp/envvars_heredoc
-}' /usr/local/bin/init.sh
+}' /usr/bin/init.sh
 rm /tmp/envvars_heredoc
 
 # cleanup

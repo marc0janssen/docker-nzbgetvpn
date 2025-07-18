@@ -16,5 +16,7 @@ sed -i '' "s/NZBGET_VERSION=.*/\NZBGET_VERSION=${VERSION}/" ./Dockerfile-testing
 
 docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push -t marc0janssen/nzbgetvpn:testing -f ./Dockerfile-testing .
 docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push -t marc0janssen/nzbgetvpn:${VERSION} -f ./Dockerfile-testing .
+#docker buildx build --no-cache --platform linux/amd64 --push -t marc0janssen/nzbgetvpn:testing -f ./Dockerfile-testing .
+#docker buildx build --no-cache --platform linux/amd64 --push -t marc0janssen/nzbgetvpn:${VERSION} -f ./Dockerfile-testing .
 
 docker pushrm marc0janssen/nzbgetvpn:testing

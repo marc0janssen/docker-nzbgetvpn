@@ -1,7 +1,7 @@
-FROM binhex/arch-int-vpn:2025021801
+FROM binhex/arch-int-vpn:2025070701
 
-ENV NZBGET_VERSION=24.8
-ENV NZBGET_VERSION_DIR=v24.8
+ENV NZBGET_VERSION=25.2
+ENV NZBGET_VERSION_DIR=v25.2
 
 # additional files
 ##################
@@ -44,4 +44,4 @@ EXPOSE 6789
 #################
 
 # run script to set uid, gid and permissions
-CMD ["/bin/bash", "/usr/local/bin/init.sh"]
+CMD ["/bin/bash", "/usr/bin/init.sh"]
