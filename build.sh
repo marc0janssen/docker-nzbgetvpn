@@ -15,8 +15,9 @@ sed -i '' "s/NZBGET Current stable version: .*/\NZBGET Current stable version: $
 sed -i '' "s/NZBGET_VERSION\=.*/\NZBGET_VERSION\=${VERSION}/" ./Dockerfile
 sed -i '' "s/NZBGET_VERSION_DIR\=v.*/\NZBGET_VERSION_DIR\=v${VERSION}/" ./Dockerfile
 
-docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push -t marc0janssen/nzbgetvpn:stable -f ./Dockerfile .
-docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push -t marc0janssen/nzbgetvpn:${VERSION} -f ./Dockerfile .
+docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push -t marc0janssen/nzbgetvpn:${VERSION} -t marc0janssen/nzbgetvpn:stable -f ./Dockerfile .
+#docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push -t marc0janssen/nzbgetvpn:${VERSION} -f ./Dockerfile .
+
 #docker buildx build --no-cache --platform linux/amd64 --push -t marc0janssen/nzbgetvpn:stable -f ./Dockerfile .
 #docker buildx build --no-cache --platform linux/amd64 --push -t marc0janssen/nzbgetvpn:${VERSION} -f ./Dockerfile .
 

@@ -14,8 +14,9 @@ VERSION=$(cat ${VERSION_FILE})
 sed -i '' "s/NZBGET Current testing version: .*/\NZBGET Current testing version: ${VERSION}/" ./README.md
 sed -i '' "s/NZBGET_VERSION=.*/\NZBGET_VERSION=${VERSION}/" ./Dockerfile-testing
 
-docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push -t marc0janssen/nzbgetvpn:testing -f ./Dockerfile-testing .
-docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push -t marc0janssen/nzbgetvpn:${VERSION} -f ./Dockerfile-testing .
+docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push -t marc0janssen/nzbgetvpn:${VERSION} -t marc0janssen/nzbgetvpn:testing -f ./Dockerfile-testing .
+#docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push -t marc0janssen/nzbgetvpn:${VERSION} -f ./Dockerfile-testing .
+
 #docker buildx build --no-cache --platform linux/amd64 --push -t marc0janssen/nzbgetvpn:testing -f ./Dockerfile-testing .
 #docker buildx build --no-cache --platform linux/amd64 --push -t marc0janssen/nzbgetvpn:${VERSION} -f ./Dockerfile-testing .
 

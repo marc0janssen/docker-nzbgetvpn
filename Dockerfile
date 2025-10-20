@@ -1,7 +1,7 @@
-FROM binhex/arch-int-vpn:2025070701
+FROM binhex/arch-int-vpn:2025100101
 
-ENV NZBGET_VERSION=25.2
-ENV NZBGET_VERSION_DIR=v25.2
+ENV NZBGET_VERSION=25.4
+ENV NZBGET_VERSION_DIR=v25.4
 
 # additional files
 ##################
@@ -22,8 +22,7 @@ ADD run/nobody/*.sh /home/nobody/
 #############
 
 # make executable and run bash scripts to install app
-RUN chmod +x /root/*.sh /home/nobody/*.sh && \
-	/bin/bash /root/install.sh
+RUN chmod +x /root/*.sh /home/nobody/*.sh && /bin/bash /root/install.sh
 
 # Replace default CA certificate store with updated one
 COPY build/cacert.pem /usr/sbin/nzbget_bin/
