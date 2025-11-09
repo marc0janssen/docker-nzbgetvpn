@@ -1,5 +1,8 @@
 # NZBgetVPN
 
+## If you like to tip me.
+[Thanks fot the tip!!](https://ko-fi.com/marc0janssen)
+
 This version is a fork with the NZBGET updated to the latest version. I did this because I couldn't find a decent version that was upgraded to the latest version and also available on Docker Hub. This is not intended as a shameless copy of someone's work.
 
 **[[ This build holds a fork of nzbget since the original maintainer stopped his work on NZBGET. The fork I'm using is from [nzbgetcom](https://github.com/nzbgetcom/nzbget) ]]**
@@ -10,7 +13,7 @@ This version is a fork with the NZBGET updated to the latest version. I did this
 [Vesion information](https://github.com/nzbgetcom/nzbget/releases)
 
 * NZBGET Current stable version: 25.4
-* NZBGET Current testing version: 25.5-testing-20251018
+* NZBGET Current testing version: 25.5-testing-20251107
 
 ## Application
 
