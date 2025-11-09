@@ -1,7 +1,7 @@
 # NZBgetVPN
 
 ## If you like to tip me.
-[Thanks fot the tip!!](https://ko-fi.com/marc0janssen)
+[Thanks for the tip!!](https://ko-fi.com/marc0janssen)
 
 This version is a fork with the NZBGET updated to the latest version. I did this because I couldn't find a decent version that was upgraded to the latest version and also available on Docker Hub. This is not intended as a shameless copy of someone's work.
 
