@@ -1,75 +1,99 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-CONFIG_DIR=/usr/sbin/nzbget_bin
+set -euo pipefail
 
-if [[ ! -f /config/nzbget.conf ]]; then
+readonly CONFIG_DIR="/usr/sbin/nzbget_bin"
+readonly CONFIG_FILE="/config/nzbget.conf"
+readonly NZBGET_PORT=6789
 
+log() {
+    local level="$1"
+    shift
+    printf '[%s] %s\n' "$level" "$*"
+}
 
-	echo "[info] Nzbget config file doesn't exist, copying default..."
-	cp $CONFIG_DIR/nzbget.conf /config/
+ensure_config_file() {
+    if [[ ! -f ${CONFIG_FILE} ]]; then
+        log info "Nzbget config file doesn't exist, copying default"
+        cp "${CONFIG_DIR}/nzbget.conf" "${CONFIG_FILE}"
+    else
+        log info 'Nzbget config file already exists, skipping copy'
+    fi
+}
 
-	sed -i 's/MainDir=~\/downloads/MainDir=\/data/g' /config/nzbget.conf
-	sed -i '/MainDir=${AppDir}\/downloads/ s/=.*/=\/data/' /config/nzbget.conf
+set_config_value() {
+    local key="$1"
+    local value="$2"
+    if grep -q "^${key}=" "${CONFIG_FILE}"; then
+        sed -i "s|^${key}=.*|${key}=${value}|" "${CONFIG_FILE}"
+    else
+        printf '%s=%s\n' "${key}" "${value}" >> "${CONFIG_FILE}"
+    fi
+}
 
-else
+normalize_config() {
+    set_config_value 'MainDir' '/data'
+    set_config_value 'WebDir' '${AppDir}/webui'
+    set_config_value 'ConfigTemplate' '${AppDir}/webui/nzbget.conf.template'
+    set_config_value 'CertStore' '/usr/sbin/nzbget_bin/cacert.pem'
+}
 
-	echo "[info] Nzbget config file already exists, skipping copy"
-	sed -i '/WebDir=${AppDir}\/webui/ s/=.*/=\/usr\/share\/nzbget\/webui/' /config/nzbget.conf
+wait_for_process() {
+    local process_name="$1"
+    local retries=12
+    local wait_seconds=1
 
-fi
-sed -i '/WebDir=*/ s/=.*/=${AppDir}\/webui/' /config/nzbget.conf
-sed -i  '/ConfigTemplate=*/ s/=.*/=${AppDir}\/webui\/nzbget.conf.template/' /config/nzbget.conf
-sed -i 's/^CertStore=$/CertStore=\/usr\/sbin\/nzbget_bin\/cacert.pem/g' /config/nzbget.conf
-sed -i 's/CertStore=\/etc\/ssl\/certs\/ca-certificates.crt/CertStore=\/usr\/sbin\/nzbget_bin\/cacert.pem/g' /config/nzbget.conf
+    while ! pgrep -x "${process_name}" >/dev/null; do
+        ((retries--)) || {
+            log warn "Wait for ${process_name} process to start aborted, too many retries"
+            return 1
+        }
 
-if [[ "${nzbget_running}" == "false" ]]; then
+        if [[ ${DEBUG:-false} == true ]]; then
+            log debug "Waiting for ${process_name} process to start"
+            log debug "Re-check in ${wait_seconds} secs"
+            log debug "${retries} retries left"
+        fi
+        sleep "${wait_seconds}"
+    done
 
-	echo "[info] Attempting to start nzbget..."
+    log info "${process_name^} process started"
+}
 
-	# run nzbget
-	/usr/bin/nzbget -D -c /config/nzbget.conf
+wait_for_port() {
+    local port="$1"
+    log info "Waiting for Nzbget process to start listening on port ${port}"
+    while true; do
+        if command -v ss >/dev/null; then
+            if ss -ltn | awk '{print $4}' | grep -q ":${port}$"; then
+                break
+            fi
+        else
+            if netstat -ltn | awk '$6 == "LISTEN" && $4 ~ "\.${port}$"' | grep -q ':'; then
+                break
+            fi
+        fi
+        sleep 0.1
+    done
+    log info "Nzbget process is listening on port ${port}"
+}
 
-	# make sure process nzbget DOES exist
-	retry_count=12
-	retry_wait=1
-	while true; do
+start_nzbget() {
+    log info 'Attempting to start nzbget'
+    /usr/bin/nzbget -D -c "${CONFIG_FILE}"
+    wait_for_process nzbget || true
+    wait_for_port "${NZBGET_PORT}"
+}
 
-		if ! pgrep -x nzbget > /dev/null; then
+main() {
+    ensure_config_file
+    normalize_config
 
-			retry_count=$((retry_count-1))
-			if [ "${retry_count}" -eq "0" ]; then
+    if [[ ${nzbget_running:-false} == false ]]; then
+        start_nzbget
+    fi
 
-				echo "[warn] Wait for nzbget process to start aborted, too many retries"
+    nzbget_ip="${vpn_ip:-}" # shellcheck disable=SC2034
+}
 
-			else
-
-				if [[ "${DEBUG}" == "true" ]]; then
-					echo "[debug] Waiting for nzbget process to start"
-					echo "[debug] Re-check in ${retry_wait} secs..."
-					echo "[debug] ${retry_count} retries left"
-				fi
-				sleep "${retry_wait}s"
-
-			fi
-
-		else
-
-			echo "[info] Nzbget process started"
-			break
-
-		fi
-
-	done
-
-	echo "[info] Waiting for Nzbget process to start listening on port 6789..."
-
-	while [[ $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".6789\"") == "" ]]; do
-		sleep 0.1
-	done
-
-	echo "[info] Nzbget process is listening on port 6789"
-
-fi
-
-# set nzbget ip to current vpn ip (used when checking for changes on next run)
-nzbget_ip="${vpn_ip}"
+main "$@"

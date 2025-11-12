@@ -1,106 +1,70 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# while loop to check ip and port
-while true; do
+set -euo pipefail
 
-	# reset triggers to negative values
-	nzbget_running="false"
-	privoxy_running="false"
-	ip_change="false"
+log() {
+    local level="$1"
+    shift
+    printf '[%s] %s\n' "$level" "$*"
+}
 
-	if [[ "${VPN_ENABLED}" == "yes" ]]; then
+start_if_not_running() {
+    local description="$1"
+    local process_name="$2"
+    local start_script="$3"
 
-		# run script to get all required info
-		source /home/nobody/preruncheck.sh
+    if pgrep -x "$process_name" >/dev/null; then
+        return
+    fi
 
-		# if vpn_ip is not blank then run, otherwise log warning
-		if [[ ! -z "${vpn_ip}" ]]; then
+    log info "${description} not running"
+    # shellcheck disable=SC1090
+    if ! source "$start_script"; then
+        log warn "Failed to start ${description} via ${start_script}"
+    fi
+}
 
-			# check if nzbget is running, if not then skip shutdown of process
-			if ! pgrep -x nzbget > /dev/null; then
+run_vpn_checks() {
+    # shellcheck disable=SC1091
+    if ! source /home/nobody/preruncheck.sh; then
+        log warn 'Failed to execute preruncheck.sh'
+        return
+    fi
 
-				echo "[info] nzbget not running"
+    if [[ -z ${vpn_ip:-} ]]; then
+        log warn 'VPN IP not detected, VPN tunnel maybe down'
+        return
+    fi
 
-			else
+    start_if_not_running 'nzbget' 'nzbget' /home/nobody/nzbget.sh
 
-				# mark as nzbget as running
-				nzbget_running="true"
+    if [[ ${ENABLE_PRIVOXY:-no} == yes ]]; then
+        start_if_not_running 'Privoxy' 'privoxy' /home/nobody/privoxy.sh
+    fi
+}
 
-			fi
+run_non_vpn_checks() {
+    start_if_not_running 'Nzbget' 'nzbget' /home/nobody/nzbget.sh
 
-			if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
+    if [[ ${ENABLE_PRIVOXY:-no} == yes ]]; then
+        start_if_not_running 'Privoxy' 'privoxy' /home/nobody/privoxy.sh
+    fi
+}
 
-				# check if privoxy is running, if not then skip shutdown of process
-				if ! pgrep -fa "/usr/bin/privoxy" > /dev/null; then
+main() {
+    while :; do
+        if [[ ${VPN_ENABLED:-no} == yes ]]; then
+            run_vpn_checks
+        else
+            run_non_vpn_checks
+        fi
 
-					echo "[info] Privoxy not running"
+        if [[ ${DEBUG:-false} == true && ${VPN_ENABLED:-no} == yes ]]; then
+            log debug "VPN IP is ${vpn_ip:-unknown}"
+        fi
 
-				else
+        sleep 30
+    done
+}
 
-					# mark as privoxy as running
-					privoxy_running="true"
-
-				fi
-
-			fi
-
-			if [[ "${nzbget_running}" == "false" ]]; then
-
-				# run script to start nzbget
-				source /home/nobody/nzbget.sh
-
-			fi
-
-			if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
-
-				if [[ "${privoxy_running}" == "false" ]]; then
-
-					# run script to start privoxy
-					source /home/nobody/privoxy.sh
-
-				fi
-
-			fi
-
-
-		else
-
-			echo "[warn] VPN IP not detected, VPN tunnel maybe down"
-
-		fi
-
-	else
-
-		# check if nzbget is running, if not then start via nzbget.sh
-		if ! pgrep -x nzbget > /dev/null; then
-
-			echo "[info] Nzbget not running"
-
-			# run script to start nzbget
-			source /home/nobody/nzbget.sh
-
-		fi
-
-		if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
-
-			# check if privoxy is running, if not then start via privoxy.sh
-			if ! pgrep -fa "/usr/bin/privoxy" > /dev/null; then
-
-				echo "[info] Privoxy not running"
-
-				# run script to start privoxy
-				source /home/nobody/privoxy.sh
-
-			fi
-
-		fi
-
-	fi
-
-	if [[ "${DEBUG}" == "true" && "${VPN_ENABLED}" == "yes" ]]; then
-		echo "[debug] VPN IP is ${vpn_ip}"
-	fi
-
-	sleep 30s
-
-done
+main "$@"
