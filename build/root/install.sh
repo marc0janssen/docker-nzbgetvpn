@@ -24,11 +24,20 @@ fi
 # pacman packages
 ####
 
+echo "[info] Updating pacman database..."
 # call pacman db and package updater script
 #source upd.sh
-yes | pacman -Syyu
+#yes | pacman -Syyu
+printf '%s\n' \
+  'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' \
+  'Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch' \
+  'Server = https://mirror.leaseweb.net/archlinux/$repo/os/$arch' \
+  > /etc/pacman.d/mirrorlist \
+  && pacman -Syyu --noconfirm
 
 
+
+echo "[info] Installing pacman packages..."
 # define pacman packages
 pacman_packages="git p7zip ipcalc unzip unrar python3 wget python-requests-oauthlib python-markdown python-decorator"
 
@@ -44,13 +53,17 @@ fi
 aur_packages=""
 
 # call aur install script (arch user repo)
-source aur.sh
+#echo "[info] Installing aur packages..."
+#source aur.sh
 
+
+echo "[info] Installing nzbget..."
 # install nzbget
 #wget -O /tmp/nzbget.run "https://github.com/nzbget/nzbget/releases/download/v${NZBGET_VERSION_DIR}/nzbget-${NZBGET_VERSION}-bin-linux.run"
 wget -O /tmp/nzbget.run "https://github.com/nzbgetcom/nzbget/releases/download/${NZBGET_VERSION_DIR}/nzbget-${NZBGET_VERSION}-bin-linux.run"
 sh /tmp/nzbget.run --destdir /usr/sbin/nzbget_bin
 ln -s /usr/sbin/nzbget_bin/nzbget /usr/sbin/nzbget
+
 
 # Install new certificate file
 wget -O /usr/sbin/nzbget_bin/cacert.pem https://nzbget.net/info/cacert.pem
