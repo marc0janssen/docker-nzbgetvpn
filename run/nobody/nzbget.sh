@@ -63,11 +63,20 @@ if [[ "${nzbget_running}" == "false" ]]; then
 
 	echo "[info] Waiting for Nzbget process to start listening on port 6789..."
 
+	retry_count=120
+	retry_wait=0.1
 	while [[ $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".6789\"") == "" ]]; do
-		sleep 0.1
+		retry_count=$((retry_count-1))
+		if [ "${retry_count}" -eq "0" ]; then
+			echo "[warn] Wait for nzbget port 6789 to listen aborted, too many retries"
+			break
+		fi
+		sleep "${retry_wait}s"
 	done
 
-	echo "[info] Nzbget process is listening on port 6789"
+	if [[ $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".6789\"") != "" ]]; then
+		echo "[info] Nzbget process is listening on port 6789"
+	fi
 
 fi
 

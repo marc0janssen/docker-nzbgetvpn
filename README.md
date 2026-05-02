@@ -1,215 +1,463 @@
 # NZBgetVPN
 
-## If you like to tip me.
-[Thanks for the tip!!](https://ko-fi.com/marc0janssen)
+Docker image for [NZBGet](https://github.com/nzbgetcom/nzbget) with OpenVPN, WireGuard, Privoxy and iptables leak protection.
 
-This version is a fork with the NZBGET updated to the latest version. I did this because I couldn't find a decent version that was upgraded to the latest version and also available on Docker Hub. This is not intended as a shameless copy of someone's work.
+This repository is a maintained fork-style image build. NZBGet itself is installed from the community-maintained `nzbgetcom/nzbget` releases because the original NZBGet project stopped being maintained.
 
-**[[ This build holds a fork of nzbget since the original maintainer stopped his work on NZBGET. The fork I'm using is from [nzbgetcom](https://github.com/nzbgetcom/nzbget) ]]**
-
+[Thanks for the tip!](https://ko-fi.com/marc0janssen)
 
 ## Versions
 
-[Vesion information](https://github.com/nzbgetcom/nzbget/releases)
+[NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260501
 
-## Application
+These two lines are intentionally kept in this exact format. The update scripts use them when bumping stable or testing releases.
 
-[Nzbget website](http://nzbget.com/)  
-[OpenVPN website](https://openvpn.net/)  
+## What This Image Includes
 
-## Description
+- NZBGet web UI on port `6789`
+- OpenVPN support
+- WireGuard support
+- Privoxy support on port `8118`
+- iptables rules to reduce IP leakage when the VPN tunnel is down
+- Config stored under `/config`
+- Downloads and NZBGet data stored under `/data`
+- Runtime UID/GID support through `PUID` and `PGID`
 
-NZBGet is a cross-platform binary newsgrabber for nzb files, written in C++. It supports client/server mode, automatic par-check/-repair, web-interface, command-line interface, etc. NZBGet requires low system resources and runs great on routers, NAS-devices and media players.
+Default NZBGet login:
 
-This Docker includes OpenVPN and WireGuard to ensure a secure and private connection to the Internet, including use of iptables to prevent IP leakage when the tunnel is down. It also includes Privoxy to allow unfiltered access to index sites, to use Privoxy please point your application at `http://<host ip>:8118`.
+- Username: `nzbget`
+- Password: `tegbzn6789`
 
-## Build notes
+Change these in NZBGet after first start.
 
-Latest stable NZBGet release from Arch Linux repo.
-Latest stable Privoxy release from Arch Linux repo.  
-Latest stable OpenVPN release from Arch Linux repo.  
-Latest stable WireGuard release from Arch Linux repo.
+## Image Tags
 
-## Usage
+Stable image:
 
-```shell
+```sh
+marc0janssen/nzbgetvpn:stable
+```
+
+Testing image:
+
+```sh
+marc0janssen/nzbgetvpn:testing
+```
+
+Versioned images are also pushed by the build scripts, for example:
+
+```sh
+marc0janssen/nzbgetvpn:26.1
+marc0janssen/nzbgetvpn:26.2-testing-20260501
+```
+
+## Quick Start
+
+OpenVPN example:
+
+```sh
 docker run -d \
-    --cap-add=NET_ADMIN \
-    -p 6789:6789 \
-    --name=<container name> \
-    -v <path for data files>:/data \
-    -v <path for config files>:/config \
-    -v /etc/localtime:/etc/localtime:ro \
-    -e VPN_ENABLED=<yes|no> \
-    -e VPN_USER=<vpn username> \
-    -e VPN_PASS=<vpn password> \
-    -e VPN_PROV=<pia|airvpn|custom> \
-    -e VPN_CLIENT=<openvpn|wireguard> \
-    -e VPN_OPTIONS=<additional openvpn cli options> \
-    -e STRICT_PORT_FORWARD=<yes|no> \
-    -e ENABLE_PRIVOXY=<yes|no> \
-    -e LAN_NETWORK=<lan ipv4 network>/<cidr notation> \
-    -e NAME_SERVERS=<name server ip(s)> \
-    -e ADDITIONAL_PORTS=<port number(s)> \
-    -e DEBUG=<true|false> \
-    -e UMASK=<umask for created files> \
-    -e PUID=<uid for user> \
-    -e PGID=<gid for user> \
-    marc0janssen/docker-nzbgetvpn:stable
+  --cap-add=NET_ADMIN \
+  --name=nzbgetvpn \
+  -p 6789:6789 \
+  -p 8118:8118 \
+  -v /path/to/config:/config \
+  -v /path/to/data:/data \
+  -v /etc/localtime:/etc/localtime:ro \
+  -e VPN_ENABLED=yes \
+  -e VPN_CLIENT=openvpn \
+  -e VPN_PROV=custom \
+  -e LAN_NETWORK=192.168.1.0/24 \
+  -e NAME_SERVERS=1.1.1.1,1.0.0.1 \
+  -e ENABLE_PRIVOXY=yes \
+  -e STRICT_PORT_FORWARD=no \
+  -e DEBUG=false \
+  -e UMASK=000 \
+  -e PUID=1000 \
+  -e PGID=1000 \
+  marc0janssen/nzbgetvpn:stable
 ```
 
-Please replace all user variables in the above command defined by <> with the correct values.
+WireGuard example:
 
-## Access NZBGet
-
-`http://<host ip>:6789`
-
-username:- nzbget
-password:- tegbzn6789
-
-## PIA provider
-
-PIA users will need to supply VPN_USER and VPN_PASS, optionally define VPN_REMOTE [list of gateways](https://www.privateinternetaccess.com/pages/client-support) if you wish to use another remote gateway other than the Netherlands.
-
-## PIA example
-
-```shell
+```sh
 docker run -d \
-    --cap-add=NET_ADMIN \
-    -p 6789:6789 \
-    --name=nzbgetvpn \
-    -v /root/docker/data:/data \
-    -v /root/docker/config:/config \
-    -v /etc/localtime:/etc/localtime:ro \
-    -e VPN_ENABLED=yes \
-    -e VPN_USER=myusername \
-    -e VPN_PASS=mypassword \
-    -e VPN_PROV=pia \
-    -e VPN_CLIENT=openvpn \
-    -e STRICT_PORT_FORWARD=no \
-    -e ENABLE_PRIVOXY=yes \
-    -e LAN_NETWORK=192.168.1.0/24 \
-    -e NAME_SERVERS=209.222.18.222,84.200.69.80,37.235.1.174,1.1.1.1,209.222.18.218,37.235.1.177,84.200.70.40,1.0.0.1 \
-    -e ADDITIONAL_PORTS=1234 \
-    -e DEBUG=false \
-    -e UMASK=000 \
-    -e PUID=0 \
-    -e PGID=0 \
-    marc0janssen/docker-nzbgetvpn:stable
+  --privileged=true \
+  --sysctl="net.ipv4.conf.all.src_valid_mark=1" \
+  --name=nzbgetvpn \
+  -p 6789:6789 \
+  -p 8118:8118 \
+  -v /path/to/config:/config \
+  -v /path/to/data:/data \
+  -v /etc/localtime:/etc/localtime:ro \
+  -e VPN_ENABLED=yes \
+  -e VPN_CLIENT=wireguard \
+  -e VPN_PROV=custom \
+  -e LAN_NETWORK=192.168.1.0/24 \
+  -e NAME_SERVERS=1.1.1.1,1.0.0.1 \
+  -e ENABLE_PRIVOXY=yes \
+  -e STRICT_PORT_FORWARD=no \
+  -e DEBUG=false \
+  -e UMASK=000 \
+  -e PUID=1000 \
+  -e PGID=1000 \
+  marc0janssen/nzbgetvpn:stable
 ```
 
-## AirVPN provider
+Access NZBGet at:
 
-AirVPN users will need to generate a unique OpenVPN configuration file by using the following [link](https://airvpn.org/generator/)
-
-1. Please select Linux and then choose the country you want to connect to
-2. Save the ovpn file to somewhere safe
-3. Start the nzbgetvpn docker to create the folder structure
-4. Stop nzbgetvpn docker and copy the saved ovpn file to the /config/openvpn/ folder on the host
-5. Start nzbgetvpn docker
-6. Check supervisor.log to make sure you are connected to the tunnel
-
-## AirVPN example
-
-```shell
-docker run -d \
-    --cap-add=NET_ADMIN \
-    -p 6789:6789 \
-    --name=nzbgetvpn \
-    -v /root/docker/data:/data \
-    -v /root/docker/config:/config \
-    -v /etc/localtime:/etc/localtime:ro \
-    -e VPN_ENABLED=yes \
-    -e VPN_PROV=airvpn \
-    -e VPN_CLIENT=openvpn \
-    -e ENABLE_PRIVOXY=yes \
-    -e LAN_NETWORK=192.168.1.0/24 \
-    -e NAME_SERVERS=209.222.18.222,84.200.69.80,37.235.1.174,1.1.1.1,209.222.18.218,37.235.1.177,84.200.70.40,1.0.0.1 \
-    -e ADDITIONAL_PORTS=1234 \
-    -e DEBUG=false \
-    -e UMASK=000 \
-    -e PUID=0 \
-    -e PGID=0 \
-    marc0janssen/docker-nzbgetvpn:stable
+```text
+http://<host-ip>:6789
 ```
 
-## OpenVPN
+Access Privoxy, when enabled, at:
 
-Please note this Docker image does not include the required OpenVPN configuration file and certificates. These will typically be downloaded from your VPN providers website (look for OpenVPN configuration files), and generally are zipped.
-
-PIA users - The URL to download the [OpenVPN](https://www.privateinternetaccess.com/openvpn/openvpn.zip) configuration files and certs is:-
-
-Once you have downloaded the zip (normally a zip as they contain multiple ovpn files) then extract it to /config/openvpn/ folder (if that folder doesn't exist then start and stop the docker container to force the creation of the folder).
-
-If there are multiple ovpn files then please delete the ones you don't want to use (normally filename follows location of the endpoint) leaving just a single ovpn file and the certificates referenced in the ovpn file (certificates will normally have a crt and/or pem extension).
-
-## WireGuard
-
-If you wish to use WireGuard (defined via 'VPN_CLIENT' env var value ) then due to the enhanced security and kernel integration WireGuard will require the container to be defined with privileged permissions and sysctl support, so please ensure you change the following docker options:-
-
-from
-
-```shell
-    --cap-add=NET_ADMIN \
+```text
+http://<host-ip>:8118
 ```
 
-to
+## Docker Compose
 
-```shell
-    --sysctl="net.ipv4.conf.all.src_valid_mark=1" \
-    --privileged=true \
-```
-
-PIA users - The WireGuard configuration file will be auto generated and will be stored in ```/config/wireguard/wg0.conf``` AFTER the first run, if you wish to change the endpoint you are connecting to then change the ```Endpoint``` line in the config file (default is Netherlands).
-
-Other users - Please download your WireGuard configuration file from your VPN provider, start and stop the container to generate the folder ```/config/wireguard/``` and then place your WireGuard configuration file in there.
-
-## Docker Compose Example
-
-```Docker
-version: "3"
+```yaml
 services:
-  nzbget:
-    container_name: nzbget
-    image: marc0janssen/docker-nzbgetvpn:stable
-    volumes:
-      - /root/docker/config:/config
-      - /root/docker/data:/data
+  nzbgetvpn:
+    image: marc0janssen/nzbgetvpn:stable
+    container_name: nzbgetvpn
+    cap_add:
+      - NET_ADMIN
     ports:
-      - 6789:6789/tcp
+      - "6789:6789/tcp"
+      - "8118:8118/tcp"
+    volumes:
+      - /path/to/config:/config
+      - /path/to/data:/data
+      - /etc/localtime:/etc/localtime:ro
     environment:
-      - STRICT_PORT_FORWARD=yes
-      - PGID=1000
-      - PUID=1000
-      - VPN_PROV=pia
-      - LAN_NETWORK=192.168.1.0/24
-      - NAME_SERVERS=209.222.18.222,37.235.1.174,1.1.1.1,8.8.8.8,209.222.18.218,37.235.1.177,1.0.0.1,8.8.4.4
-      - VPN_ENABLED=yes
-      - VPN_USER=xxxx
-      - VPN_PASS=xxxx
+      VPN_ENABLED: "yes"
+      VPN_CLIENT: "openvpn"
+      VPN_PROV: "custom"
+      LAN_NETWORK: "192.168.1.0/24"
+      NAME_SERVERS: "1.1.1.1,1.0.0.1"
+      ENABLE_PRIVOXY: "yes"
+      STRICT_PORT_FORWARD: "no"
+      DEBUG: "false"
+      UMASK: "000"
+      PUID: "1000"
+      PGID: "1000"
     restart: unless-stopped
 ```
 
+For WireGuard, replace `cap_add` with:
+
+```yaml
+privileged: true
+sysctls:
+  net.ipv4.conf.all.src_valid_mark: "1"
+```
+
+## Volumes
+
+`/config`
+
+Persistent application configuration. This is where OpenVPN and WireGuard configuration files live.
+
+`/data`
+
+NZBGet download directory and application data.
+
+## Environment Variables
+
+The image inherits most VPN behavior from the base VPN image. The table below documents the variables this repo expects, documents, or validates directly. Provider support can change when the base image changes.
+
+### Common Variables
+
+| Variable | Required | Allowed values / format | Example | Description |
+| --- | --- | --- | --- | --- |
+| `VPN_ENABLED` | Yes | `yes`, `no` | `yes` | Enables VPN handling. Use `no` only if you deliberately want NZBGet without VPN. |
+| `VPN_CLIENT` | Yes when VPN is enabled | `openvpn`, `wireguard` | `openvpn` | Selects the VPN client implementation. |
+| `VPN_PROV` | Yes when VPN is enabled | `pia`, `airvpn`, `custom`, `nordvpn`, or another provider supported by the base image | `custom` | Provider name consumed by the inherited VPN framework. |
+| `LAN_NETWORK` | Yes | IPv4 CIDR, comma-separated for multiple networks | `192.168.1.0/24` | LAN networks allowed to reach the container UI and local services. |
+| `NAME_SERVERS` | Recommended | IPv4 addresses, comma-separated | `1.1.1.1,1.0.0.1` | DNS servers used by the VPN framework. |
+| `ENABLE_PRIVOXY` | No | `yes`, `no` | `yes` | Enables Privoxy on port `8118`. |
+| `STRICT_PORT_FORWARD` | No | `yes`, `no` | `no` | Controls strict provider port-forward behavior where supported. |
+| `ADDITIONAL_PORTS` | No | TCP/UDP port numbers `1-65535`, comma-separated | `1234,5678` | Extra ports allowed through the firewall. |
+| `DEBUG` | No | `true`, `false` | `false` | Enables more verbose script logging. |
+| `UMASK` | No | 3 or 4 digit octal mask | `000`, `002`, `022` | File creation mask inside the container. |
+| `PUID` | No | Numeric user ID | `1000` | User ID for runtime file ownership. |
+| `PGID` | No | Numeric group ID | `1000` | Group ID for runtime file ownership. |
+
+### Provider Credentials And OpenVPN Options
+
+| Variable | Required | Allowed values / format | Example | Description |
+| --- | --- | --- | --- | --- |
+| `VPN_USER` | Provider-dependent | String | `my-user` | VPN username. Usually needed for providers such as PIA with username/password authentication. |
+| `VPN_PASS` | Provider-dependent | String | `my-password` | VPN password. |
+| `VPN_OPTIONS` | No | OpenVPN command-line options | `--pull-filter ignore redirect-gateway` | Extra options passed to OpenVPN. Only relevant for `VPN_CLIENT=openvpn`. |
+| `VPN_REMOTE` | Provider-dependent | Hostname or IP, sometimes comma-separated | `nl.example.vpn` | Optional remote endpoint override for providers that support it. |
+
+### Firewall And VPN Internals
+
+Most users do not need to set these directly. They are normally created by the inherited VPN framework, but they are documented because this repo validates or uses them in `run/root/iptable.sh`.
+
+| Variable | Usually set by | Allowed values / format | Example | Description |
+| --- | --- | --- | --- | --- |
+| `VPN_REMOTE_PORT` | VPN framework | Port numbers `1-65535`, comma-separated | `1198`, `51820` | Remote VPN endpoint ports allowed outside the tunnel. Startup stops if this is missing or invalid while firewall setup runs. |
+| `VPN_DEVICE_TYPE` | VPN framework | Linux interface name | `tun0`, `wg0` | VPN tunnel interface used for leak-protection iptables rules. |
+
+### Accepted Value Patterns
+
+| Kind | Format | Valid examples | Invalid examples |
+| --- | --- | --- | --- |
+| Boolean VPN toggles | `yes` or `no` | `yes`, `no` | `true`, `1`, `on` |
+| Debug toggle | `true` or `false` | `true`, `false` | `yes`, `1`, `on` |
+| IPv4 CIDR | `a.b.c.d/prefix` | `192.168.1.0/24`, `10.0.0.0/8` | `192.168.1.1`, `lan`, `192.168.1.0` |
+| CIDR list | comma-separated IPv4 CIDRs | `192.168.1.0/24,10.0.0.0/8` | `192.168.1.0/24,` |
+| DNS list | comma-separated IPv4 addresses | `1.1.1.1,1.0.0.1` | `https://1.1.1.1`, `cloudflare` |
+| Port | integer `1-65535` | `6789`, `8118`, `51820` | `0`, `65536`, `abc` |
+| Port list | comma-separated ports | `1234,5678` | `1234,`, `abc,5678` |
+| Interface | letters, numbers, `_`, `.`, `:`, `-` | `tun0`, `wg0`, `eth0` | `wg 0`, `;rm` |
+| UID/GID | numeric ID | `0`, `1000`, `568` | `user`, `abc` |
+| UMASK | octal mask | `000`, `002`, `022`, `0002` | `abc`, `999` |
+
+### Provider Examples
+
+| Provider | `VPN_PROV` | Typical `VPN_CLIENT` | Usually needs `VPN_USER` / `VPN_PASS` | Config files |
+| --- | --- | --- | --- | --- |
+| Custom OpenVPN provider | `custom` | `openvpn` | Depends on provider | Put one `.ovpn` profile in `/config/openvpn/`. |
+| Custom WireGuard provider | `custom` | `wireguard` | Usually no | Put `wg0.conf` in `/config/wireguard/`. |
+| Private Internet Access | `pia` | `openvpn` or `wireguard` | Yes for OpenVPN | OpenVPN profiles can be downloaded from PIA. WireGuard may be generated by the base image where supported. |
+| AirVPN | `airvpn` | `openvpn` | Usually profile/cert based | Generate a Linux OpenVPN profile from AirVPN and place it in `/config/openvpn/`. |
+| NordVPN | `nordvpn` | `wireguard` or `openvpn` | Provider/base-image dependent | Support depends on the inherited base image behavior. |
+
+Find your user and group IDs with:
+
+```sh
+id <username>
+```
+
+## OpenVPN Setup
+
+This image does not include provider-specific OpenVPN profiles or certificates.
+
+General flow:
+
+1. Start the container once so `/config` folders are created.
+2. Stop the container.
+3. Place one `.ovpn` profile plus its referenced certificate files in `/config/openvpn/`.
+4. Start the container again.
+5. Check Docker logs for VPN connection status.
+
+PIA users can download OpenVPN profiles from:
+
+[https://www.privateinternetaccess.com/openvpn/openvpn.zip](https://www.privateinternetaccess.com/openvpn/openvpn.zip)
+
+AirVPN users should generate a Linux profile from:
+
+[https://airvpn.org/generator/](https://airvpn.org/generator/)
+
+If a provider zip contains multiple `.ovpn` files, keep only the endpoint you want to use unless the base image documentation for that provider says otherwise.
+
+## WireGuard Setup
+
+WireGuard usually requires:
+
+```sh
+--privileged=true
+--sysctl="net.ipv4.conf.all.src_valid_mark=1"
+```
+
+General flow:
+
+1. Start the container once so `/config/wireguard/` is created.
+2. Stop the container.
+3. Place your WireGuard config at `/config/wireguard/wg0.conf`.
+4. Start the container again.
+
+At startup the container attempts to harden WireGuard config permissions:
+
+```sh
+chmod 600 /config/wireguard/*.conf
+```
+
+This prevents warnings such as:
+
+```text
+Warning: `/config/wireguard/wg0.conf' is world accessible
+```
+
+If your host mount prevents permission changes, fix it on the host:
+
+```sh
+chmod 600 /path/to/config/wireguard/wg0.conf
+```
+
+## Firewall Behavior
+
+The image applies iptables rules to limit traffic leakage when the VPN tunnel is down.
+
+Important details:
+
+- `LAN_NETWORK` must be a valid IPv4 CIDR, for example `192.168.1.0/24`.
+- `VPN_REMOTE_PORT` must contain valid ports.
+- `ADDITIONAL_PORTS`, when set, must contain valid ports.
+- `VPN_DEVICE_TYPE` must be a valid interface name.
+- Invalid firewall input now stops startup with a clear `[crit]` log line.
+
+The NZBGet web UI port `6789` is allowed on the Docker/LAN side. Tunnel traffic is allowed through the VPN interface.
+
+## Logging
+
+The supervisor config sends script stdout and stderr directly to Docker logs. This keeps logs readable:
+
+```text
+[info] Nzbget process started
+[warn] VPN IP not detected, VPN tunnel maybe down
+[crit] LAN_NETWORK is not set, exiting...
+```
+
+Supervisor may still emit its own lifecycle messages, but script output should no longer be wrapped in noisy `DEBG 'start-script' stdout output` prefixes.
+
+Use:
+
+```sh
+docker logs -f nzbgetvpn
+```
+
+## Building The Image
+
+Build stable with the currently pinned values from `Dockerfile`:
+
+```sh
+./build.sh
+```
+
+Build testing with the currently pinned values from `Dockerfile-testing`:
+
+```sh
+./build-testing.sh
+```
+
+Show help:
+
+```sh
+./build.sh --help
+./build-testing.sh --help
+```
+
+## Updating NZBGet Versions
+
+Stable release update:
+
+```sh
+./build.sh 26.2
+```
+
+This runs:
+
+```sh
+./scripts/update-stable.sh 26.2
+```
+
+The update script:
+
+- downloads the selected NZBGet release asset;
+- calculates its SHA256 hash;
+- downloads the NZBGet CA certificate store;
+- calculates its SHA256 hash;
+- updates `Dockerfile`;
+- updates the stable version line in this README;
+- then `build.sh` builds and pushes the image.
+
+Testing release update:
+
+```sh
+./build-testing.sh 26.2-testing-20260510
+```
+
+This runs:
+
+```sh
+./scripts/update-testing.sh 26.2-testing-20260510
+```
+
+The testing update script updates `Dockerfile-testing` and the testing version line in this README.
+
+You can also run the update scripts directly if you only want to update files without building:
+
+```sh
+./scripts/update-stable.sh 26.2
+./scripts/update-testing.sh 26.2-testing-20260510
+```
+
+Without an argument, the update scripts refresh hashes for the version already pinned in the relevant Dockerfile.
+
+## Download Verification
+
+The Docker build verifies downloaded files before installing them.
+
+`Dockerfile` and `Dockerfile-testing` contain:
+
+- `NZBGET_SHA256`
+- `NZBGET_CACERT_SHA256`
+
+During build, `build/root/install.sh` downloads the NZBGet installer and CA certificate file, then validates both with `sha256sum -c -`.
+
+If a hash does not match, the build stops. This is intentional.
+
+## Repository Layout
+
+```text
+.
+|-- Dockerfile
+|-- Dockerfile-testing
+|-- build.sh
+|-- build-testing.sh
+|-- build/
+|   |-- nzbget.conf
+|   `-- root/
+|       `-- install.sh
+|-- run/
+|   |-- nobody/
+|   |   |-- nzbget.sh
+|   |   `-- watchdog.sh
+|   `-- root/
+|       `-- iptable.sh
+`-- scripts/
+    |-- update-stable.sh
+    `-- update-testing.sh
+```
+
+## Troubleshooting
+
+`LAN_NETWORK is not set`
+
+Set a valid LAN CIDR:
+
+```sh
+-e LAN_NETWORK=192.168.1.0/24
+```
+
+`VPN_REMOTE_PORT is not set`
+
+The inherited VPN framework normally provides this. If you see this after a base image change, check the provider/client configuration and generated VPN env vars.
+
+`Nzbget process started` but port `6789` does not listen
+
+The startup script now waits with a retry limit instead of hanging forever. Check `/config/nzbget.conf` and Docker logs for NZBGet startup errors.
+
+`Warning: wg0.conf is world accessible`
+
+The container tries to fix this automatically with `chmod 600`. If the warning remains, fix permissions on the host-mounted file.
+
+`can't find command '/usr/local/bin/shutdown.sh'`
+
+The image installs a fallback shutdown script during build if the base image does not provide one.
+
 ## Notes
 
-Due to Google and OpenDNS supporting EDNS Client Subnet it is recommended NOT to use either of these NS providers.
-The list of default NS providers in the above example(s) is as follows:-
+DNS providers that support EDNS Client Subnet can expose more client-location metadata. Consider privacy-focused DNS servers instead of Google or OpenDNS if that matters for your setup.
 
-209.222.x.x = PIA
-84.200.x.x = DNS Watch
-37.235.x.x = FreeDNS
-1.x.x.x = Cloudflare
-
-User ID (PUID) and Group ID (PGID) can be found by issuing the following command for the user you want to run the container as:-
-
-`id <username>`
-
-The ADDITIONAL_PORTS environment variable is used to define ports that might be required for scripts run inside the container, if you want to define multiple ports then please use a comma to separate values.
-___
-
-If you appreciate my work, then please consider buying binhex a beer  :D. He definitely did most of the work building the framework for this container.
-
-[Support forum](http://lime-technology.com/forum/index.php?topic=38930)
+The original VPN container framework and much of the surrounding approach comes from binhex-style VPN containers. If you appreciate that work, please consider supporting the original maintainers too.

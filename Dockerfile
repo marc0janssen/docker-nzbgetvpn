@@ -3,6 +3,8 @@ FROM binhex/arch-int-vpn:latest
 
 ENV NZBGET_VERSION=26.1
 ENV NZBGET_VERSION_DIR=v26.1
+ENV NZBGET_SHA256=d91c3268adebc1ef826c28d591b143963b3ec559c1e9eb4a6e6dae503d34e769
+ENV NZBGET_CACERT_SHA256=491eedffee3a7abc1967031205d5c31c0d8de88783360b562e847b57ab94d50f
 
 # additional files
 ##################
@@ -24,9 +26,6 @@ ADD run/nobody/*.sh /home/nobody/
 
 # make executable and run bash scripts to install app
 RUN chmod +x /root/*.sh /home/nobody/*.sh && /bin/bash /root/install.sh
-
-# Replace default CA certificate store with updated one
-COPY build/cacert.pem /usr/sbin/nzbget_bin/
 
 # docker settings
 #################
