@@ -43,6 +43,10 @@ if [ "$#" -eq 1 ]; then
 fi
 
 VERSION=$(sed -n 's/^ENV NZBGET_VERSION=//p' ./Dockerfile)
+if [ -z "${VERSION}" ]; then
+	echo "Unable to read NZBGET_VERSION from Dockerfile" >&2
+	exit 1
+fi
 
 docker buildx build --no-cache --platform linux/amd64 --push -t marc0janssen/nzbgetvpn:${VERSION} -t marc0janssen/nzbgetvpn:stable -f ./Dockerfile .
 

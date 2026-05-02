@@ -1,42 +1,135 @@
 #!/bin/bash
 
+trim_value() {
+	echo "$1" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~'
+}
+
+is_valid_port() {
+	[[ "$1" =~ ^[0-9]+$ ]] && [[ "$1" -ge 1 && "$1" -le 65535 ]]
+}
+
+is_valid_interface_name() {
+	[[ "$1" =~ ^[[:alnum:]_.:-]+$ ]]
+}
+
+validate_cidr_list() {
+	local name="$1"
+	shift
+	local item
+
+	for item in "$@"; do
+		item=$(trim_value "${item}")
+		if [[ -z "${item}" ]]; then
+			echo "[crit] ${name} contains an empty network, exiting..." ; exit 1
+		fi
+		if ! [[ "${item}" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}/[0-9]{1,2}$ ]] || ! ipcalc "${item}" >/dev/null 2>&1; then
+			echo "[crit] ${name} contains invalid CIDR '${item}', exiting..." ; exit 1
+		fi
+	done
+}
+
+validate_port_list() {
+	local name="$1"
+	shift
+	local item
+
+	for item in "$@"; do
+		item=$(trim_value "${item}")
+		if ! is_valid_port "${item}"; then
+			echo "[crit] ${name} contains invalid port '${item}', exiting..." ; exit 1
+		fi
+	done
+}
+
+harden_wireguard_config_permissions() {
+	local conf_file
+	local wireguard_config_dir="/config/wireguard"
+
+	if [[ "${VPN_CLIENT:-}" != "wireguard" || ! -d "${wireguard_config_dir}" ]]; then
+		return
+	fi
+
+	shopt -s nullglob
+	for conf_file in "${wireguard_config_dir}"/*.conf; do
+		if [[ "${DEBUG}" == "true" ]]; then
+			echo "[debug] Setting secure permissions on '${conf_file}'"
+		fi
+		if ! chmod 600 "${conf_file}"; then
+			echo "[warn] Unable to set secure permissions on '${conf_file}'"
+		fi
+	done
+	shopt -u nullglob
+}
+
+harden_wireguard_config_permissions
+
 # identify docker bridge interface name by looking at defult route
 docker_interface=$(ip -4 route ls | grep default | xargs | grep -o -P '[^\s]+$')
+if [[ -z "${docker_interface}" ]] || ! is_valid_interface_name "${docker_interface}"; then
+	echo "[crit] Unable to identify a valid docker interface, exiting..." ; exit 1
+fi
 if [[ "${DEBUG}" == "true" ]]; then
 	echo "[debug] Docker interface defined as ${docker_interface}"
 fi
 
 # identify ip for local gateway (eth0)
 default_gateway=$(ip route show default | awk '/default/ {print $3}')
+if [[ -z "${default_gateway}" ]]; then
+	echo "[crit] Unable to identify default gateway, exiting..." ; exit 1
+fi
 echo "[info] Default route for container is ${default_gateway}"
 
 # identify ip for docker bridge interface
 docker_ip=$(ifconfig "${docker_interface}" | grep -P -o -m 1 '(?<=inet\s)[^\s]+')
+if [[ -z "${docker_ip}" ]]; then
+	echo "[crit] Unable to identify docker IP for ${docker_interface}, exiting..." ; exit 1
+fi
 if [[ "${DEBUG}" == "true" ]]; then
 	echo "[debug] Docker IP defined as ${docker_ip}"
 fi
 
 # identify netmask for docker bridge interface
 docker_mask=$(ifconfig "${docker_interface}" | grep -P -o -m 1 '(?<=netmask\s)[^\s]+')
+if [[ -z "${docker_mask}" ]]; then
+	echo "[crit] Unable to identify docker netmask for ${docker_interface}, exiting..." ; exit 1
+fi
 if [[ "${DEBUG}" == "true" ]]; then
 	echo "[debug] Docker netmask defined as ${docker_mask}"
 fi
 
 # convert netmask into cidr format
-docker_network_cidr=$(ipcalc "${docker_ip}" "${docker_mask}" | grep -P -o -m 1 "(?<=Network:)\s+[^\s]+")
+docker_network_cidr=$(trim_value "$(ipcalc "${docker_ip}" "${docker_mask}" | grep -P -o -m 1 "(?<=Network:)\s+[^\s]+")")
+if [[ -z "${docker_network_cidr}" ]]; then
+	echo "[crit] Unable to calculate docker network CIDR, exiting..." ; exit 1
+fi
 echo "[info] Docker network defined as ${docker_network_cidr}"
 
 # split comma separated string into list from LAN_NETWORK env variable
-IFS=',' read -ra lan_network_list <<< "${LAN_NETWORK}"
+IFS=',' read -ra lan_network_list <<< "${LAN_NETWORK:-}"
+if [[ -z "${LAN_NETWORK:-}" ]]; then
+	echo "[crit] LAN_NETWORK is not set, exiting..." ; exit 1
+fi
+validate_cidr_list "LAN_NETWORK" "${lan_network_list[@]}"
 
 # split comma separated string into array from VPN_REMOTE_PORT env var
-IFS=',' read -ra vpn_remote_port_list <<< "${VPN_REMOTE_PORT}"
+IFS=',' read -ra vpn_remote_port_list <<< "${VPN_REMOTE_PORT:-}"
+if [[ -z "${VPN_REMOTE_PORT:-}" ]]; then
+	echo "[crit] VPN_REMOTE_PORT is not set, exiting..." ; exit 1
+fi
+validate_port_list "VPN_REMOTE_PORT" "${vpn_remote_port_list[@]}"
 
 # split comma separated string into array for tcp and udp protocols (both required)
 IFS=',' read -ra vpn_remote_endpoint_protocol_list <<< "tcp,udp"
 
 # split comma separated string into list from ADDITIONAL_PORTS env variable
-IFS=',' read -ra additional_port_list <<< "${ADDITIONAL_PORTS}"
+IFS=',' read -ra additional_port_list <<< "${ADDITIONAL_PORTS:-}"
+if [[ ! -z "${ADDITIONAL_PORTS:-}" ]]; then
+	validate_port_list "ADDITIONAL_PORTS" "${additional_port_list[@]}"
+fi
+
+if [[ -z "${VPN_DEVICE_TYPE:-}" ]] || ! is_valid_interface_name "${VPN_DEVICE_TYPE}"; then
+	echo "[crit] VPN_DEVICE_TYPE is not set to a valid interface name, exiting..." ; exit 1
+fi
 
 # split comma separated string into array for tcp and udp protocols (both required)
 IFS=',' read -ra additional_port_protocol_list <<< "tcp,udp"

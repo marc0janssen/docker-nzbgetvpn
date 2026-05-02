@@ -66,6 +66,30 @@ fi
 wget -O /usr/sbin/nzbget_bin/cacert.pem https://nzbget.net/info/cacert.pem
 printf '%s  %s\n' "${NZBGET_CACERT_SHA256}" "/usr/sbin/nzbget_bin/cacert.pem" | sha256sum -c -
 
+if [[ ! -f /usr/local/bin/shutdown.sh ]]; then
+	echo "[info] Installing fallback shutdown script..."
+	cat <<'EOF' > /usr/local/bin/shutdown.sh
+#!/bin/bash
+
+application="${1:-}"
+
+shutdown() {
+	if [[ -n "${application}" ]]; then
+		echo "[info] Shutdown signal received, stopping '${application}'..."
+		pkill -x "${application}" 2>/dev/null || true
+	fi
+	exit 0
+}
+
+trap shutdown SIGTERM SIGINT
+
+while true; do
+	sleep 30
+done
+EOF
+	chmod +x /usr/local/bin/shutdown.sh
+fi
+
 # config
 ####
 
