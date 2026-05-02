@@ -27,7 +27,6 @@ fi
 echo "[info] Updating pacman database..."
 # call pacman db and package updater script
 #source upd.sh
-#yes | pacman -Syyu
 printf '%s\n' \
   'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' \
   'Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch' \
@@ -46,20 +45,9 @@ if [[ ! -z "${pacman_packages}" ]]; then
 	pacman -S --needed $pacman_packages --noconfirm
 fi
 
-# aur packages
-####
-
-# define aur packages
-aur_packages=""
-
-# call aur install script (arch user repo)
-#echo "[info] Installing aur packages..."
-#source aur.sh
-
 
 echo "[info] Installing nzbget..."
 # install nzbget
-#wget -O /tmp/nzbget.run "https://github.com/nzbget/nzbget/releases/download/v${NZBGET_VERSION_DIR}/nzbget-${NZBGET_VERSION}-bin-linux.run"
 wget -O /tmp/nzbget.run "https://github.com/nzbgetcom/nzbget/releases/download/${NZBGET_VERSION_DIR}/nzbget-${NZBGET_VERSION}-bin-linux.run"
 sh /tmp/nzbget.run --destdir /usr/sbin/nzbget_bin
 ln -s /usr/sbin/nzbget_bin/nzbget /usr/sbin/nzbget
