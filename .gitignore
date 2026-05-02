@@ -1,1 +1,36 @@
+# macOS
+.DS_Store
+
+# Editors
+.idea/
+.vscode/
+*.code-workspace
+
+# Local env and secrets
+.env
+.env.*
+*.ovpn
+*.conf.local
+*.key
+*.crt
+*.pem
+!build/*.conf
+
+# Local Docker/container notes and generated files
 nzbgetvpn_dockerrun.txt
+docker-compose.override.yml
+config/
+data/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+
+# Downloaded release artifacts
+*.run
+*.zip
+*.tar
+*.tar.gz

@@ -48,13 +48,23 @@ fi
 
 echo "[info] Installing nzbget..."
 # install nzbget
+if [[ -z "${NZBGET_SHA256}" ]]; then
+	echo "[crit] NZBGET_SHA256 is not set, refusing to install unverified NZBGet release" ; exit 1
+fi
+
 wget -O /tmp/nzbget.run "https://github.com/nzbgetcom/nzbget/releases/download/${NZBGET_VERSION_DIR}/nzbget-${NZBGET_VERSION}-bin-linux.run"
+printf '%s  %s\n' "${NZBGET_SHA256}" "/tmp/nzbget.run" | sha256sum -c -
 sh /tmp/nzbget.run --destdir /usr/sbin/nzbget_bin
 ln -s /usr/sbin/nzbget_bin/nzbget /usr/sbin/nzbget
 
 
 # Install new certificate file
+if [[ -z "${NZBGET_CACERT_SHA256}" ]]; then
+	echo "[crit] NZBGET_CACERT_SHA256 is not set, refusing to install unverified certificate store" ; exit 1
+fi
+
 wget -O /usr/sbin/nzbget_bin/cacert.pem https://nzbget.net/info/cacert.pem
+printf '%s  %s\n' "${NZBGET_CACERT_SHA256}" "/usr/sbin/nzbget_bin/cacert.pem" | sha256sum -c -
 
 # config
 ####
