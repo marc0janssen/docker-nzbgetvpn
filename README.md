@@ -170,23 +170,67 @@ NZBGet download directory and application data.
 
 ## Environment Variables
 
-| Variable | Required | Example | Description |
+The image inherits most VPN behavior from the base VPN image. The table below documents the variables this repo expects, documents, or validates directly. Provider support can change when the base image changes.
+
+### Common Variables
+
+| Variable | Required | Allowed values / format | Example | Description |
+| --- | --- | --- | --- | --- |
+| `VPN_ENABLED` | Yes | `yes`, `no` | `yes` | Enables VPN handling. Use `no` only if you deliberately want NZBGet without VPN. |
+| `VPN_CLIENT` | Yes when VPN is enabled | `openvpn`, `wireguard` | `openvpn` | Selects the VPN client implementation. |
+| `VPN_PROV` | Yes when VPN is enabled | `pia`, `airvpn`, `custom`, `nordvpn`, or another provider supported by the base image | `custom` | Provider name consumed by the inherited VPN framework. |
+| `LAN_NETWORK` | Yes | IPv4 CIDR, comma-separated for multiple networks | `192.168.1.0/24` | LAN networks allowed to reach the container UI and local services. |
+| `NAME_SERVERS` | Recommended | IPv4 addresses, comma-separated | `1.1.1.1,1.0.0.1` | DNS servers used by the VPN framework. |
+| `ENABLE_PRIVOXY` | No | `yes`, `no` | `yes` | Enables Privoxy on port `8118`. |
+| `STRICT_PORT_FORWARD` | No | `yes`, `no` | `no` | Controls strict provider port-forward behavior where supported. |
+| `ADDITIONAL_PORTS` | No | TCP/UDP port numbers `1-65535`, comma-separated | `1234,5678` | Extra ports allowed through the firewall. |
+| `DEBUG` | No | `true`, `false` | `false` | Enables more verbose script logging. |
+| `UMASK` | No | 3 or 4 digit octal mask | `000`, `002`, `022` | File creation mask inside the container. |
+| `PUID` | No | Numeric user ID | `1000` | User ID for runtime file ownership. |
+| `PGID` | No | Numeric group ID | `1000` | Group ID for runtime file ownership. |
+
+### Provider Credentials And OpenVPN Options
+
+| Variable | Required | Allowed values / format | Example | Description |
+| --- | --- | --- | --- | --- |
+| `VPN_USER` | Provider-dependent | String | `my-user` | VPN username. Usually needed for providers such as PIA with username/password authentication. |
+| `VPN_PASS` | Provider-dependent | String | `my-password` | VPN password. |
+| `VPN_OPTIONS` | No | OpenVPN command-line options | `--pull-filter ignore redirect-gateway` | Extra options passed to OpenVPN. Only relevant for `VPN_CLIENT=openvpn`. |
+| `VPN_REMOTE` | Provider-dependent | Hostname or IP, sometimes comma-separated | `nl.example.vpn` | Optional remote endpoint override for providers that support it. |
+
+### Firewall And VPN Internals
+
+Most users do not need to set these directly. They are normally created by the inherited VPN framework, but they are documented because this repo validates or uses them in `run/root/iptable.sh`.
+
+| Variable | Usually set by | Allowed values / format | Example | Description |
+| --- | --- | --- | --- | --- |
+| `VPN_REMOTE_PORT` | VPN framework | Port numbers `1-65535`, comma-separated | `1198`, `51820` | Remote VPN endpoint ports allowed outside the tunnel. Startup stops if this is missing or invalid while firewall setup runs. |
+| `VPN_DEVICE_TYPE` | VPN framework | Linux interface name | `tun0`, `wg0` | VPN tunnel interface used for leak-protection iptables rules. |
+
+### Accepted Value Patterns
+
+| Kind | Format | Valid examples | Invalid examples |
 | --- | --- | --- | --- |
-| `VPN_ENABLED` | Yes | `yes` | Enables VPN handling. Use `no` only if you deliberately want NZBGet without VPN. |
-| `VPN_CLIENT` | Yes when VPN is enabled | `openvpn` or `wireguard` | Selects VPN client. |
-| `VPN_PROV` | Yes when VPN is enabled | `pia`, `airvpn`, `custom`, `nordvpn` | Provider name consumed by the inherited VPN framework. Provider support depends on the base image. |
-| `VPN_USER` | Provider-dependent | `username` | VPN username, mainly for providers that support auth-based OpenVPN setup. |
-| `VPN_PASS` | Provider-dependent | `password` | VPN password. |
-| `VPN_OPTIONS` | No | `--pull-filter ignore redirect-gateway` | Extra OpenVPN CLI options. |
-| `STRICT_PORT_FORWARD` | No | `yes` or `no` | Controls strict provider port-forward behavior where supported. |
-| `ENABLE_PRIVOXY` | No | `yes` | Enables Privoxy on port `8118`. |
-| `LAN_NETWORK` | Yes | `192.168.1.0/24` | LAN networks allowed to reach the container UI. Multiple values can be comma-separated. |
-| `NAME_SERVERS` | Recommended | `1.1.1.1,1.0.0.1` | DNS servers used by the VPN framework. |
-| `ADDITIONAL_PORTS` | No | `1234,5678` | Extra ports allowed through the firewall. |
-| `DEBUG` | No | `false` | Set to `true` for more verbose logging. |
-| `UMASK` | No | `000` | File creation mask inside the container. |
-| `PUID` | No | `1000` | User ID for runtime file ownership. |
-| `PGID` | No | `1000` | Group ID for runtime file ownership. |
+| Boolean VPN toggles | `yes` or `no` | `yes`, `no` | `true`, `1`, `on` |
+| Debug toggle | `true` or `false` | `true`, `false` | `yes`, `1`, `on` |
+| IPv4 CIDR | `a.b.c.d/prefix` | `192.168.1.0/24`, `10.0.0.0/8` | `192.168.1.1`, `lan`, `192.168.1.0` |
+| CIDR list | comma-separated IPv4 CIDRs | `192.168.1.0/24,10.0.0.0/8` | `192.168.1.0/24,` |
+| DNS list | comma-separated IPv4 addresses | `1.1.1.1,1.0.0.1` | `https://1.1.1.1`, `cloudflare` |
+| Port | integer `1-65535` | `6789`, `8118`, `51820` | `0`, `65536`, `abc` |
+| Port list | comma-separated ports | `1234,5678` | `1234,`, `abc,5678` |
+| Interface | letters, numbers, `_`, `.`, `:`, `-` | `tun0`, `wg0`, `eth0` | `wg 0`, `;rm` |
+| UID/GID | numeric ID | `0`, `1000`, `568` | `user`, `abc` |
+| UMASK | octal mask | `000`, `002`, `022`, `0002` | `abc`, `999` |
+
+### Provider Examples
+
+| Provider | `VPN_PROV` | Typical `VPN_CLIENT` | Usually needs `VPN_USER` / `VPN_PASS` | Config files |
+| --- | --- | --- | --- | --- |
+| Custom OpenVPN provider | `custom` | `openvpn` | Depends on provider | Put one `.ovpn` profile in `/config/openvpn/`. |
+| Custom WireGuard provider | `custom` | `wireguard` | Usually no | Put `wg0.conf` in `/config/wireguard/`. |
+| Private Internet Access | `pia` | `openvpn` or `wireguard` | Yes for OpenVPN | OpenVPN profiles can be downloaded from PIA. WireGuard may be generated by the base image where supported. |
+| AirVPN | `airvpn` | `openvpn` | Usually profile/cert based | Generate a Linux OpenVPN profile from AirVPN and place it in `/config/openvpn/`. |
+| NordVPN | `nordvpn` | `wireguard` or `openvpn` | Provider/base-image dependent | Support depends on the inherited base image behavior. |
 
 Find your user and group IDs with:
 
