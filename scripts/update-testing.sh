@@ -12,8 +12,6 @@ VERSION="${1:-${CURRENT_VERSION}}"
 VERSION_DIR="testing"
 NZBGET_URL="https://github.com/nzbgetcom/nzbget/releases/download/${VERSION_DIR}/nzbget-${VERSION}-bin-linux.run"
 NZBGET_TMP="${TMP_DIR}/nzbget-${VERSION}-bin-linux.run"
-CACERT_URL="https://nzbget.net/info/cacert.pem"
-CACERT_TMP="${TMP_DIR}/nzbget-cacert.pem"
 
 sed_in_place() {
 	expression="$1"
@@ -40,16 +38,10 @@ echo "[info] Downloading NZBGet testing ${VERSION}..."
 curl -L --fail --silent --show-error -o "${NZBGET_TMP}" "${NZBGET_URL}"
 NZBGET_SHA256="$(sha256_file "${NZBGET_TMP}")"
 
-echo "[info] Downloading NZBGet certificate store..."
-curl -L --fail --silent --show-error -o "${CACERT_TMP}" "${CACERT_URL}"
-CACERT_SHA256="$(sha256_file "${CACERT_TMP}")"
-
 sed_in_place "s/^ENV NZBGET_VERSION=.*/ENV NZBGET_VERSION=${VERSION}/" "${DOCKERFILE}"
 sed_in_place "s/^ENV NZBGET_VERSION_DIR=.*/ENV NZBGET_VERSION_DIR=${VERSION_DIR}/" "${DOCKERFILE}"
 sed_in_place "s/^ENV NZBGET_SHA256=.*/ENV NZBGET_SHA256=${NZBGET_SHA256}/" "${DOCKERFILE}"
-sed_in_place "s/^ENV NZBGET_CACERT_SHA256=.*/ENV NZBGET_CACERT_SHA256=${CACERT_SHA256}/" "${DOCKERFILE}"
 sed_in_place "s/^\\* NZBGET Current testing version: .*/\\* NZBGET Current testing version: ${VERSION}/" "${README}"
 
 echo "[info] Updated ${DOCKERFILE}"
 echo "[info] NZBGET_SHA256=${NZBGET_SHA256}"
-echo "[info] NZBGET_CACERT_SHA256=${CACERT_SHA256}"

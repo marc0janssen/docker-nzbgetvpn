@@ -38,7 +38,7 @@ printf '%s\n' \
 
 echo "[info] Installing pacman packages..."
 # define pacman packages
-pacman_packages="git p7zip ipcalc unzip unrar python3 wget python-requests-oauthlib python-markdown python-decorator"
+pacman_packages="ca-certificates git p7zip ipcalc unzip unrar python3 wget python-requests-oauthlib python-markdown python-decorator"
 
 # install compiled packages using pacman
 if [[ ! -z "${pacman_packages}" ]]; then
@@ -56,15 +56,6 @@ wget -O /tmp/nzbget.run "https://github.com/nzbgetcom/nzbget/releases/download/$
 printf '%s  %s\n' "${NZBGET_SHA256}" "/tmp/nzbget.run" | sha256sum -c -
 sh /tmp/nzbget.run --destdir /usr/sbin/nzbget_bin
 ln -s /usr/sbin/nzbget_bin/nzbget /usr/sbin/nzbget
-
-
-# Install new certificate file
-if [[ -z "${NZBGET_CACERT_SHA256}" ]]; then
-	echo "[crit] NZBGET_CACERT_SHA256 is not set, refusing to install unverified certificate store" ; exit 1
-fi
-
-wget -O /usr/sbin/nzbget_bin/cacert.pem https://nzbget.net/info/cacert.pem
-printf '%s  %s\n' "${NZBGET_CACERT_SHA256}" "/usr/sbin/nzbget_bin/cacert.pem" | sha256sum -c -
 
 if [[ ! -f /usr/local/bin/shutdown.sh ]]; then
 	echo "[info] Installing fallback shutdown script..."

@@ -1,6 +1,7 @@
 #!/bin/bash
 
 CONFIG_DIR=/usr/sbin/nzbget_bin
+CA_CERT_STORE=/etc/ssl/certs/ca-certificates.crt
 
 if [[ ! -f /config/nzbget.conf ]]; then
 
@@ -19,8 +20,15 @@ else
 fi
 sed -i '/WebDir=*/ s/=.*/=${AppDir}\/webui/' /config/nzbget.conf
 sed -i  '/ConfigTemplate=*/ s/=.*/=${AppDir}\/webui\/nzbget.conf.template/' /config/nzbget.conf
-sed -i 's/^CertStore=$/CertStore=\/usr\/sbin\/nzbget_bin\/cacert.pem/g' /config/nzbget.conf
-sed -i 's/CertStore=\/etc\/ssl\/certs\/ca-certificates.crt/CertStore=\/usr\/sbin\/nzbget_bin\/cacert.pem/g' /config/nzbget.conf
+if [[ -f "${CA_CERT_STORE}" ]]; then
+	if grep -q '^CertStore=' /config/nzbget.conf; then
+		sed -i "s|^CertStore=.*|CertStore=${CA_CERT_STORE}|g" /config/nzbget.conf
+	else
+		printf '\nCertStore=%s\n' "${CA_CERT_STORE}" >> /config/nzbget.conf
+	fi
+else
+	echo "[warn] System CA certificate store '${CA_CERT_STORE}' not found; leaving NZBGet CertStore unchanged"
+fi
 
 if [[ "${nzbget_running}" == "false" ]]; then
 

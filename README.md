@@ -365,8 +365,6 @@ The update script:
 
 - downloads the selected NZBGet release asset;
 - calculates its SHA256 hash;
-- downloads the NZBGet CA certificate store;
-- calculates its SHA256 hash;
 - updates `Dockerfile`;
 - updates the stable version line in this README;
 - then `build.sh` builds and pushes the image.
@@ -401,11 +399,18 @@ The Docker build verifies downloaded files before installing them.
 `Dockerfile` and `Dockerfile-testing` contain:
 
 - `NZBGET_SHA256`
-- `NZBGET_CACERT_SHA256`
 
-During build, `build/root/install.sh` downloads the NZBGet installer and CA certificate file, then validates both with `sha256sum -c -`.
+During build, `build/root/install.sh` downloads the NZBGet installer and validates it with `sha256sum -c -`.
 
 If a hash does not match, the build stops. This is intentional.
+
+NZBGet certificate verification uses the system CA bundle from Arch:
+
+```text
+/etc/ssl/certs/ca-certificates.crt
+```
+
+That avoids relying on a separate vendored NZBGet `cacert.pem` file and keeps certificate issuers updated through the distro `ca-certificates` package.
 
 ## Repository Layout
 
