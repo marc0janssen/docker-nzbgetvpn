@@ -1,8 +1,8 @@
-# NZBgetVPN
+# NZBGetVPN
 
-Docker image for [NZBGet](https://github.com/nzbgetcom/nzbget) with OpenVPN, WireGuard, Privoxy and iptables leak protection.
+Docker image for [NZBGet](https://github.com/nzbgetcom/nzbget) with VPN leak protection, OpenVPN, WireGuard, Privoxy and optional user hooks.
 
-This repository is a maintained fork-style image build. NZBGet itself is installed from the community-maintained `nzbgetcom/nzbget` releases because the original NZBGet project stopped being maintained.
+This image builds on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn). That base image provides the VPN framework, firewall approach, provider handling, Privoxy/SOCKS support and most VPN recovery behavior. This repository adds NZBGet, stricter build verification, NZBGet startup handling, firewall input validation, readable logging, update scripts, and optional custom scripts for VPN unhealthy or scheduled maintenance events.
 
 [Thanks for the tip!](https://ko-fi.com/marc0janssen)
 
@@ -15,53 +15,36 @@ This repository is a maintained fork-style image build. NZBGet itself is install
 
 These two lines are intentionally kept in this exact format. The update scripts use them when bumping stable or testing releases.
 
-## What This Image Includes
-
-- NZBGet web UI on port `6789`
-- OpenVPN support
-- WireGuard support
-- Privoxy support on port `8118`
-- iptables rules to reduce IP leakage when the VPN tunnel is down
-- Config stored under `/config`
-- Downloads and NZBGet data stored under `/data`
-- Runtime UID/GID support through `PUID` and `PGID`
-
-Default NZBGet login:
-
-- Username: `nzbget`
-- Password: `tegbzn6789`
-
-Change these in NZBGet after first start.
-
 ## Image Tags
 
-Stable image:
+| Tag | Purpose |
+| --- | --- |
+| `marc0janssen/nzbgetvpn:stable` | Stable NZBGet release from `Dockerfile`. |
+| `marc0janssen/nzbgetvpn:testing` | Testing NZBGet release from `Dockerfile-testing`. |
+| `marc0janssen/nzbgetvpn:<version>` | Versioned image, for example `26.1` or `26.2-testing-20260501`. |
 
-```sh
-marc0janssen/nzbgetvpn:stable
-```
+## What Is Included
 
-Testing image:
-
-```sh
-marc0janssen/nzbgetvpn:testing
-```
-
-Versioned images are also pushed by the build scripts, for example:
-
-```sh
-marc0janssen/nzbgetvpn:26.1
-marc0janssen/nzbgetvpn:26.2-testing-20260501
-```
+| Component | Port / path | Notes |
+| --- | --- | --- |
+| NZBGet web UI | `6789/tcp` | Default login is `nzbget` / `tegbzn6789`. Change it after first start. |
+| Privoxy | `8118/tcp` | Inherited from the base image, enabled with `ENABLE_PRIVOXY=yes`. |
+| SOCKS proxy | Base-image controlled | Inherited from `binhex/arch-int-vpn`, enabled with `ENABLE_SOCKS=yes`. |
+| OpenVPN | `/config/openvpn/` | Put one `.ovpn` profile and its referenced files here. |
+| WireGuard | `/config/wireguard/` | Put one `.conf` profile here. The base image normalizes it to `wg0.conf`. |
+| NZBGet config | `/config/nzbget.conf` | Created on first start if missing. |
+| Downloads/data | `/data` | Main download and script storage volume. |
+| Leak protection | iptables | VPN, LAN and UI traffic are explicitly allowed; other traffic is dropped. |
 
 ## Quick Start
 
-OpenVPN example:
+OpenVPN:
 
 ```sh
 docker run -d \
-  --cap-add=NET_ADMIN \
   --name=nzbgetvpn \
+  --cap-add=NET_ADMIN \
+  --restart unless-stopped \
   -p 6789:6789 \
   -p 8118:8118 \
   -v /path/to/config:/config \
@@ -74,20 +57,20 @@ docker run -d \
   -e NAME_SERVERS=1.1.1.1,1.0.0.1 \
   -e ENABLE_PRIVOXY=yes \
   -e STRICT_PORT_FORWARD=no \
-  -e DEBUG=false \
   -e UMASK=000 \
   -e PUID=1000 \
   -e PGID=1000 \
   marc0janssen/nzbgetvpn:stable
 ```
 
-WireGuard example:
+WireGuard:
 
 ```sh
 docker run -d \
+  --name=nzbgetvpn \
   --privileged=true \
   --sysctl="net.ipv4.conf.all.src_valid_mark=1" \
-  --name=nzbgetvpn \
+  --restart unless-stopped \
   -p 6789:6789 \
   -p 8118:8118 \
   -v /path/to/config:/config \
@@ -100,20 +83,19 @@ docker run -d \
   -e NAME_SERVERS=1.1.1.1,1.0.0.1 \
   -e ENABLE_PRIVOXY=yes \
   -e STRICT_PORT_FORWARD=no \
-  -e DEBUG=false \
   -e UMASK=000 \
   -e PUID=1000 \
   -e PGID=1000 \
   marc0janssen/nzbgetvpn:stable
 ```
 
-Access NZBGet at:
+Open the NZBGet UI at:
 
 ```text
 http://<host-ip>:6789
 ```
 
-Access Privoxy, when enabled, at:
+When Privoxy is enabled, configure clients to use:
 
 ```text
 http://<host-ip>:8118
@@ -143,7 +125,6 @@ services:
       NAME_SERVERS: "1.1.1.1,1.0.0.1"
       ENABLE_PRIVOXY: "yes"
       STRICT_PORT_FORWARD: "no"
-      DEBUG: "false"
       UMASK: "000"
       PUID: "1000"
       PGID: "1000"
@@ -158,101 +139,7 @@ sysctls:
   net.ipv4.conf.all.src_valid_mark: "1"
 ```
 
-## Volumes
-
-`/config`
-
-Persistent application configuration. This is where OpenVPN and WireGuard configuration files live.
-
-`/data`
-
-NZBGet download directory and application data.
-
-## Environment Variables
-
-The image inherits most VPN behavior from the base VPN image. The table below documents the variables this repo expects, documents, or validates directly. Provider support can change when the base image changes.
-
-### Common Variables
-
-| Variable | Required | Allowed values / format | Example | Description |
-| --- | --- | --- | --- | --- |
-| `VPN_ENABLED` | Yes | `yes`, `no` | `yes` | Enables VPN handling. Use `no` only if you deliberately want NZBGet without VPN. |
-| `VPN_CLIENT` | Yes when VPN is enabled | `openvpn`, `wireguard` | `openvpn` | Selects the VPN client implementation. |
-| `VPN_PROV` | Yes when VPN is enabled | `pia`, `airvpn`, `custom`, `nordvpn`, or another provider supported by the base image | `custom` | Provider name consumed by the inherited VPN framework. |
-| `LAN_NETWORK` | Yes | IPv4 CIDR, comma-separated for multiple networks | `192.168.1.0/24` | LAN networks allowed to reach the container UI and local services. |
-| `NAME_SERVERS` | Recommended | IPv4 addresses, comma-separated | `1.1.1.1,1.0.0.1` | DNS servers used by the VPN framework. |
-| `ENABLE_PRIVOXY` | No | `yes`, `no` | `yes` | Enables Privoxy on port `8118`. |
-| `STRICT_PORT_FORWARD` | No | `yes`, `no` | `no` | Controls strict provider port-forward behavior where supported. |
-| `ADDITIONAL_PORTS` | No | TCP/UDP port numbers `1-65535`, comma-separated | `1234,5678` | Extra ports allowed through the firewall. |
-| `DEBUG` | No | `true`, `false` | `false` | Enables more verbose script logging. |
-| `UMASK` | No | 3 or 4 digit octal mask | `000`, `002`, `022` | File creation mask inside the container. |
-| `PUID` | No | Numeric user ID | `1000` | User ID for runtime file ownership. |
-| `PGID` | No | Numeric group ID | `1000` | Group ID for runtime file ownership. |
-
-### VPN Unhealthy Actions
-
-The base VPN image already handles normal OpenVPN and WireGuard reconnects. These variables add an optional application-level fallback in this image: if the VPN remains unhealthy for multiple watchdog checks, run a custom action.
-
-The watchdog runs every 30 seconds.
-
-| Variable | Required | Allowed values / format | Default | Description |
-| --- | --- | --- | --- | --- |
-| `VPN_UNHEALTHY_ACTION` | No | `none`, `script`, `script+exit`, `exit` | `none` | Action to run when VPN health checks keep failing. `none` keeps the default behavior. |
-| `VPN_UNHEALTHY_SCRIPT` | For `script` and `script+exit` | Executable path inside the container | unset | Script to run when `VPN_UNHEALTHY_ACTION=script` or `script+exit`. Example: `/config/scripts/vpn-unhealthy.sh`. |
-| `VPN_UNHEALTHY_AFTER` | No | Positive integer | `10` | Number of failed watchdog checks before triggering the action. With the 30 second watchdog interval, `10` is about 5 minutes. |
-| `VPN_UNHEALTHY_COOLDOWN` | No | Positive integer seconds, minimum `300` | `300` | Minimum seconds between repeated actions. Values below `300` are ignored and logged; the script uses `300` instead. |
-| `VPN_UNHEALTHY_EXIT_DELAY` | No | Positive integer seconds | `5` | Delay before exiting when `VPN_UNHEALTHY_ACTION=script+exit`. The exit only happens after the script finishes successfully. |
-| `VPN_UNHEALTHY_TEST` | No | `yes`, `no` | `no` | Testing switch. When set to `yes`, the watchdog pretends the VPN IP is missing so you can test unhealthy actions. |
-| `VPN_UNHEALTHY_SCRIPT_TIMEOUT` | No | Positive integer seconds | `300` | Maximum runtime for `VPN_UNHEALTHY_SCRIPT`. If the script exceeds this, it is stopped and logged as failed. |
-
-Example:
-
-```sh
--e VPN_UNHEALTHY_ACTION=script \
--e VPN_UNHEALTHY_SCRIPT=/config/scripts/vpn-unhealthy.sh \
--e VPN_UNHEALTHY_AFTER=10 \
--e VPN_UNHEALTHY_COOLDOWN=300
-```
-
-The custom script receives `VPN_UNHEALTHY_COUNT` in its environment.
-
-Use `script+exit` when Docker should restart the container after your custom script finishes:
-
-```sh
--e VPN_UNHEALTHY_ACTION=script+exit \
--e VPN_UNHEALTHY_SCRIPT=/config/scripts/vpn-unhealthy.sh \
--e VPN_UNHEALTHY_EXIT_DELAY=5
-```
-
-For `script+exit` to restart the container, start it with a Docker restart policy such as `--restart unless-stopped` or `restart: unless-stopped` in Compose.
-
-To test your unhealthy action without breaking the real VPN connection:
-
-```sh
--e VPN_UNHEALTHY_TEST=yes \
--e VPN_UNHEALTHY_AFTER=1
-```
-
-Remove `VPN_UNHEALTHY_TEST=yes` after testing. If you combine it with `script+exit` and a Docker restart policy, the container can intentionally restart in a loop until the test flag is removed.
-
-### Scheduled VPN Scripts
-
-You can run a custom script on a cron-style schedule from the existing watchdog loop. This does not start a separate cron daemon.
-
-| Variable | Required | Allowed values / format | Default | Description |
-| --- | --- | --- | --- | --- |
-| `VPN_CRON_SCHEDULE` | With `VPN_CRON_SCRIPT` | Five-field cron expression | unset | Schedule for the custom script. Supports `*`, lists, ranges and steps such as `*/5 * * * *`. |
-| `VPN_CRON_SCRIPT` | With `VPN_CRON_SCHEDULE` | Executable path inside the container | unset | Script to run when the schedule matches. Example: `/config/scripts/vpn-cron.sh`. |
-| `VPN_CRON_SCRIPT_TIMEOUT` | No | Positive integer seconds | `300` | Maximum runtime for `VPN_CRON_SCRIPT`. If the script exceeds this, it is stopped and logged as failed. |
-
-Example:
-
-```sh
--e VPN_CRON_SCHEDULE="*/15 * * * *" \
--e VPN_CRON_SCRIPT=/config/scripts/vpn-cron.sh
-```
-
-Docker Compose mapping form is recommended:
+Compose mapping form is recommended for values that contain spaces, especially cron schedules:
 
 ```yaml
 environment:
@@ -260,7 +147,7 @@ environment:
   VPN_CRON_SCRIPT: "/data/scripts/get_wireguard_configs_nordvpn.sh"
 ```
 
-If you use Compose list form, do not put quotes after `=`:
+If you use Compose list form, do not add quotes after `=`:
 
 ```yaml
 environment:
@@ -268,141 +155,256 @@ environment:
   - VPN_CRON_SCRIPT=/data/scripts/get_wireguard_configs_nordvpn.sh
 ```
 
-The watchdog checks the schedule every 30 seconds, before the blocking VPN health checks run, but a matching cron minute runs only once. The script receives `VPN_CRON_SCHEDULE` in its environment.
+## Volumes And Permissions
 
-### Provider Credentials And OpenVPN Options
+| Path | Required | Description |
+| --- | --- | --- |
+| `/config` | Yes | Persistent config, NZBGet config, OpenVPN profiles and WireGuard profiles. |
+| `/data` | Yes | Downloads, intermediate files and optional user scripts. |
+| `/etc/localtime:ro` | Recommended | Keeps container time aligned with the host. Useful for logs and cron-style schedules. |
 
-| Variable | Required | Allowed values / format | Example | Description |
-| --- | --- | --- | --- | --- |
-| `VPN_USER` | Provider-dependent | String | `my-user` | VPN username. Usually needed for providers such as PIA with username/password authentication. |
-| `VPN_PASS` | Provider-dependent | String | `my-password` | VPN password. |
-| `VPN_OPTIONS` | No | OpenVPN command-line options | `--pull-filter ignore redirect-gateway` | Extra options passed to OpenVPN. Only relevant for `VPN_CLIENT=openvpn`. |
-| `VPN_REMOTE` | Provider-dependent | Hostname or IP, sometimes comma-separated | `nl.example.vpn` | Optional remote endpoint override for providers that support it. |
-
-### Firewall And VPN Internals
-
-Most users do not need to set these directly. They are normally created by the inherited VPN framework, but they are documented because this repo validates or uses them in `run/root/iptable.sh`.
-
-| Variable | Usually set by | Allowed values / format | Example | Description |
-| --- | --- | --- | --- | --- |
-| `VPN_REMOTE_PORT` | VPN framework | Port numbers `1-65535`, comma-separated | `1198`, `51820` | Remote VPN endpoint ports allowed outside the tunnel. Startup stops if this is missing or invalid while firewall setup runs. |
-| `VPN_DEVICE_TYPE` | VPN framework | Linux interface name | `tun0`, `wg0` | VPN tunnel interface used for leak-protection iptables rules. |
-
-### Accepted Value Patterns
-
-| Kind | Format | Valid examples | Invalid examples |
-| --- | --- | --- | --- |
-| Boolean VPN toggles | `yes` or `no` | `yes`, `no` | `true`, `1`, `on` |
-| Debug toggle | `true` or `false` | `true`, `false` | `yes`, `1`, `on` |
-| IPv4 CIDR | `a.b.c.d/prefix` | `192.168.1.0/24`, `10.0.0.0/8` | `192.168.1.1`, `lan`, `192.168.1.0` |
-| CIDR list | comma-separated IPv4 CIDRs | `192.168.1.0/24,10.0.0.0/8` | `192.168.1.0/24,` |
-| DNS list | comma-separated IPv4 addresses | `1.1.1.1,1.0.0.1` | `https://1.1.1.1`, `cloudflare` |
-| Port | integer `1-65535` | `6789`, `8118`, `51820` | `0`, `65536`, `abc` |
-| Port list | comma-separated ports | `1234,5678` | `1234,`, `abc,5678` |
-| Cron schedule | five cron fields | `* * * * *`, `*/15 * * * *`, `0 3 * * *` | `@hourly`, `every 5 minutes` |
-| Timeout seconds | positive integer seconds | `60`, `300`, `900` | `0`, `abc` |
-| Cooldown seconds | integer, minimum `300` for `VPN_UNHEALTHY_COOLDOWN` | `300`, `900` | `0`, `60`, `abc` |
-| Interface | letters, numbers, `_`, `.`, `:`, `-` | `tun0`, `wg0`, `eth0` | `wg 0`, `;rm` |
-| UID/GID | numeric ID | `0`, `1000`, `568` | `user`, `abc` |
-| UMASK | octal mask | `000`, `002`, `022`, `0002` | `abc`, `999` |
-
-### Provider Examples
-
-| Provider | `VPN_PROV` | Typical `VPN_CLIENT` | Usually needs `VPN_USER` / `VPN_PASS` | Config files |
-| --- | --- | --- | --- | --- |
-| Custom OpenVPN provider | `custom` | `openvpn` | Depends on provider | Put one `.ovpn` profile in `/config/openvpn/`. |
-| Custom WireGuard provider | `custom` | `wireguard` | Usually no | Put `wg0.conf` in `/config/wireguard/`. |
-| Private Internet Access | `pia` | `openvpn` or `wireguard` | Yes for OpenVPN | OpenVPN profiles can be downloaded from PIA. WireGuard may be generated by the base image where supported. |
-| AirVPN | `airvpn` | `openvpn` | Usually profile/cert based | Generate a Linux OpenVPN profile from AirVPN and place it in `/config/openvpn/`. |
-| NordVPN | `nordvpn` | `wireguard` or `openvpn` | Provider/base-image dependent | Support depends on the inherited base image behavior. |
-
-Find your user and group IDs with:
+Runtime ownership is controlled with `PUID` and `PGID`. Find your host IDs with:
 
 ```sh
 id <username>
 ```
 
-## OpenVPN Setup
+## Base Image Capabilities
 
-This image does not include provider-specific OpenVPN profiles or certificates.
+The table below describes the important `binhex/arch-int-vpn` behavior this image inherits. Provider support can change when the base image changes, so pin and bump the base tag deliberately when reproducibility matters.
 
-General flow:
+| Capability | Provided by base image | How to use it here |
+| --- | --- | --- |
+| OpenVPN client | Yes | Set `VPN_CLIENT=openvpn` and place one `.ovpn` file in `/config/openvpn/`. |
+| WireGuard client | Yes | Set `VPN_CLIENT=wireguard` and place one `.conf` file in `/config/wireguard/`, unless the provider integration generates it. |
+| VPN reconnect/healing | Yes | OpenVPN runs in a reconnect loop. WireGuard is monitored and cycled when the peer disappears. |
+| iptables leak protection | Yes, extended here | The base image builds the VPN environment. This repo adds stricter input validation and NZBGet-specific port rules. |
+| Privoxy | Yes | Set `ENABLE_PRIVOXY=yes`, expose `8118/tcp`. |
+| SOCKS proxy | Yes | Set `ENABLE_SOCKS=yes`; optionally set `SOCKS_USER` and `SOCKS_PASS`. |
+| Provider support | Yes | Use `VPN_PROV` values supported by the base image, such as `pia`, `airvpn`, `custom`, `nordvpn` where available. |
+| PIA port forwarding | Yes | Controlled by base-image provider logic and `STRICT_PORT_FORWARD`. |
+| Startup scripts | Yes | Set `ENABLE_STARTUP_SCRIPTS=yes` and place shell scripts in `/config/scripts/`. |
+| Userspace WireGuard | Yes | Set `USERSPACE_WIREGUARD=yes` when kernel WireGuard is unavailable. |
+| Host networking | No | The base image rejects host network mode. Use bridge networking with exposed ports. |
 
-1. Start the container once so `/config` folders are created.
+## Environment Variables
+
+### Core Settings
+
+| Variable | Required | Values / format | Default | Description |
+| --- | --- | --- | --- | --- |
+| `VPN_ENABLED` | Usually | `yes`, `no` | Base-image controlled | Enables or disables VPN handling. Use `no` only when you deliberately want NZBGet without VPN. |
+| `VPN_CLIENT` | When VPN is enabled | `openvpn`, `wireguard` | `openvpn` if empty in the base image | Selects the VPN implementation. |
+| `VPN_PROV` | When VPN is enabled | Provider key | unset | Provider profile consumed by the base image. Common values include `custom`, `pia`, `airvpn`, `nordvpn`. |
+| `LAN_NETWORK` | When VPN is enabled | IPv4 CIDR list | unset | LAN networks allowed to reach local container services. Example: `192.168.1.0/24`. |
+| `NAME_SERVERS` | Recommended | IPv4 list | `1.1.1.1,1.0.0.1` in the base image | DNS servers used inside the VPN framework. |
+| `PUID` | No | Numeric UID | Base-image controlled | User ID for file ownership. |
+| `PGID` | No | Numeric GID | Base-image controlled | Group ID for file ownership. |
+| `UMASK` | No | Octal mask | Base-image controlled | File creation mask, for example `000`, `002`, `022`. |
+| `DEBUG` | No | `true`, `false` | `false` | Enables extra script output where supported. |
+
+### VPN Provider And Client Settings
+
+| Variable | Required | Values / format | Description |
+| --- | --- | --- | --- |
+| `VPN_USER` | Provider-dependent | String | VPN username. Not always needed for profile/certificate based setups. |
+| `VPN_PASS` | Provider-dependent | String | VPN password. |
+| `VPN_OPTIONS` | No | OpenVPN options | Extra options passed to OpenVPN. Only relevant for `VPN_CLIENT=openvpn`. |
+| `STRICT_PORT_FORWARD` | No | `yes`, `no` | Base-image port-forward behavior, mainly relevant for providers that support it, especially PIA. |
+| `USERSPACE_WIREGUARD` | No | `yes`, `no` | Uses userspace WireGuard when kernel WireGuard cannot be used. |
+| `ENABLE_STARTUP_SCRIPTS` | No | `yes`, `no` | Runs `/config/scripts/*.sh` during startup before the main app flow. |
+
+### Proxy Settings
+
+| Variable | Required | Values / format | Description |
+| --- | --- | --- | --- |
+| `ENABLE_PRIVOXY` | No | `yes`, `no` | Enables Privoxy on `8118/tcp`. |
+| `ENABLE_SOCKS` | No | `yes`, `no` | Enables the inherited SOCKS proxy. |
+| `SOCKS_USER` | No | String | Enables SOCKS authentication when set. If unset, SOCKS auth is disabled. |
+| `SOCKS_PASS` | No | String | SOCKS password. The base image defaults this to `socks` when `SOCKS_USER` is set and the password is empty. |
+
+### Firewall And Internal VPN Values
+
+Most users should not set these manually. They are usually derived from OpenVPN/WireGuard config by the base image, but this repo validates or consumes them in `run/root/iptable.sh`.
+
+| Variable | Usually set by | Values / format | Description |
+| --- | --- | --- | --- |
+| `VPN_REMOTE_SERVER` | Base image | Hostname or IP | VPN endpoint host. |
+| `VPN_REMOTE_PORT` | Base image | Port list | VPN endpoint ports allowed outside the tunnel. Startup fails if missing or invalid during firewall setup. |
+| `VPN_REMOTE_PROTOCOL` | Base image | `udp`, `tcp`, `tcp-client` | VPN endpoint protocol. |
+| `VPN_DEVICE_TYPE` | Base image | Interface name | Tunnel interface such as `tun0` or `wg0`. |
+| `VPN_CONFIG` | Base image | Path | Generated or normalized VPN config path. |
+| `VPN_INPUT_PORTS` | Base image | Port list | Additional incoming ports supported by the base image. Prefer this over `ADDITIONAL_PORTS` for new setups. |
+| `VPN_OUTPUT_PORTS` | Base image | Port list | Additional outgoing ports supported by the base image. |
+| `ADDITIONAL_PORTS` | This repo / legacy | Port list | Extra TCP and UDP ports allowed through this repo's firewall script. Kept for compatibility. |
+
+### VPN Unhealthy Actions
+
+Normal VPN auto-healing comes from the base image. These variables add an extra fallback in this image: if the watchdog cannot see a VPN IP for several checks, it can run your own script, exit the container, or do both.
+
+The watchdog loop runs every 30 seconds.
+
+| Variable | Required | Values / format | Default | Description |
+| --- | --- | --- | --- | --- |
+| `VPN_UNHEALTHY_ACTION` | No | `none`, `script`, `script+exit`, `exit` | `none` | Action when VPN health keeps failing. |
+| `VPN_UNHEALTHY_SCRIPT` | For `script` / `script+exit` | Executable path | unset | Script to run when the unhealthy action needs a script. |
+| `VPN_UNHEALTHY_AFTER` | No | Positive integer | `10` | Number of failed watchdog checks before action. `10` is about 5 minutes. |
+| `VPN_UNHEALTHY_COOLDOWN` | No | Positive integer seconds | `300` | Minimum time between repeated actions. Values below `300` are raised to `300` and logged. |
+| `VPN_UNHEALTHY_EXIT_DELAY` | No | Positive integer seconds | `5` | Delay before exit when `VPN_UNHEALTHY_ACTION=script+exit`. Exit only happens after the script succeeds. |
+| `VPN_UNHEALTHY_SCRIPT_TIMEOUT` | No | Positive integer seconds | `300` | Maximum runtime for the custom script when `timeout` is available. |
+| `VPN_UNHEALTHY_TEST` | No | `yes`, `no` | `no` | Makes the watchdog pretend the VPN IP is missing so you can test the action. |
+
+Example:
+
+```sh
+-e VPN_UNHEALTHY_ACTION=script+exit \
+-e VPN_UNHEALTHY_SCRIPT=/config/scripts/vpn-unhealthy.sh \
+-e VPN_UNHEALTHY_AFTER=10 \
+-e VPN_UNHEALTHY_COOLDOWN=300 \
+-e VPN_UNHEALTHY_EXIT_DELAY=5
+```
+
+The script receives `VPN_UNHEALTHY_COUNT` in its environment. If the script is missing, not executable, fails, or times out, this is logged and the container keeps running. For `script+exit`, the container exits only after the script finishes successfully. Use a Docker restart policy if you want Docker to start it again.
+
+Testing:
+
+```sh
+-e VPN_UNHEALTHY_TEST=yes \
+-e VPN_UNHEALTHY_AFTER=1
+```
+
+Remove `VPN_UNHEALTHY_TEST=yes` after testing. With `script+exit` and `restart: unless-stopped`, this can intentionally restart repeatedly until the test flag is removed.
+
+### Scheduled VPN Scripts
+
+`VPN_CRON_*` runs a custom script from the existing watchdog loop. It is cron-style scheduling without a separate cron daemon.
+
+| Variable | Required | Values / format | Default | Description |
+| --- | --- | --- | --- | --- |
+| `VPN_CRON_SCHEDULE` | With `VPN_CRON_SCRIPT` | Five-field cron expression | unset | Supports `*`, lists, ranges and steps, for example `*/5 * * * *`. |
+| `VPN_CRON_SCRIPT` | With `VPN_CRON_SCHEDULE` | Executable path | unset | Script to run when the schedule matches. |
+| `VPN_CRON_SCRIPT_TIMEOUT` | No | Positive integer seconds | `300` | Maximum runtime for the script when `timeout` is available. |
+
+Example:
+
+```yaml
+environment:
+  VPN_CRON_SCHEDULE: "*/5 * * * *"
+  VPN_CRON_SCRIPT: "/data/scripts/get_wireguard_configs_nordvpn.sh"
+  VPN_CRON_SCRIPT_TIMEOUT: "300"
+```
+
+The watchdog checks the schedule every 30 seconds, before the blocking VPN checks run. A matching cron minute runs only once. The script receives `VPN_CRON_SCHEDULE` in its environment. If the schedule or script is incomplete, missing, not executable, failed, or timed out, the error is logged and the container keeps running.
+
+## Accepted Value Patterns
+
+| Kind | Valid examples | Invalid examples |
+| --- | --- | --- |
+| `yes` / `no` toggle | `yes`, `no` | `true`, `1`, `on` |
+| Debug toggle | `true`, `false` | `yes`, `1`, `on` |
+| IPv4 CIDR | `192.168.1.0/24`, `10.0.0.0/8` | `192.168.1.1`, `lan`, `192.168.1.0` |
+| CIDR list | `192.168.1.0/24,10.0.0.0/8` | `192.168.1.0/24,` |
+| DNS list | `1.1.1.1,1.0.0.1` | `https://1.1.1.1`, `cloudflare` |
+| Port | `6789`, `8118`, `51820` | `0`, `65536`, `abc` |
+| Port list | `1234,5678` | `1234,`, `abc,5678` |
+| Cron schedule | `* * * * *`, `*/15 * * * *`, `0 3 * * *` | `@hourly`, `every 5 minutes` |
+| Timeout/cooldown | `60`, `300`, `900` | `0`, `abc` |
+| Interface name | `tun0`, `wg0`, `eth0` | `wg 0`, `;rm` |
+| UID/GID | `0`, `1000`, `568` | `user`, `abc` |
+| UMASK | `000`, `002`, `022`, `0002` | `abc`, `999` |
+
+## Provider Setup
+
+### OpenVPN
+
+1. Start the container once so `/config/openvpn/` is created.
 2. Stop the container.
-3. Place one `.ovpn` profile plus its referenced certificate files in `/config/openvpn/`.
+3. Place one `.ovpn` profile and all referenced certificate/key files in `/config/openvpn/`.
 4. Start the container again.
-5. Check Docker logs for VPN connection status.
+5. Watch `docker logs -f nzbgetvpn`.
 
-PIA users can download OpenVPN profiles from:
+The base image finds the first `.ovpn` file, converts CRLF line endings, parses the remote server, port, protocol and interface, then starts OpenVPN. If the profile omits a port, the base image defaults to `1194`. If it omits a protocol, it defaults to `udp`.
+
+PIA OpenVPN profiles:
 
 [https://www.privateinternetaccess.com/openvpn/openvpn.zip](https://www.privateinternetaccess.com/openvpn/openvpn.zip)
 
-AirVPN users should generate a Linux profile from:
+AirVPN profile generator:
 
 [https://airvpn.org/generator/](https://airvpn.org/generator/)
 
-If a provider zip contains multiple `.ovpn` files, keep only the endpoint you want to use unless the base image documentation for that provider says otherwise.
+### WireGuard
 
-## WireGuard Setup
+WireGuard usually needs:
 
-WireGuard usually requires:
-
-```sh
---privileged=true
---sysctl="net.ipv4.conf.all.src_valid_mark=1"
+```yaml
+privileged: true
+sysctls:
+  net.ipv4.conf.all.src_valid_mark: "1"
 ```
 
 General flow:
 
 1. Start the container once so `/config/wireguard/` is created.
 2. Stop the container.
-3. Place your WireGuard config at `/config/wireguard/wg0.conf`.
+3. Place one WireGuard `.conf` file in `/config/wireguard/`.
 4. Start the container again.
 
-At startup the container attempts to harden WireGuard config permissions:
+The base image finds the first `.conf` file and normalizes it to `/config/wireguard/wg0.conf`. For custom/non-PIA WireGuard setups, the config should contain an `Endpoint = host:port` line. This repo attempts to harden WireGuard config permissions on startup:
 
 ```sh
 chmod 600 /config/wireguard/*.conf
 ```
 
-This prevents warnings such as:
+That prevents:
 
 ```text
 Warning: `/config/wireguard/wg0.conf' is world accessible
 ```
 
-If your host mount prevents permission changes, fix it on the host:
+If your bind mount blocks permission changes, fix the file on the host:
 
 ```sh
 chmod 600 /path/to/config/wireguard/wg0.conf
 ```
 
+## Auto-Healing
+
+There are two layers:
+
+| Layer | What it does |
+| --- | --- |
+| `binhex/arch-int-vpn` | Handles the actual VPN lifecycle. OpenVPN runs in a reconnect loop. WireGuard is checked and cycled when the peer/interface is missing. DNS, port and tunnel failures can trigger the base image to recover the VPN. |
+| This repository | Starts and watches NZBGet/Privoxy, waits for NZBGet port `6789`, validates firewall inputs, and optionally runs `VPN_UNHEALTHY_*` or `VPN_CRON_*` scripts. |
+
+If your custom unhealthy script replaces a WireGuard config file, the base image will usually only pick it up after WireGuard is cycled or the container restarts. Use `VPN_UNHEALTHY_ACTION=script+exit` together with `restart: unless-stopped` when you want a clean restart after generating a new config.
+
 ## Firewall Behavior
 
-The image applies iptables rules to limit traffic leakage when the VPN tunnel is down.
+This image applies iptables rules to reduce leakage when the VPN tunnel is down.
 
-Important details:
+Important rules and checks:
 
-- `LAN_NETWORK` must be a valid IPv4 CIDR, for example `192.168.1.0/24`.
-- `VPN_REMOTE_PORT` must contain valid ports.
-- `ADDITIONAL_PORTS`, when set, must contain valid ports.
-- `VPN_DEVICE_TYPE` must be a valid interface name.
-- Invalid firewall input now stops startup with a clear `[crit]` log line.
-
-The NZBGet web UI port `6789` is allowed on the Docker/LAN side. Tunnel traffic is allowed through the VPN interface.
+| Item | Behavior |
+| --- | --- |
+| `LAN_NETWORK` | Must be valid IPv4 CIDR. Invalid values stop startup with a `[crit]` message. |
+| `VPN_REMOTE_PORT` | Must contain valid ports. It is normally parsed by the base image. |
+| `VPN_DEVICE_TYPE` | Must be a valid interface name, for example `tun0` or `wg0`. |
+| `ADDITIONAL_PORTS` | Optional compatibility list for extra TCP/UDP ports. Invalid ports stop startup. |
+| NZBGet UI | Port `6789/tcp` is allowed from the Docker/LAN side. |
+| Privoxy | LAN access is allowed when `ENABLE_PRIVOXY=yes`. |
+| Default policy | IPv4/IPv6 input, forward and output default to drop, then explicit allow rules are added. |
 
 ## Logging
 
-The supervisor config sends script stdout and stderr directly to Docker logs. This keeps logs readable:
+The supervisor config sends script stdout and stderr directly to Docker logs. Script output should look like:
 
 ```text
 [info] Nzbget process started
+[info] VPN_CRON_SCHEDULE '*/5 * * * *' matched, running '/data/scripts/get_wireguard_configs_nordvpn.sh'
 [warn] VPN IP not detected, VPN tunnel maybe down
 [crit] LAN_NETWORK is not set, exiting...
 ```
-
-Supervisor may still emit its own lifecycle messages, but script output should no longer be wrapped in noisy `DEBG 'start-script' stdout output` prefixes.
 
 Use:
 
@@ -410,139 +412,78 @@ Use:
 docker logs -f nzbgetvpn
 ```
 
-## Building The Image
+Supervisor can still emit its own lifecycle lines, but application script output is kept human-readable.
 
-Build stable with the currently pinned values from `Dockerfile`:
+## Build And Update Workflow
 
-```sh
-./build.sh
-```
+The build scripts are safe by default: without arguments they build the values already pinned in the Dockerfiles.
 
-Build testing with the currently pinned values from `Dockerfile-testing`:
+| Command | Result |
+| --- | --- |
+| `./build.sh` | Build and push stable using the currently pinned `Dockerfile` values. |
+| `./build-testing.sh` | Build and push testing using the currently pinned `Dockerfile-testing` values. |
+| `./build.sh 26.2` | Update stable NZBGet version, SHA256 and README version line, then build/push. |
+| `./build-testing.sh 26.2-testing-20260510` | Update testing NZBGet version, SHA256 and README version line, then build/push. |
+| `./build.sh newest` | Resolve newest stable NZBGet release, update files, then build/push. |
+| `./build-testing.sh newest` | Resolve newest testing release asset, update files, then build/push. |
+| `./build.sh --base newest` | Resolve newest numeric `binhex/arch-int-vpn` tag, update `Dockerfile`, then build/push. |
+| `./build-testing.sh --base newest` | Resolve newest numeric base tag, update `Dockerfile-testing`, then build/push. |
+| `./build.sh newest --base newest` | Update both NZBGet stable and the base image before building. |
+| `./build-testing.sh newest --base newest` | Update both NZBGet testing and the base image before building. |
 
-```sh
-./build-testing.sh
-```
-
-Show help:
+Help:
 
 ```sh
 ./build.sh --help
 ./build-testing.sh --help
 ```
 
-Look up the newest upstream version before building:
+Direct update scripts live in `scripts/`:
 
-```sh
-./build.sh newest
-./build-testing.sh newest
+| Script | Purpose |
+| --- | --- |
+| `scripts/latest-nzbget-version.sh stable` | Print newest stable NZBGet version from GitHub releases. |
+| `scripts/latest-nzbget-version.sh testing` | Print newest testing NZBGet version from the `testing` release asset. |
+| `scripts/latest-binhex-base-tag.sh` | Print newest numeric `binhex/arch-int-vpn` Docker Hub tag. |
+| `scripts/update-stable.sh <version>` | Update stable Dockerfile/README/SHA256 without building. |
+| `scripts/update-testing.sh <version>` | Update testing Dockerfile/README/SHA256 without building. |
+| `scripts/update-base-image.sh <Dockerfile> <tag\|newest>` | Update the base image tag in a Dockerfile. |
+
+## Download Verification And TLS
+
+The Docker build verifies the NZBGet installer before installing it.
+
+| Value | Location | Purpose |
+| --- | --- | --- |
+| `NZBGET_VERSION` | `Dockerfile`, `Dockerfile-testing` | NZBGet version to install. |
+| `NZBGET_VERSION_DIR` | `Dockerfile`, `Dockerfile-testing` | GitHub release directory, for example `v26.1` or `testing`. |
+| `NZBGET_SHA256` | `Dockerfile`, `Dockerfile-testing` | Expected SHA256 of the downloaded Linux installer. |
+
+During build, `build/root/install.sh` downloads:
+
+```text
+https://github.com/nzbgetcom/nzbget/releases/download/<release-dir>/nzbget-<version>-bin-linux.run
 ```
 
-Look up and pin the newest `binhex/arch-int-vpn` base image tag before building:
+Then it verifies the file with:
 
 ```sh
-./build.sh --base newest
-./build-testing.sh --base newest
+sha256sum -c -
 ```
 
-You can combine both lookups:
+If the checksum does not match, the build stops.
 
-```sh
-./build.sh newest --base newest
-./build-testing.sh newest --base newest
-```
-
-Normal builds without arguments do not call GitHub or Docker Hub and keep using the pinned values from the Dockerfiles.
-
-## Updating NZBGet Versions
-
-Stable release update:
-
-```sh
-./build.sh 26.2
-```
-
-This runs:
-
-```sh
-./scripts/update-stable.sh 26.2
-```
-
-The update script:
-
-- downloads the selected NZBGet release asset;
-- calculates its SHA256 hash;
-- updates `Dockerfile`;
-- updates the stable version line in this README;
-- then `build.sh` builds and pushes the image.
-
-To ask GitHub for the newest stable release automatically:
-
-```sh
-./build.sh newest
-```
-
-This resolves the latest stable release from `nzbgetcom/nzbget`, then runs the same update/build flow.
-
-Base image update:
-
-```sh
-./build.sh --base 2026032801
-./build-testing.sh --base newest
-```
-
-This updates the `FROM binhex/arch-int-vpn:<tag>` line in the relevant Dockerfile before building. Use `newest` to query Docker Hub for the newest numeric `binhex/arch-int-vpn` tag.
-
-Testing release update:
-
-```sh
-./build-testing.sh 26.2-testing-20260510
-```
-
-This runs:
-
-```sh
-./scripts/update-testing.sh 26.2-testing-20260510
-```
-
-The testing update script updates `Dockerfile-testing` and the testing version line in this README.
-
-To ask GitHub for the newest testing build automatically:
-
-```sh
-./build-testing.sh newest
-```
-
-This reads the `testing` release assets from `nzbgetcom/nzbget` and extracts the `nzbget-*-bin-linux.run` version.
-
-You can also run the update scripts directly if you only want to update files without building:
-
-```sh
-./scripts/update-stable.sh 26.2
-./scripts/update-testing.sh 26.2-testing-20260510
-```
-
-Without an argument, the update scripts refresh hashes for the version already pinned in the relevant Dockerfile.
-
-## Download Verification
-
-The Docker build verifies downloaded files before installing them.
-
-`Dockerfile` and `Dockerfile-testing` contain:
-
-- `NZBGET_SHA256`
-
-During build, `build/root/install.sh` downloads the NZBGet installer and validates it with `sha256sum -c -`.
-
-If a hash does not match, the build stops. This is intentional.
-
-NZBGet certificate verification uses the system CA bundle from Arch:
+NZBGet certificate verification uses the Arch Linux system CA bundle:
 
 ```text
 /etc/ssl/certs/ca-certificates.crt
 ```
 
-That avoids relying on a separate vendored NZBGet `cacert.pem` file and keeps certificate issuers updated through the distro `ca-certificates` package.
+`run/nobody/nzbget.sh` updates `CertStore` in `/config/nzbget.conf` when the system CA bundle is present. This helps with errors such as:
+
+```text
+TLS certificate verification failed: unable to get local issuer certificate
+```
 
 ## Repository Layout
 
@@ -572,32 +513,19 @@ That avoids relying on a separate vendored NZBGet `cacert.pem` file and keeps ce
 
 ## Troubleshooting
 
-`LAN_NETWORK is not set`
-
-Set a valid LAN CIDR:
-
-```sh
--e LAN_NETWORK=192.168.1.0/24
-```
-
-`VPN_REMOTE_PORT is not set`
-
-The inherited VPN framework normally provides this. If you see this after a base image change, check the provider/client configuration and generated VPN env vars.
-
-`Nzbget process started` but port `6789` does not listen
-
-The startup script now waits with a retry limit instead of hanging forever. Check `/config/nzbget.conf` and Docker logs for NZBGet startup errors.
-
-`Warning: wg0.conf is world accessible`
-
-The container tries to fix this automatically with `chmod 600`. If the warning remains, fix permissions on the host-mounted file.
-
-`can't find command '/usr/local/bin/shutdown.sh'`
-
-The image installs a fallback shutdown script during build if the base image does not provide one.
+| Log / symptom | What to check |
+| --- | --- |
+| `LAN_NETWORK is not set` | Set a valid LAN CIDR, for example `LAN_NETWORK=192.168.1.0/24`. |
+| `VPN_REMOTE_PORT is not set` | The base image normally parses this from the VPN config. Check provider/client config and endpoint lines. |
+| `Nzbget process started` but port `6789` does not listen | Check `/config/nzbget.conf` and Docker logs. Startup now has a retry limit instead of hanging forever. |
+| `wg0.conf is world accessible` | The container tries `chmod 600`. If the warning remains, fix the host-mounted file permissions. |
+| `can't find command '/usr/local/bin/shutdown.sh'` | This image installs a fallback script during build; rebuild if you still see this on an old image. |
+| `VPN_CRON_SCHEDULE` does not run | Use five cron fields, make the script executable, and prefer Compose mapping form for values with spaces. |
+| VPN unhealthy action never runs | Set `VPN_UNHEALTHY_ACTION`, use a positive `VPN_UNHEALTHY_AFTER`, and test with `VPN_UNHEALTHY_TEST=yes`. |
+| Container exits but does not come back | Add Docker restart policy, for example `restart: unless-stopped`. A container can exit itself, but Docker must restart it. |
 
 ## Notes
 
 DNS providers that support EDNS Client Subnet can expose more client-location metadata. Consider privacy-focused DNS servers instead of Google or OpenDNS if that matters for your setup.
 
-The original VPN container framework and much of the surrounding approach comes from binhex-style VPN containers. If you appreciate that work, please consider supporting the original maintainers too.
+Most VPN mechanics come from `binhex/arch-int-vpn`. This repository intentionally keeps that separation: the base image owns the tunnel, this image owns NZBGet and the extra operational hooks around it.
