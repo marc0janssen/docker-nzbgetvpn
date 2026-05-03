@@ -1,10 +1,9 @@
 #FROM binhex/arch-int-vpn:2025100101
-FROM binhex/arch-int-vpn:latest
+FROM binhex/arch-int-vpn:2026032801
 
 ENV NZBGET_VERSION=26.2-testing-20260501
 ENV NZBGET_VERSION_DIR=testing
 ENV NZBGET_SHA256=5f6e5b221fafc820be09424164de030924338a784e3501066602cb2d581197be
-ENV NZBGET_CACERT_SHA256=491eedffee3a7abc1967031205d5c31c0d8de88783360b562e847b57ab94d50f
 
 # additional files
 ##################
