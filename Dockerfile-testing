@@ -20,11 +20,14 @@ ADD run/root/*.sh /root/
 # add run bash scripts
 ADD run/nobody/*.sh /home/nobody/
 
+# add bundled user script templates
+ADD data/scripts/*.sh /usr/local/share/nzbgetvpn/scripts/
+
 # install app
 #############
 
 # make executable and run bash scripts to install app
-RUN chmod +x /root/*.sh /home/nobody/*.sh && /bin/bash /root/install.sh
+RUN chmod +x /root/*.sh /home/nobody/*.sh /usr/local/share/nzbgetvpn/scripts/*.sh && /bin/bash /root/install.sh
 
 # docker settings
 #################
