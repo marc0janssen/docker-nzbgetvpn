@@ -21,6 +21,10 @@ nzbgetvpn_dockerrun.txt
 docker-compose.override.yml
 config/
 data/
+!data/
+data/*
+!data/scripts/
+!data/scripts/*.sh
 
 # Logs and temporary files
 *.log

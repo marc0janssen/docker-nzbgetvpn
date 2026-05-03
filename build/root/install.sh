@@ -38,7 +38,7 @@ printf '%s\n' \
 
 echo "[info] Installing pacman packages..."
 # define pacman packages
-pacman_packages="ca-certificates git p7zip ipcalc unzip unrar python3 wget python-requests-oauthlib python-markdown python-decorator"
+pacman_packages="ca-certificates git jq p7zip ipcalc unzip unrar python3 wget python-requests-oauthlib python-markdown python-decorator"
 
 # install compiled packages using pacman
 if [[ ! -z "${pacman_packages}" ]]; then
@@ -88,7 +88,8 @@ fi
 ####
 
 # define comma separated list of paths 
-install_paths="/usr/sbin/nzbget_bin,/home/nobody"
+mkdir -p /data/scripts
+install_paths="/usr/sbin/nzbget_bin,/home/nobody,/data/scripts"
 
 # split comma separated string into list for install paths
 IFS=',' read -ra install_paths_list <<< "${install_paths}"
@@ -110,6 +111,17 @@ install_paths=$(echo "${install_paths}" | tr ',' ' ')
 chmod -R 775 ${install_paths}
 
 cat <<EOF > /tmp/permissions_heredoc
+mkdir -p /data/scripts
+for bundled_script in /usr/local/share/nzbgetvpn/scripts/*.sh; do
+	if [[ -f "\${bundled_script}" ]]; then
+		target_script="/data/scripts/\$(basename "\${bundled_script}")"
+		if [[ ! -f "\${target_script}" ]]; then
+			echo "[info] Installing bundled script '\${target_script}'"
+			cp "\${bundled_script}" "\${target_script}"
+			chmod +x "\${target_script}"
+		fi
+	fi
+done
 # get previous puid/pgid (if first run then will be empty string)
 previous_puid=\$(cat "/root/puid" 2>/dev/null || true)
 previous_pgid=\$(cat "/root/pgid" 2>/dev/null || true)

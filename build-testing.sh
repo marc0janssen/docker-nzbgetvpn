@@ -96,4 +96,4 @@ fi
 
 docker buildx build --no-cache --platform linux/amd64 --push -t marc0janssen/nzbgetvpn:${VERSION} -t marc0janssen/nzbgetvpn:testing -f ./Dockerfile-testing .
 
-docker pushrm marc0janssen/nzbgetvpn:testing
+docker pushrm --file README-containers.md marc0janssen/nzbgetvpn:testing

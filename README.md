@@ -34,6 +34,7 @@ These two lines are intentionally kept in this exact format. The update scripts 
 | WireGuard | `/config/wireguard/` | Put one `.conf` profile here. The base image normalizes it to `wg0.conf`. |
 | NZBGet config | `/config/nzbget.conf` | Created on first start if missing. |
 | Downloads/data | `/data` | Main download and script storage volume. |
+| Bundled scripts | `/data/scripts/` | Helper scripts included in the image, including NordVPN WireGuard config generation. |
 | Leak protection | iptables | VPN, LAN and UI traffic are explicitly allowed; other traffic is dropped. |
 
 ## Quick Start
@@ -169,6 +170,8 @@ Runtime ownership is controlled with `PUID` and `PGID`. Find your host IDs with:
 id <username>
 ```
 
+The image includes helper script templates. On container start, missing bundled scripts are copied into `/data/scripts/`. If you bind mount a host directory over `/data`, the startup copy still recreates missing scripts in that mounted directory.
+
 ## Base Image Capabilities
 
 The table below describes the important `binhex/arch-int-vpn` behavior this image inherits. Provider support can change when the base image changes, so pin and bump the base tag deliberately when reproducibility matters.
@@ -295,6 +298,40 @@ environment:
 ```
 
 The watchdog checks the schedule every 30 seconds, before the blocking VPN checks run. A matching cron minute runs only once. The script receives `VPN_CRON_SCHEDULE` in its environment. If the schedule or script is incomplete, missing, not executable, failed, or timed out, the error is logged and the container keeps running.
+
+### Bundled NordVPN WireGuard Script
+
+The image includes:
+
+```text
+/data/scripts/get_wireguard_configs_nordvpn.sh
+```
+
+This script fetches recommended NordVPN WireGuard servers and writes `.conf` files to `/config/wireguard/`. It can be used manually, with `VPN_CRON_SCRIPT`, or as part of a `VPN_UNHEALTHY_SCRIPT`.
+
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `NORDVPN_ACCESS_TOKEN` | Yes | unset | NordVPN access token used to fetch the NordLynx private key. |
+| `ACCESS_TOKEN` | No | unset | Backwards-compatible fallback when `NORDVPN_ACCESS_TOKEN` is unset. Prefer `NORDVPN_ACCESS_TOKEN`. |
+| `COUNTRY_NAME` | No | `Netherlands` | NordVPN country name, for example `Netherlands`, `Germany`, `Belgium`. |
+| `TOTAL_CONFIGS` | No | `1` | Number of recommended configs to generate. |
+| `DNS` | No | `103.86.96.100` | DNS server written to the WireGuard config. |
+| `WIREGUARD_CONFIG_DIR` | No | `/config/wireguard` | Output directory for generated `.conf` files. |
+| `WIREGUARD_ADDRESS` | No | `10.5.0.2/32` | Interface address written to the WireGuard config. |
+| `WIREGUARD_PORT` | No | `51820` | WireGuard endpoint port. |
+
+Example with the scheduler:
+
+```yaml
+environment:
+  VPN_CRON_SCHEDULE: "0 */6 * * *"
+  VPN_CRON_SCRIPT: "/data/scripts/get_wireguard_configs_nordvpn.sh"
+  NORDVPN_ACCESS_TOKEN: "your-token"
+  COUNTRY_NAME: "Netherlands"
+  TOTAL_CONFIGS: "1"
+```
+
+The script only removes existing WireGuard `.conf` files after new configs have been fetched and prepared successfully. If the API call fails, the token is missing, `jq` is unavailable, or no server is returned, the script logs a `[crit]` message and exits without replacing existing configs.
 
 ## Accepted Value Patterns
 

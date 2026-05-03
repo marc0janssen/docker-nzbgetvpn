@@ -5,6 +5,7 @@ set -eu
 REPO_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 DOCKERFILE="${REPO_DIR}/Dockerfile"
 README="${REPO_DIR}/README.md"
+CONTAINER_README="${REPO_DIR}/README-containers.md"
 TMP_DIR="${TMPDIR:-/tmp}"
 
 CURRENT_VERSION="$(sed -n 's/^ENV NZBGET_VERSION=//p' "${DOCKERFILE}")"
@@ -42,6 +43,9 @@ sed_in_place "s/^ENV NZBGET_VERSION=.*/ENV NZBGET_VERSION=${VERSION}/" "${DOCKER
 sed_in_place "s/^ENV NZBGET_VERSION_DIR=.*/ENV NZBGET_VERSION_DIR=${VERSION_DIR}/" "${DOCKERFILE}"
 sed_in_place "s/^ENV NZBGET_SHA256=.*/ENV NZBGET_SHA256=${NZBGET_SHA256}/" "${DOCKERFILE}"
 sed_in_place "s/^\\* NZBGET Current stable version: .*/\\* NZBGET Current stable version: ${VERSION}/" "${README}"
+if [ -f "${CONTAINER_README}" ]; then
+	sed_in_place "s/^\\* NZBGET Current stable version: .*/\\* NZBGET Current stable version: ${VERSION}/" "${CONTAINER_README}"
+fi
 
 echo "[info] Updated ${DOCKERFILE}"
 echo "[info] NZBGET_SHA256=${NZBGET_SHA256}"
