@@ -189,6 +189,87 @@ The image inherits most VPN behavior from the base VPN image. The table below do
 | `PUID` | No | Numeric user ID | `1000` | User ID for runtime file ownership. |
 | `PGID` | No | Numeric group ID | `1000` | Group ID for runtime file ownership. |
 
+### VPN Unhealthy Actions
+
+The base VPN image already handles normal OpenVPN and WireGuard reconnects. These variables add an optional application-level fallback in this image: if the VPN remains unhealthy for multiple watchdog checks, run a custom action.
+
+The watchdog runs every 30 seconds.
+
+| Variable | Required | Allowed values / format | Default | Description |
+| --- | --- | --- | --- | --- |
+| `VPN_UNHEALTHY_ACTION` | No | `none`, `script`, `script+exit`, `exit` | `none` | Action to run when VPN health checks keep failing. `none` keeps the default behavior. |
+| `VPN_UNHEALTHY_SCRIPT` | For `script` and `script+exit` | Executable path inside the container | unset | Script to run when `VPN_UNHEALTHY_ACTION=script` or `script+exit`. Example: `/config/scripts/vpn-unhealthy.sh`. |
+| `VPN_UNHEALTHY_AFTER` | No | Positive integer | `10` | Number of failed watchdog checks before triggering the action. With the 30 second watchdog interval, `10` is about 5 minutes. |
+| `VPN_UNHEALTHY_COOLDOWN` | No | Positive integer seconds, minimum `300` | `300` | Minimum seconds between repeated actions. Values below `300` are ignored and logged; the script uses `300` instead. |
+| `VPN_UNHEALTHY_EXIT_DELAY` | No | Positive integer seconds | `5` | Delay before exiting when `VPN_UNHEALTHY_ACTION=script+exit`. The exit only happens after the script finishes successfully. |
+| `VPN_UNHEALTHY_TEST` | No | `yes`, `no` | `no` | Testing switch. When set to `yes`, the watchdog pretends the VPN IP is missing so you can test unhealthy actions. |
+| `VPN_UNHEALTHY_SCRIPT_TIMEOUT` | No | Positive integer seconds | `300` | Maximum runtime for `VPN_UNHEALTHY_SCRIPT`. If the script exceeds this, it is stopped and logged as failed. |
+
+Example:
+
+```sh
+-e VPN_UNHEALTHY_ACTION=script \
+-e VPN_UNHEALTHY_SCRIPT=/config/scripts/vpn-unhealthy.sh \
+-e VPN_UNHEALTHY_AFTER=10 \
+-e VPN_UNHEALTHY_COOLDOWN=300
+```
+
+The custom script receives `VPN_UNHEALTHY_COUNT` in its environment.
+
+Use `script+exit` when Docker should restart the container after your custom script finishes:
+
+```sh
+-e VPN_UNHEALTHY_ACTION=script+exit \
+-e VPN_UNHEALTHY_SCRIPT=/config/scripts/vpn-unhealthy.sh \
+-e VPN_UNHEALTHY_EXIT_DELAY=5
+```
+
+For `script+exit` to restart the container, start it with a Docker restart policy such as `--restart unless-stopped` or `restart: unless-stopped` in Compose.
+
+To test your unhealthy action without breaking the real VPN connection:
+
+```sh
+-e VPN_UNHEALTHY_TEST=yes \
+-e VPN_UNHEALTHY_AFTER=1
+```
+
+Remove `VPN_UNHEALTHY_TEST=yes` after testing. If you combine it with `script+exit` and a Docker restart policy, the container can intentionally restart in a loop until the test flag is removed.
+
+### Scheduled VPN Scripts
+
+You can run a custom script on a cron-style schedule from the existing watchdog loop. This does not start a separate cron daemon.
+
+| Variable | Required | Allowed values / format | Default | Description |
+| --- | --- | --- | --- | --- |
+| `VPN_CRON_SCHEDULE` | With `VPN_CRON_SCRIPT` | Five-field cron expression | unset | Schedule for the custom script. Supports `*`, lists, ranges and steps such as `*/5 * * * *`. |
+| `VPN_CRON_SCRIPT` | With `VPN_CRON_SCHEDULE` | Executable path inside the container | unset | Script to run when the schedule matches. Example: `/config/scripts/vpn-cron.sh`. |
+| `VPN_CRON_SCRIPT_TIMEOUT` | No | Positive integer seconds | `300` | Maximum runtime for `VPN_CRON_SCRIPT`. If the script exceeds this, it is stopped and logged as failed. |
+
+Example:
+
+```sh
+-e VPN_CRON_SCHEDULE="*/15 * * * *" \
+-e VPN_CRON_SCRIPT=/config/scripts/vpn-cron.sh
+```
+
+Docker Compose mapping form is recommended:
+
+```yaml
+environment:
+  VPN_CRON_SCHEDULE: "*/5 * * * *"
+  VPN_CRON_SCRIPT: "/data/scripts/get_wireguard_configs_nordvpn.sh"
+```
+
+If you use Compose list form, do not put quotes after `=`:
+
+```yaml
+environment:
+  - VPN_CRON_SCHEDULE=*/5 * * * *
+  - VPN_CRON_SCRIPT=/data/scripts/get_wireguard_configs_nordvpn.sh
+```
+
+The watchdog checks the schedule every 30 seconds, before the blocking VPN health checks run, but a matching cron minute runs only once. The script receives `VPN_CRON_SCHEDULE` in its environment.
+
 ### Provider Credentials And OpenVPN Options
 
 | Variable | Required | Allowed values / format | Example | Description |
@@ -218,6 +299,9 @@ Most users do not need to set these directly. They are normally created by the i
 | DNS list | comma-separated IPv4 addresses | `1.1.1.1,1.0.0.1` | `https://1.1.1.1`, `cloudflare` |
 | Port | integer `1-65535` | `6789`, `8118`, `51820` | `0`, `65536`, `abc` |
 | Port list | comma-separated ports | `1234,5678` | `1234,`, `abc,5678` |
+| Cron schedule | five cron fields | `* * * * *`, `*/15 * * * *`, `0 3 * * *` | `@hourly`, `every 5 minutes` |
+| Timeout seconds | positive integer seconds | `60`, `300`, `900` | `0`, `abc` |
+| Cooldown seconds | integer, minimum `300` for `VPN_UNHEALTHY_COOLDOWN` | `300`, `900` | `0`, `60`, `abc` |
 | Interface | letters, numbers, `_`, `.`, `:`, `-` | `tun0`, `wg0`, `eth0` | `wg 0`, `;rm` |
 | UID/GID | numeric ID | `0`, `1000`, `568` | `user`, `abc` |
 | UMASK | octal mask | `000`, `002`, `022`, `0002` | `abc`, `999` |
