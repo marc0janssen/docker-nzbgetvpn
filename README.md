@@ -347,6 +347,29 @@ Show help:
 ./build-testing.sh --help
 ```
 
+Look up the newest upstream version before building:
+
+```sh
+./build.sh newest
+./build-testing.sh newest
+```
+
+Look up and pin the newest `binhex/arch-int-vpn` base image tag before building:
+
+```sh
+./build.sh --base newest
+./build-testing.sh --base newest
+```
+
+You can combine both lookups:
+
+```sh
+./build.sh newest --base newest
+./build-testing.sh newest --base newest
+```
+
+Normal builds without arguments do not call GitHub or Docker Hub and keep using the pinned values from the Dockerfiles.
+
 ## Updating NZBGet Versions
 
 Stable release update:
@@ -369,6 +392,23 @@ The update script:
 - updates the stable version line in this README;
 - then `build.sh` builds and pushes the image.
 
+To ask GitHub for the newest stable release automatically:
+
+```sh
+./build.sh newest
+```
+
+This resolves the latest stable release from `nzbgetcom/nzbget`, then runs the same update/build flow.
+
+Base image update:
+
+```sh
+./build.sh --base 2026032801
+./build-testing.sh --base newest
+```
+
+This updates the `FROM binhex/arch-int-vpn:<tag>` line in the relevant Dockerfile before building. Use `newest` to query Docker Hub for the newest numeric `binhex/arch-int-vpn` tag.
+
 Testing release update:
 
 ```sh
@@ -382,6 +422,14 @@ This runs:
 ```
 
 The testing update script updates `Dockerfile-testing` and the testing version line in this README.
+
+To ask GitHub for the newest testing build automatically:
+
+```sh
+./build-testing.sh newest
+```
+
+This reads the `testing` release assets from `nzbgetcom/nzbget` and extracts the `nzbget-*-bin-linux.run` version.
 
 You can also run the update scripts directly if you only want to update files without building:
 
@@ -431,6 +479,9 @@ That avoids relying on a separate vendored NZBGet `cacert.pem` file and keeps ce
 |   `-- root/
 |       `-- iptable.sh
 `-- scripts/
+    |-- latest-binhex-base-tag.sh
+    |-- latest-nzbget-version.sh
+    |-- update-base-image.sh
     |-- update-stable.sh
     `-- update-testing.sh
 ```
