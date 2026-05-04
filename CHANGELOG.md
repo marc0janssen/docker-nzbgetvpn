@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [2.2.0] - 2026-05-04
+
+### Added
+
+- Added Docker Compose examples for stable and testing image onboarding.
+- Added `SECURITY.md` with vulnerability reporting scope and secret-handling guidance.
+- Documented default NZBGet credential hardening and simple `/config` plus `/data` backup/restore guidance.
+
 ## [2.1.5] - 2026-05-04
 
 ### Fixed
