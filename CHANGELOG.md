@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [2.1.5] - 2026-05-04
+
+### Fixed
+
+- Documented the previous stable base image tag in the stable Dockerfile for parity with the testing Dockerfile.
+
 ## [2.1.4] - 2026-05-04
 
 ### Fixed

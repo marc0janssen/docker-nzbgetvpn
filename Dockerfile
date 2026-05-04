@@ -1,3 +1,4 @@
+#FROM binhex/arch-int-vpn:2025100101
 FROM binhex/arch-int-vpn:2026032801
 
 ENV NZBGET_VERSION=26.1
