@@ -80,9 +80,9 @@ if [ ! -f "${dockerfile}" ]; then
 	exit 1
 fi
 
-current_tag="$(sed -n 's|^FROM binhex/arch-int-vpn:||p' "${dockerfile}")"
+current_tag="$(sed -n 's|^ARG BASE_IMAGE_TAG=||p' "${dockerfile}")"
 if [ -z "${current_tag}" ]; then
-	echo "Unable to read current binhex/arch-int-vpn tag from '${dockerfile}'" >&2
+	echo "Unable to read current BASE_IMAGE_TAG from '${dockerfile}'" >&2
 	exit 1
 fi
 
@@ -98,7 +98,7 @@ case "${tag}" in
 		;;
 esac
 
-sed_in_place "s|^FROM binhex/arch-int-vpn:.*|FROM binhex/arch-int-vpn:${tag}|" "${dockerfile}"
+sed_in_place "s|^ARG BASE_IMAGE_TAG=.*|ARG BASE_IMAGE_TAG=${tag}|" "${dockerfile}"
 
 echo "[info] Updated ${dockerfile} base image to binhex/arch-int-vpn:${tag}"
 

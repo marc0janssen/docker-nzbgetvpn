@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [2.2.1] - 2026-05-04
+
+### Added
+
+- Added OCI image labels to stable and testing Dockerfiles for registry metadata.
+- Passed the NZBGetVPN image/codebase version into Docker builds as `NZBGETVPN_VERSION`.
+- Reused `BASE_IMAGE_TAG` for both the Dockerfile base image and OCI base-image label.
+
 ## [2.2.0] - 2026-05-04
 
 ### Added
