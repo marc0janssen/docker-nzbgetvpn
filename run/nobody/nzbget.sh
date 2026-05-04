@@ -21,11 +21,7 @@ log_nzbgetvpn_version() {
 	fi
 
 	log_line="[info] NZBGetVPN ${nzbgetvpn_version} | NZBGet ${nzbget_version} | Changelog: ${NZBGETVPN_CHANGELOG_URL} | Contact page: ${NZBGETVPN_CONTACT_URL}"
-	if [[ -w /proc/1/fd/1 ]]; then
-		printf '%s\n' "${log_line}" > /proc/1/fd/1
-	else
-		printf '%s\n' "${log_line}"
-	fi
+	printf '%s\n' "${log_line}"
 	: > "${NZBGETVPN_VERSION_LOG_MARKER}"
 }
 

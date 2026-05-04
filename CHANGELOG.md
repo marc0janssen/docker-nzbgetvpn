@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [2.1.4] - 2026-05-04
+
+### Fixed
+
+- Restored the standalone NZBGet version Docker tag in stable and testing builds.
+- Removed unused `NZBGET_CACERT_SHA256` metadata from the testing Dockerfile.
+
+### Changed
+
+- Simplified the startup-complete version log to write to normal stdout now that supervisor duplicate logging is fixed.
+
 ## [2.1.3] - 2026-05-04
 
 ### Added
