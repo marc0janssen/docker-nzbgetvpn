@@ -119,6 +119,10 @@ for bundled_script in /usr/local/share/nzbgetvpn/scripts/*.sh; do
 			echo "[info] Installing bundled script '\${target_script}'"
 			cp "\${bundled_script}" "\${target_script}"
 			chmod +x "\${target_script}"
+		elif ! cmp -s "\${bundled_script}" "\${target_script}"; then
+			echo "[info] Updating bundled script '\${target_script}'"
+			cp "\${bundled_script}" "\${target_script}"
+			chmod +x "\${target_script}"
 		fi
 	fi
 done

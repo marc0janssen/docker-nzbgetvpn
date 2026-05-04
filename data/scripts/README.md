@@ -2,6 +2,8 @@
 
 This directory contains helper scripts that can be run manually, with `VPN_CRON_SCRIPT`, or with `VPN_UNHEALTHY_SCRIPT`.
 
+Bundled scripts are managed by the image. On container start, they are installed or updated from the image templates. Put your own custom scripts under a different filename.
+
 Bundled scripts:
 
 | Script | Purpose |

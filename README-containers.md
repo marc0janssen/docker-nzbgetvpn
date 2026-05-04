@@ -8,6 +8,7 @@ Full documentation is available in the GitHub repository README.
 
 ## Versions
 
+* NZBGetVPN image/codebase version: 2.2.0
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260501
 
@@ -18,6 +19,7 @@ Full documentation is available in the GitHub repository README.
 | `stable` | Stable NZBGet release. |
 | `testing` | Testing NZBGet release. |
 | `<version>` | Versioned image, for example `26.1`. |
+| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v2.2.0`. |
 
 ## Included
 
@@ -32,6 +34,8 @@ Full documentation is available in the GitHub repository README.
 | Downloads/data | `/data` |
 | Bundled helper scripts | `/data/scripts/` |
 
+## Default Credentials
+
 Default NZBGet login:
 
 ```text
@@ -40,6 +44,8 @@ password: tegbzn6789
 ```
 
 Change this after first start.
+
+Do not expose the web UI directly to the internet without an authenticated reverse proxy or VPN access.
 
 ## Quick Start
 
@@ -152,7 +158,24 @@ sysctls:
 | `/data` | Downloads and optional user scripts. |
 | `/etc/localtime:ro` | Recommended for correct log and schedule times. |
 
-On container start, missing bundled scripts are copied into `/data/scripts/`. The default source directories `/data/wireguard-configs` and `/data/openvpn-configs` are also created. Each of these `/data` subdirectories gets a small `README.md`. This also works when `/data` is a host bind mount.
+On container start, bundled scripts are copied into `/data/scripts/` and updated when the image template differs from the mounted copy. The default source directories `/data/wireguard-configs` and `/data/openvpn-configs` are also created. Each of these `/data` subdirectories gets a small `README.md`. This also works when `/data` is a host bind mount.
+
+## Backup And Restore
+
+Back up `/config` and `/data` together. `/config` contains NZBGet config, OpenVPN profiles and WireGuard profiles. `/data` contains downloads, bundled helper script copies and optional user data.
+
+Example:
+
+```sh
+tar -czf nzbgetvpn-backup.tgz /path/to/config /path/to/data
+tar -xzf nzbgetvpn-backup.tgz -C /
+```
+
+Stop the container first if you need a point-in-time copy. Keep backups private because they may contain VPN profiles, keys, NZBGet credentials or provider tokens.
+
+## Security
+
+Report vulnerabilities privately through the maintainer contact page linked in the repository. Do not put secrets, VPN profiles, keys, tokens or `.env` contents in public issues.
 
 ## Important Environment Variables
 
@@ -339,7 +362,9 @@ If your `.ovpn` references external cert/key/auth files, those files must also b
 
 ## Build Verification
 
-The Docker build downloads the NZBGet installer from `nzbgetcom/nzbget` and verifies it with the pinned `NZBGET_SHA256` value from the Dockerfile. If the checksum does not match, the build fails.
+The Docker build downloads the NZBGet installer from `nzbgetcom/nzbget` and verifies it with the pinned `NZBGET_SHA256` value from the Dockerfile. If the checksum does not match, the build fails. Update scripts require `--sha256 <expected-sha256>` or the explicit `--accept-downloaded-sha256` flag before changing pinned checksums.
+
+After NZBGet is running and listening on port `6789`, startup logs one line with the NZBGetVPN image/codebase version, the NZBGet application version, a link to the GitHub changelog and the maintainer contact page.
 
 NZBGet TLS verification uses the system CA bundle:
 

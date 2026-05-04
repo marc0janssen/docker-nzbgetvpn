@@ -10,10 +10,11 @@ This image builds on top of [`binhex/arch-int-vpn`](https://github.com/binhex/ar
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
+* NZBGetVPN image/codebase version: 2.2.0
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260501
 
-These two lines are intentionally kept in this exact format. The update scripts use them when bumping stable or testing releases.
+The NZBGetVPN image/codebase version is stored in `VERSION`. The two NZBGet version lines are intentionally kept in this exact format. The update scripts use them when bumping stable or testing releases.
 
 ## Image Tags
 
@@ -22,12 +23,13 @@ These two lines are intentionally kept in this exact format. The update scripts 
 | `marc0janssen/nzbgetvpn:stable` | Stable NZBGet release from `Dockerfile`. |
 | `marc0janssen/nzbgetvpn:testing` | Testing NZBGet release from `Dockerfile-testing`. |
 | `marc0janssen/nzbgetvpn:<version>` | Versioned image, for example `26.1` or `26.2-testing-20260501`. |
+| `marc0janssen/nzbgetvpn:<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version from `VERSION`, for example `26.1-image-v2.2.0`. |
 
 ## What Is Included
 
 | Component | Port / path | Notes |
 | --- | --- | --- |
-| NZBGet web UI | `6789/tcp` | Default login is `nzbget` / `tegbzn6789`. Change it after first start. |
+| NZBGet web UI | `6789/tcp` | Default login is documented below. Change it after first start. |
 | Privoxy | `8118/tcp` | Inherited from the base image, enabled with `ENABLE_PRIVOXY=yes`. |
 | SOCKS proxy | Base-image controlled | Inherited from `binhex/arch-int-vpn`, enabled with `ENABLE_SOCKS=yes`. |
 | OpenVPN | `/config/openvpn/` | Put one `.ovpn` profile and its referenced files here. |
@@ -36,6 +38,10 @@ These two lines are intentionally kept in this exact format. The update scripts 
 | Downloads/data | `/data` | Main download and script storage volume. |
 | Bundled scripts | `/data/scripts/` | Helper scripts included in the image, including NordVPN WireGuard config generation. |
 | Leak protection | iptables | VPN, LAN and UI traffic are explicitly allowed; other traffic is dropped. |
+
+## Default Credentials
+
+Default NZBGet login is `nzbget` / `tegbzn6789`. Change it immediately after first start and do not expose the web UI directly to the internet without an authenticated reverse proxy or VPN access.
 
 ## Quick Start
 
@@ -104,6 +110,8 @@ http://<host-ip>:8118
 
 ## Docker Compose
 
+Ready-to-edit Compose examples live in [`examples/`](examples/).
+
 ```yaml
 services:
   nzbgetvpn:
@@ -170,7 +178,29 @@ Runtime ownership is controlled with `PUID` and `PGID`. Find your host IDs with:
 id <username>
 ```
 
-The image includes helper script templates. On container start, missing bundled scripts are copied into `/data/scripts/`. The default source directories `/data/wireguard-configs` and `/data/openvpn-configs` are also created. Each of these `/data` subdirectories gets a small `README.md`. If you bind mount a host directory over `/data`, startup recreates these missing directories and README files in that mounted directory.
+The image includes helper script templates. On container start, bundled scripts are copied into `/data/scripts/` and updated when the image template differs from the mounted copy. The default source directories `/data/wireguard-configs` and `/data/openvpn-configs` are also created. Each of these `/data` subdirectories gets a small `README.md`. If you bind mount a host directory over `/data`, startup recreates these missing directories and README files in that mounted directory.
+
+## Backup And Restore
+
+Back up `/config` and `/data` together. `/config` contains NZBGet configuration, provider profiles, OpenVPN files and WireGuard files. `/data` contains downloads, bundled helper script copies and optional user data.
+
+Simple tar backup:
+
+```sh
+tar -czf nzbgetvpn-backup.tgz /path/to/config /path/to/data
+```
+
+Simple restore:
+
+```sh
+tar -xzf nzbgetvpn-backup.tgz -C /
+```
+
+Stop the container before backing up or restoring if you need a point-in-time copy. Keep backup archives private because they may contain VPN profiles, keys, NZBGet credentials or provider tokens.
+
+## Security
+
+See [`SECURITY.md`](SECURITY.md) for vulnerability reporting and scope. Do not put secrets, VPN profiles, keys, tokens or `.env` files in issues, pull requests or this repository.
 
 ## Base Image Capabilities
 
@@ -509,13 +539,19 @@ Important rules and checks:
 
 ## Logging
 
-The supervisor config sends script stdout and stderr directly to Docker logs. Script output should look like:
+The supervisor config lets supervisord capture script stdout and stderr for Docker logs without also writing a second raw copy to stdout/stderr. Script output should look like:
 
 ```text
 [info] Nzbget process started
 [info] VPN_CRON_SCHEDULE '*/5 * * * *' matched, running '/data/scripts/get_wireguard_configs_nordvpn.sh'
 [warn] VPN IP not detected, VPN tunnel maybe down
 [crit] LAN_NETWORK is not set, exiting...
+```
+
+After NZBGet is running and listening on port `6789`, startup logs the NZBGetVPN image/codebase version, the NZBGet application version, a link to the GitHub changelog and the maintainer contact page:
+
+```text
+[info] NZBGetVPN 2.2.0 | NZBGet 26.1 | Changelog: https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md | Contact page: https://bio.mjanssen.nl/@Marco
 ```
 
 Use:
@@ -534,14 +570,20 @@ The build scripts are safe by default: without arguments they build the values a
 | --- | --- |
 | `./build.sh` | Build and push stable using the currently pinned `Dockerfile` values. |
 | `./build-testing.sh` | Build and push testing using the currently pinned `Dockerfile-testing` values. |
-| `./build.sh 26.2` | Update stable NZBGet version, SHA256 and README version line, then build/push. |
-| `./build-testing.sh 26.2-testing-20260510` | Update testing NZBGet version, SHA256 and README version line, then build/push. |
-| `./build.sh newest` | Resolve newest stable NZBGet release, update files, then build/push. |
-| `./build-testing.sh newest` | Resolve newest testing release asset, update files, then build/push. |
+| `./build.sh 26.2 --sha256 <expected-sha256>` | Update stable NZBGet version, verify the download against the supplied SHA256, update files, then build/push. |
+| `./build-testing.sh 26.2-testing-20260510 --sha256 <expected-sha256>` | Update testing NZBGet version, verify the download against the supplied SHA256, update files, then build/push. |
+| `./build.sh newest --accept-downloaded-sha256` | Resolve newest stable NZBGet release, explicitly accept the downloaded artifact checksum, update files, then build/push. |
+| `./build-testing.sh newest --accept-downloaded-sha256` | Resolve newest testing release asset, explicitly accept the downloaded artifact checksum, update files, then build/push. |
 | `./build.sh --base newest` | Resolve newest numeric `binhex/arch-int-vpn` tag, update `Dockerfile`, then build/push. |
 | `./build-testing.sh --base newest` | Resolve newest numeric base tag, update `Dockerfile-testing`, then build/push. |
-| `./build.sh newest --base newest` | Update both NZBGet stable and the base image before building. |
-| `./build-testing.sh newest --base newest` | Update both NZBGet testing and the base image before building. |
+| `./build.sh newest --accept-downloaded-sha256 --base newest` | Update both NZBGet stable and the base image before building. |
+| `./build-testing.sh newest --accept-downloaded-sha256 --base newest` | Update both NZBGet testing and the base image before building. |
+
+Both build scripts read the NZBGetVPN codebase version from `VERSION`. Stable builds also push `<nzbget-version>-image-v<version>`, for example `26.1-image-v2.2.0`. Testing builds push the same combined pattern, for example `26.2-testing-20260501-image-v2.2.0`.
+
+When `--base newest` resolves to a different base image tag, `scripts/update-base-image.sh` bumps the patch value in `VERSION` and updates the README version lines before the image build starts. If the Dockerfile is already on the newest resolved base tag, `VERSION` is left unchanged.
+
+When updating NZBGet, prefer `--sha256 <expected-sha256>` using a checksum you verified independently. `--accept-downloaded-sha256` is available for the old trust-on-first-use workflow, but it is intentionally explicit.
 
 Help:
 
@@ -557,8 +599,8 @@ Direct update scripts live in `scripts/`:
 | `scripts/latest-nzbget-version.sh stable` | Print newest stable NZBGet version from GitHub releases. |
 | `scripts/latest-nzbget-version.sh testing` | Print newest testing NZBGet version from the `testing` release asset. |
 | `scripts/latest-binhex-base-tag.sh` | Print newest numeric `binhex/arch-int-vpn` Docker Hub tag. |
-| `scripts/update-stable.sh <version>` | Update stable Dockerfile/README/SHA256 without building. |
-| `scripts/update-testing.sh <version>` | Update testing Dockerfile/README/SHA256 without building. |
+| `scripts/update-stable.sh <version> --sha256 <expected-sha256>` | Update stable Dockerfile/README/SHA256 without building after verifying the download. |
+| `scripts/update-testing.sh <version> --sha256 <expected-sha256>` | Update testing Dockerfile/README/SHA256 without building after verifying the download. |
 | `scripts/update-base-image.sh <Dockerfile> <tag\|newest>` | Update the base image tag in a Dockerfile. |
 
 ## Download Verification And TLS
@@ -585,6 +627,8 @@ sha256sum -c -
 
 If the checksum does not match, the build stops.
 
+The update scripts also require an explicit checksum decision before changing Dockerfiles. Use `--sha256 <expected-sha256>` to compare against a value obtained independently, or `--accept-downloaded-sha256` when you intentionally want to pin the checksum calculated from the downloaded artifact.
+
 NZBGet certificate verification uses the Arch Linux system CA bundle:
 
 ```text
@@ -603,6 +647,7 @@ TLS certificate verification failed: unable to get local issuer certificate
 .
 |-- Dockerfile
 |-- Dockerfile-testing
+|-- VERSION
 |-- build.sh
 |-- build-testing.sh
 |-- build/

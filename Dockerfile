@@ -1,5 +1,5 @@
 #FROM binhex/arch-int-vpn:2025100101
-FROM binhex/arch-int-vpn:latest
+FROM binhex/arch-int-vpn:2026032801
 
 ENV NZBGET_VERSION=26.1
 ENV NZBGET_VERSION_DIR=v26.1
@@ -21,6 +21,7 @@ ADD run/root/*.sh /root/
 ADD run/nobody/*.sh /home/nobody/
 
 # add bundled user script templates
+ADD VERSION /usr/local/share/nzbgetvpn/VERSION
 ADD data/scripts/*.sh /usr/local/share/nzbgetvpn/scripts/
 ADD data/scripts/README.md /usr/local/share/nzbgetvpn/scripts/README.md
 ADD data/wireguard-configs/README.md /usr/local/share/nzbgetvpn/wireguard-configs/README.md

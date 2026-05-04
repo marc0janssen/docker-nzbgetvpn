@@ -1,0 +1,3 @@
+services:
+  nzbgetvpn:
+    image: marc0janssen/nzbgetvpn:testing
