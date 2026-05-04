@@ -170,7 +170,7 @@ Runtime ownership is controlled with `PUID` and `PGID`. Find your host IDs with:
 id <username>
 ```
 
-The image includes helper script templates. On container start, missing bundled scripts are copied into `/data/scripts/`. If you bind mount a host directory over `/data`, the startup copy still recreates missing scripts in that mounted directory.
+The image includes helper script templates. On container start, missing bundled scripts are copied into `/data/scripts/`. The default source directories `/data/wireguard-configs` and `/data/openvpn-configs` are also created. Each of these `/data` subdirectories gets a small `README.md`. If you bind mount a host directory over `/data`, startup recreates these missing directories and README files in that mounted directory.
 
 ## Base Image Capabilities
 
@@ -314,11 +314,26 @@ This script fetches recommended NordVPN WireGuard servers and writes `.conf` fil
 | `NORDVPN_ACCESS_TOKEN` | Yes | unset | NordVPN access token used to fetch the NordLynx private key. |
 | `ACCESS_TOKEN` | No | unset | Backwards-compatible fallback when `NORDVPN_ACCESS_TOKEN` is unset. Prefer `NORDVPN_ACCESS_TOKEN`. |
 | `COUNTRY_NAME` | No | `Netherlands` | NordVPN country name, for example `Netherlands`, `Germany`, `Belgium`. |
-| `TOTAL_CONFIGS` | No | `1` | Number of recommended configs to generate. |
+| `TOTAL_CONFIGS` | No | `1` | Number of NordVPN recommendations to fetch. If greater than `1`, one generated config is selected randomly. |
 | `DNS` | No | `103.86.96.100` | DNS server written to the WireGuard config. |
 | `WIREGUARD_CONFIG_DIR` | No | `/config/wireguard` | Output directory for generated `.conf` files. |
+| `WIREGUARD_CONFIG_FILENAME` | No | `wg0.conf` | Target filename for the active config. Must end with `.conf` and may not contain `/`. |
+| `WIREGUARD_CONFIG_USE_SOURCE_FILENAME` | No | `no` | Use `yes` to keep the generated NordVPN filename instead of `WIREGUARD_CONFIG_FILENAME`. |
 | `WIREGUARD_ADDRESS` | No | `10.5.0.2/32` | Interface address written to the WireGuard config. |
 | `WIREGUARD_PORT` | No | `51820` | WireGuard endpoint port. |
+
+To create `NORDVPN_ACCESS_TOKEN`:
+
+1. Log in to [Nord Account](https://my.nordaccount.com/).
+2. Open `NordVPN`.
+3. Go to `Advanced settings`.
+4. Choose `Get access token`.
+5. Verify your email address with the code Nord sends you.
+6. Choose `Generate new token`.
+7. Pick a temporary token or a non-expiring token.
+8. Copy the token immediately; NordVPN only shows it once.
+
+Use the copied value as `NORDVPN_ACCESS_TOKEN`. For a non-expiring token, enable MFA on your Nord Account. If a token is exposed or lost, revoke it in Nord Account and generate a new one.
 
 Example with the scheduler:
 
@@ -331,7 +346,67 @@ environment:
   TOTAL_CONFIGS: "1"
 ```
 
-The script only removes existing WireGuard `.conf` files after new configs have been fetched and prepared successfully. If the API call fails, the token is missing, `jq` is unavailable, or no server is returned, the script logs a `[crit]` message and exits without replacing existing configs.
+The script only removes existing WireGuard `.conf` files after new configs have been fetched and prepared successfully. It installs one active config as `WIREGUARD_CONFIG_FILENAME`, which defaults to `wg0.conf`. Set `WIREGUARD_CONFIG_USE_SOURCE_FILENAME=yes` to keep the generated NordVPN filename instead. If `TOTAL_CONFIGS` is greater than `1`, multiple NordVPN recommendations are fetched and one generated config is selected randomly. If the API call fails, the token is missing, `jq` is unavailable, or no server is returned, the script logs a `[crit]` message and exits without replacing existing configs.
+
+### Bundled Random WireGuard Config Script
+
+The image also includes:
+
+```text
+/data/scripts/select_random_wireguard_config.sh
+```
+
+This script looks in a configurable source directory, finds all `*.conf` files at that directory level, randomly chooses one, removes existing `*.conf` files from `WIREGUARD_CONFIG_DIR`, and installs the selected config as `wg0.conf` by default.
+
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `WIREGUARD_RANDOM_SOURCE_DIR` | No | `/data/wireguard-configs` | Source directory containing candidate WireGuard `.conf` files. |
+| `WIREGUARD_CONFIG_DIR` | No | `/config/wireguard` | Target directory where the selected config is installed. |
+| `WIREGUARD_CONFIG_FILENAME` | No | `wg0.conf` | Target filename. Must end with `.conf` and may not contain `/`. |
+| `WIREGUARD_CONFIG_USE_SOURCE_FILENAME` | No | `no` | Use `yes` to keep the selected source filename instead of `WIREGUARD_CONFIG_FILENAME`. |
+
+Example:
+
+```yaml
+environment:
+  VPN_CRON_SCHEDULE: "0 */6 * * *"
+  VPN_CRON_SCRIPT: "/data/scripts/select_random_wireguard_config.sh"
+  WIREGUARD_RANDOM_SOURCE_DIR: "/data/wireguard-configs"
+  WIREGUARD_CONFIG_DIR: "/config/wireguard"
+  WIREGUARD_CONFIG_USE_SOURCE_FILENAME: "no"
+```
+
+The script refuses to run if the source and target directories are the same. Existing target configs are deleted only after a readable source config has been selected and copied to a temporary file.
+
+### Bundled Random OpenVPN Config Script
+
+The image also includes:
+
+```text
+/data/scripts/select_random_openvpn_config.sh
+```
+
+This script follows the OpenVPN behavior of the base image: the base image looks in `/config/openvpn/` for the first `*.ovpn` file and uses that as `VPN_CONFIG`. The script chooses one random `*.ovpn` from a configurable source directory, removes existing target `*.ovpn` files, and installs the selected profile as `openvpn.ovpn` by default.
+
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `OPENVPN_RANDOM_SOURCE_DIR` | No | `/data/openvpn-configs` | Source directory containing candidate OpenVPN `.ovpn` files. |
+| `OPENVPN_CONFIG_DIR` | No | `/config/openvpn` | Target directory where the selected profile is installed. |
+| `OPENVPN_CONFIG_FILENAME` | No | `openvpn.ovpn` | Target filename. Must end with `.ovpn` and may not contain `/`. |
+| `OPENVPN_CONFIG_USE_SOURCE_FILENAME` | No | `no` | Use `yes` to keep the selected source filename instead of `OPENVPN_CONFIG_FILENAME`. |
+
+Example:
+
+```yaml
+environment:
+  VPN_CRON_SCHEDULE: "0 */6 * * *"
+  VPN_CRON_SCRIPT: "/data/scripts/select_random_openvpn_config.sh"
+  OPENVPN_RANDOM_SOURCE_DIR: "/data/openvpn-configs"
+  OPENVPN_CONFIG_DIR: "/config/openvpn"
+  OPENVPN_CONFIG_USE_SOURCE_FILENAME: "no"
+```
+
+The script only copies the selected `.ovpn` file. If your profile references external files such as `ca.crt`, `client.crt`, `client.key`, or an auth file, those files must already be available in `/config/openvpn/`, or the `.ovpn` profile must embed them inline.
 
 ## Accepted Value Patterns
 

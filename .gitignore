@@ -24,7 +24,15 @@ data/
 !data/
 data/*
 !data/scripts/
+data/scripts/*
 !data/scripts/*.sh
+!data/scripts/README.md
+!data/wireguard-configs/
+data/wireguard-configs/*
+!data/wireguard-configs/README.md
+!data/openvpn-configs/
+data/openvpn-configs/*
+!data/openvpn-configs/README.md
 
 # Logs and temporary files
 *.log
