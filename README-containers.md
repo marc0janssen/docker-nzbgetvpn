@@ -8,7 +8,7 @@ Full documentation is available in the GitHub repository README.
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 2.1.2
+* NZBGetVPN image/codebase version: 2.1.3
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260501
 
@@ -19,7 +19,7 @@ Full documentation is available in the GitHub repository README.
 | `stable` | Stable NZBGet release. |
 | `testing` | Testing NZBGet release. |
 | `<version>` | Versioned image, for example `26.1`. |
-| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v2.1.2`. |
+| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v2.1.3`. |
 
 ## Included
 
@@ -343,7 +343,7 @@ If your `.ovpn` references external cert/key/auth files, those files must also b
 
 The Docker build downloads the NZBGet installer from `nzbgetcom/nzbget` and verifies it with the pinned `NZBGET_SHA256` value from the Dockerfile. If the checksum does not match, the build fails. Update scripts require `--sha256 <expected-sha256>` or the explicit `--accept-downloaded-sha256` flag before changing pinned checksums.
 
-After NZBGet is running and listening on port `6789`, startup logs one line with the NZBGetVPN image/codebase version, the NZBGet application version and a link to the GitHub changelog.
+After NZBGet is running and listening on port `6789`, startup logs one line with the NZBGetVPN image/codebase version, the NZBGet application version, a link to the GitHub changelog and the maintainer contact page.
 
 NZBGet TLS verification uses the system CA bundle:
 

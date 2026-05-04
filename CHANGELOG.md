@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [2.1.3] - 2026-05-04
+
+### Added
+
+- Added the maintainer contact page URL to the startup-complete version log line.
+
 ## [2.1.2] - 2026-05-04
 
 ### Fixed

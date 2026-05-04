@@ -5,6 +5,7 @@ CA_CERT_STORE=/etc/ssl/certs/ca-certificates.crt
 NZBGETVPN_VERSION_FILE=/usr/local/share/nzbgetvpn/VERSION
 NZBGETVPN_VERSION_LOG_MARKER=/tmp/nzbgetvpn-version-logged
 NZBGETVPN_CHANGELOG_URL=https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md
+NZBGETVPN_CONTACT_URL=https://bio.mjanssen.nl/@Marco
 
 log_nzbgetvpn_version() {
 	local nzbget_version="${NZBGET_VERSION:-unknown}"
@@ -19,7 +20,7 @@ log_nzbgetvpn_version() {
 		return
 	fi
 
-	log_line="[info] NZBGetVPN ${nzbgetvpn_version} | NZBGet ${nzbget_version} | Changelog: ${NZBGETVPN_CHANGELOG_URL}"
+	log_line="[info] NZBGetVPN ${nzbgetvpn_version} | NZBGet ${nzbget_version} | Changelog: ${NZBGETVPN_CHANGELOG_URL} | Contact page: ${NZBGETVPN_CONTACT_URL}"
 	if [[ -w /proc/1/fd/1 ]]; then
 		printf '%s\n' "${log_line}" > /proc/1/fd/1
 	else
