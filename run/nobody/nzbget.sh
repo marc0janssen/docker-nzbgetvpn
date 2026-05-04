@@ -2,6 +2,27 @@
 
 CONFIG_DIR=/usr/sbin/nzbget_bin
 CA_CERT_STORE=/etc/ssl/certs/ca-certificates.crt
+NZBGETVPN_VERSION_FILE=/usr/local/share/nzbgetvpn/VERSION
+NZBGETVPN_VERSION_LOG_MARKER=/tmp/nzbgetvpn-version-logged
+NZBGETVPN_CHANGELOG_URL=https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md
+
+log_nzbgetvpn_version() {
+	local version="unknown"
+
+	if [[ -f "${NZBGETVPN_VERSION_FILE}" ]]; then
+		version="$(sed -n '1{s/^[[:space:]]*//;s/[[:space:]]*$//;p;}' "${NZBGETVPN_VERSION_FILE}")"
+	fi
+
+	if [[ -f "${NZBGETVPN_VERSION_LOG_MARKER}" ]]; then
+		return
+	fi
+
+	echo "[info] ------------------------------------------------------------"
+	echo "[info] NZBGetVPN image/codebase version: ${version}"
+	echo "[info] Changelog: ${NZBGETVPN_CHANGELOG_URL}"
+	echo "[info] ------------------------------------------------------------"
+	: > "${NZBGETVPN_VERSION_LOG_MARKER}"
+}
 
 if [[ ! -f /config/nzbget.conf ]]; then
 
@@ -84,6 +105,7 @@ if [[ "${nzbget_running}" == "false" ]]; then
 
 	if [[ $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".6789\"") != "" ]]; then
 		echo "[info] Nzbget process is listening on port 6789"
+		log_nzbgetvpn_version
 	fi
 
 fi

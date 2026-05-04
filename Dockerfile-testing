@@ -4,6 +4,7 @@ FROM binhex/arch-int-vpn:2026032801
 ENV NZBGET_VERSION=26.2-testing-20260501
 ENV NZBGET_VERSION_DIR=testing
 ENV NZBGET_SHA256=5f6e5b221fafc820be09424164de030924338a784e3501066602cb2d581197be
+ENV NZBGET_CACERT_SHA256=491eedffee3a7abc1967031205d5c31c0d8de88783360b562e847b57ab94d50f
 
 # additional files
 ##################
@@ -21,6 +22,7 @@ ADD run/root/*.sh /root/
 ADD run/nobody/*.sh /home/nobody/
 
 # add bundled user script templates
+ADD VERSION /usr/local/share/nzbgetvpn/VERSION
 ADD data/scripts/*.sh /usr/local/share/nzbgetvpn/scripts/
 ADD data/scripts/README.md /usr/local/share/nzbgetvpn/scripts/README.md
 ADD data/wireguard-configs/README.md /usr/local/share/nzbgetvpn/wireguard-configs/README.md

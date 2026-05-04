@@ -10,10 +10,11 @@ This image builds on top of [`binhex/arch-int-vpn`](https://github.com/binhex/ar
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
+* NZBGetVPN image/codebase version: 2.1.0
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260501
 
-These two lines are intentionally kept in this exact format. The update scripts use them when bumping stable or testing releases.
+The NZBGetVPN image/codebase version is stored in `VERSION`. The two NZBGet version lines are intentionally kept in this exact format. The update scripts use them when bumping stable or testing releases.
 
 ## Image Tags
 
@@ -22,6 +23,7 @@ These two lines are intentionally kept in this exact format. The update scripts 
 | `marc0janssen/nzbgetvpn:stable` | Stable NZBGet release from `Dockerfile`. |
 | `marc0janssen/nzbgetvpn:testing` | Testing NZBGet release from `Dockerfile-testing`. |
 | `marc0janssen/nzbgetvpn:<version>` | Versioned image, for example `26.1` or `26.2-testing-20260501`. |
+| `marc0janssen/nzbgetvpn:<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version from `VERSION`, for example `26.1-image-v2.1.0`. |
 
 ## What Is Included
 
@@ -518,6 +520,15 @@ The supervisor config sends script stdout and stderr directly to Docker logs. Sc
 [crit] LAN_NETWORK is not set, exiting...
 ```
 
+After NZBGet is running and listening on port `6789`, startup logs the NZBGetVPN image/codebase version and a link to the GitHub changelog:
+
+```text
+[info] ------------------------------------------------------------
+[info] NZBGetVPN image/codebase version: 2.1.0
+[info] Changelog: https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md
+[info] ------------------------------------------------------------
+```
+
 Use:
 
 ```sh
@@ -534,14 +545,20 @@ The build scripts are safe by default: without arguments they build the values a
 | --- | --- |
 | `./build.sh` | Build and push stable using the currently pinned `Dockerfile` values. |
 | `./build-testing.sh` | Build and push testing using the currently pinned `Dockerfile-testing` values. |
-| `./build.sh 26.2` | Update stable NZBGet version, SHA256 and README version line, then build/push. |
-| `./build-testing.sh 26.2-testing-20260510` | Update testing NZBGet version, SHA256 and README version line, then build/push. |
-| `./build.sh newest` | Resolve newest stable NZBGet release, update files, then build/push. |
-| `./build-testing.sh newest` | Resolve newest testing release asset, update files, then build/push. |
+| `./build.sh 26.2 --sha256 <expected-sha256>` | Update stable NZBGet version, verify the download against the supplied SHA256, update files, then build/push. |
+| `./build-testing.sh 26.2-testing-20260510 --sha256 <expected-sha256>` | Update testing NZBGet version, verify the download against the supplied SHA256, update files, then build/push. |
+| `./build.sh newest --accept-downloaded-sha256` | Resolve newest stable NZBGet release, explicitly accept the downloaded artifact checksum, update files, then build/push. |
+| `./build-testing.sh newest --accept-downloaded-sha256` | Resolve newest testing release asset, explicitly accept the downloaded artifact checksum, update files, then build/push. |
 | `./build.sh --base newest` | Resolve newest numeric `binhex/arch-int-vpn` tag, update `Dockerfile`, then build/push. |
 | `./build-testing.sh --base newest` | Resolve newest numeric base tag, update `Dockerfile-testing`, then build/push. |
-| `./build.sh newest --base newest` | Update both NZBGet stable and the base image before building. |
-| `./build-testing.sh newest --base newest` | Update both NZBGet testing and the base image before building. |
+| `./build.sh newest --accept-downloaded-sha256 --base newest` | Update both NZBGet stable and the base image before building. |
+| `./build-testing.sh newest --accept-downloaded-sha256 --base newest` | Update both NZBGet testing and the base image before building. |
+
+Both build scripts read the NZBGetVPN codebase version from `VERSION`. Stable builds also push `<nzbget-version>-image-v<version>`, for example `26.1-image-v2.1.0`. Testing builds push the same combined pattern, for example `26.2-testing-20260501-image-v2.1.0`.
+
+When `--base newest` resolves to a different base image tag, `scripts/update-base-image.sh` bumps the patch value in `VERSION` and updates the README version lines before the image build starts. If the Dockerfile is already on the newest resolved base tag, `VERSION` is left unchanged.
+
+When updating NZBGet, prefer `--sha256 <expected-sha256>` using a checksum you verified independently. `--accept-downloaded-sha256` is available for the old trust-on-first-use workflow, but it is intentionally explicit.
 
 Help:
 
@@ -557,8 +574,8 @@ Direct update scripts live in `scripts/`:
 | `scripts/latest-nzbget-version.sh stable` | Print newest stable NZBGet version from GitHub releases. |
 | `scripts/latest-nzbget-version.sh testing` | Print newest testing NZBGet version from the `testing` release asset. |
 | `scripts/latest-binhex-base-tag.sh` | Print newest numeric `binhex/arch-int-vpn` Docker Hub tag. |
-| `scripts/update-stable.sh <version>` | Update stable Dockerfile/README/SHA256 without building. |
-| `scripts/update-testing.sh <version>` | Update testing Dockerfile/README/SHA256 without building. |
+| `scripts/update-stable.sh <version> --sha256 <expected-sha256>` | Update stable Dockerfile/README/SHA256 without building after verifying the download. |
+| `scripts/update-testing.sh <version> --sha256 <expected-sha256>` | Update testing Dockerfile/README/SHA256 without building after verifying the download. |
 | `scripts/update-base-image.sh <Dockerfile> <tag\|newest>` | Update the base image tag in a Dockerfile. |
 
 ## Download Verification And TLS
@@ -585,6 +602,8 @@ sha256sum -c -
 
 If the checksum does not match, the build stops.
 
+The update scripts also require an explicit checksum decision before changing Dockerfiles. Use `--sha256 <expected-sha256>` to compare against a value obtained independently, or `--accept-downloaded-sha256` when you intentionally want to pin the checksum calculated from the downloaded artifact.
+
 NZBGet certificate verification uses the Arch Linux system CA bundle:
 
 ```text
@@ -603,6 +622,7 @@ TLS certificate verification failed: unable to get local issuer certificate
 .
 |-- Dockerfile
 |-- Dockerfile-testing
+|-- VERSION
 |-- build.sh
 |-- build-testing.sh
 |-- build/
