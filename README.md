@@ -10,7 +10,7 @@ This image builds on top of [`binhex/arch-int-vpn`](https://github.com/binhex/ar
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 2.1.1
+* NZBGetVPN image/codebase version: 2.1.2
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260501
 
@@ -23,7 +23,7 @@ The NZBGetVPN image/codebase version is stored in `VERSION`. The two NZBGet vers
 | `marc0janssen/nzbgetvpn:stable` | Stable NZBGet release from `Dockerfile`. |
 | `marc0janssen/nzbgetvpn:testing` | Testing NZBGet release from `Dockerfile-testing`. |
 | `marc0janssen/nzbgetvpn:<version>` | Versioned image, for example `26.1` or `26.2-testing-20260501`. |
-| `marc0janssen/nzbgetvpn:<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version from `VERSION`, for example `26.1-image-v2.1.1`. |
+| `marc0janssen/nzbgetvpn:<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version from `VERSION`, for example `26.1-image-v2.1.2`. |
 
 ## What Is Included
 
@@ -511,7 +511,7 @@ Important rules and checks:
 
 ## Logging
 
-The supervisor config sends script stdout and stderr directly to Docker logs. Script output should look like:
+The supervisor config lets supervisord capture script stdout and stderr for Docker logs without also writing a second raw copy to stdout/stderr. Script output should look like:
 
 ```text
 [info] Nzbget process started
@@ -523,7 +523,7 @@ The supervisor config sends script stdout and stderr directly to Docker logs. Sc
 After NZBGet is running and listening on port `6789`, startup logs the NZBGetVPN image/codebase version, the NZBGet application version and a link to the GitHub changelog:
 
 ```text
-[info] NZBGetVPN 2.1.1 | NZBGet 26.1 | Changelog: https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md
+[info] NZBGetVPN 2.1.2 | NZBGet 26.1 | Changelog: https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md
 ```
 
 Use:
@@ -551,7 +551,7 @@ The build scripts are safe by default: without arguments they build the values a
 | `./build.sh newest --accept-downloaded-sha256 --base newest` | Update both NZBGet stable and the base image before building. |
 | `./build-testing.sh newest --accept-downloaded-sha256 --base newest` | Update both NZBGet testing and the base image before building. |
 
-Both build scripts read the NZBGetVPN codebase version from `VERSION`. Stable builds also push `<nzbget-version>-image-v<version>`, for example `26.1-image-v2.1.1`. Testing builds push the same combined pattern, for example `26.2-testing-20260501-image-v2.1.1`.
+Both build scripts read the NZBGetVPN codebase version from `VERSION`. Stable builds also push `<nzbget-version>-image-v<version>`, for example `26.1-image-v2.1.2`. Testing builds push the same combined pattern, for example `26.2-testing-20260501-image-v2.1.2`.
 
 When `--base newest` resolves to a different base image tag, `scripts/update-base-image.sh` bumps the patch value in `VERSION` and updates the README version lines before the image build starts. If the Dockerfile is already on the newest resolved base tag, `VERSION` is left unchanged.
 
