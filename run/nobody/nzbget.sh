@@ -7,20 +7,24 @@ NZBGETVPN_VERSION_LOG_MARKER=/tmp/nzbgetvpn-version-logged
 NZBGETVPN_CHANGELOG_URL=https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md
 
 log_nzbgetvpn_version() {
-	local version="unknown"
+	local nzbget_version="${NZBGET_VERSION:-unknown}"
+	local nzbgetvpn_version="unknown"
+	local log_line
 
 	if [[ -f "${NZBGETVPN_VERSION_FILE}" ]]; then
-		version="$(sed -n '1{s/^[[:space:]]*//;s/[[:space:]]*$//;p;}' "${NZBGETVPN_VERSION_FILE}")"
+		nzbgetvpn_version="$(sed -n '1{s/^[[:space:]]*//;s/[[:space:]]*$//;p;}' "${NZBGETVPN_VERSION_FILE}")"
 	fi
 
 	if [[ -f "${NZBGETVPN_VERSION_LOG_MARKER}" ]]; then
 		return
 	fi
 
-	echo "[info] ------------------------------------------------------------"
-	echo "[info] NZBGetVPN image/codebase version: ${version}"
-	echo "[info] Changelog: ${NZBGETVPN_CHANGELOG_URL}"
-	echo "[info] ------------------------------------------------------------"
+	log_line="[info] NZBGetVPN ${nzbgetvpn_version} | NZBGet ${nzbget_version} | Changelog: ${NZBGETVPN_CHANGELOG_URL}"
+	if [[ -w /proc/1/fd/1 ]]; then
+		printf '%s\n' "${log_line}" > /proc/1/fd/1
+	else
+		printf '%s\n' "${log_line}"
+	fi
 	: > "${NZBGETVPN_VERSION_LOG_MARKER}"
 }
 

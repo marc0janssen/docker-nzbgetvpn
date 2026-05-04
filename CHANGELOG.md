@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [2.1.1] - 2026-05-04
+
+### Fixed
+
+- Changed the startup-complete version log to a single line to avoid duplicated supervisord debug output.
+- Added the NZBGet application version to the startup-complete version log.
+
 ## [2.1.0] - 2026-05-04
 
 ### Added
