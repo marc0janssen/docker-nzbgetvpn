@@ -22,6 +22,9 @@ ADD run/nobody/*.sh /home/nobody/
 
 # add bundled user script templates
 ADD data/scripts/*.sh /usr/local/share/nzbgetvpn/scripts/
+ADD data/scripts/README.md /usr/local/share/nzbgetvpn/scripts/README.md
+ADD data/wireguard-configs/README.md /usr/local/share/nzbgetvpn/wireguard-configs/README.md
+ADD data/openvpn-configs/README.md /usr/local/share/nzbgetvpn/openvpn-configs/README.md
 
 # install app
 #############

@@ -16,6 +16,9 @@ require_command() {
 }
 
 cleanup() {
+	if [[ -n "${tmp_file:-}" && -f "${tmp_file}" ]]; then
+		rm -f "${tmp_file}"
+	fi
 	if [[ -n "${tmp_dir:-}" && -d "${tmp_dir}" ]]; then
 		rm -rf "${tmp_dir}"
 	fi
@@ -31,6 +34,8 @@ TOTAL_CONFIGS="${TOTAL_CONFIGS:-1}"
 DNS="${DNS:-103.86.96.100}"
 COUNTRY_NAME="${COUNTRY_NAME:-Netherlands}"
 WIREGUARD_CONFIG_DIR="${WIREGUARD_CONFIG_DIR:-/config/wireguard}"
+WIREGUARD_CONFIG_FILENAME="${WIREGUARD_CONFIG_FILENAME:-wg0.conf}"
+WIREGUARD_CONFIG_USE_SOURCE_FILENAME="${WIREGUARD_CONFIG_USE_SOURCE_FILENAME:-no}"
 WIREGUARD_ADDRESS="${WIREGUARD_ADDRESS:-10.5.0.2/32}"
 WIREGUARD_PORT="${WIREGUARD_PORT:-51820}"
 
@@ -39,6 +44,9 @@ WIREGUARD_PORT="${WIREGUARD_PORT:-51820}"
 [[ "${WIREGUARD_PORT}" =~ ^[0-9]+$ && "${WIREGUARD_PORT}" -ge 1 && "${WIREGUARD_PORT}" -le 65535 ]] || log_crit "WIREGUARD_PORT must be a valid TCP/UDP port"
 [[ -d "${WIREGUARD_CONFIG_DIR}" ]] || log_crit "WireGuard config directory '${WIREGUARD_CONFIG_DIR}' does not exist"
 [[ -w "${WIREGUARD_CONFIG_DIR}" ]] || log_crit "WireGuard config directory '${WIREGUARD_CONFIG_DIR}' is not writable"
+[[ "${WIREGUARD_CONFIG_FILENAME}" == *.conf ]] || log_crit "WIREGUARD_CONFIG_FILENAME must end with '.conf'"
+[[ "${WIREGUARD_CONFIG_FILENAME}" != */* ]] || log_crit "WIREGUARD_CONFIG_FILENAME must be a filename, not a path"
+[[ "${WIREGUARD_CONFIG_USE_SOURCE_FILENAME}" == "yes" || "${WIREGUARD_CONFIG_USE_SOURCE_FILENAME}" == "no" ]] || log_crit "WIREGUARD_CONFIG_USE_SOURCE_FILENAME must be 'yes' or 'no'"
 
 COUNTRIES_URL="https://api.nordvpn.com/v1/servers/countries"
 CREDENTIALS_URL="https://api.nordvpn.com/v1/users/services/credentials"
@@ -114,12 +122,34 @@ done < <(
 generated_count="$(find "${tmp_dir}" -maxdepth 1 -type f -name '*.conf' | wc -l | tr -d ' ')"
 [[ "${generated_count}" -gt 0 ]] || log_crit "No WireGuard config files were generated"
 
+generated_configs=()
+while IFS= read -r -d '' generated_file; do
+	generated_configs+=("${generated_file}")
+done < <(find "${tmp_dir}" -maxdepth 1 -type f -name '*.conf' -print0)
+
+selected_index=$((RANDOM % generated_count))
+selected_config="${generated_configs[${selected_index}]}"
+if [[ "${WIREGUARD_CONFIG_USE_SOURCE_FILENAME}" == "yes" ]]; then
+	target_filename="$(basename "${selected_config}")"
+else
+	target_filename="${WIREGUARD_CONFIG_FILENAME}"
+fi
+[[ "${target_filename}" == *.conf ]] || log_crit "Target WireGuard filename must end with '.conf'"
+[[ "${target_filename}" != */* ]] || log_crit "Target WireGuard filename must be a filename, not a path"
+target_config="${WIREGUARD_CONFIG_DIR}/${target_filename}"
+tmp_file="${WIREGUARD_CONFIG_DIR}/.${target_filename}.tmp.$$"
+
+log_info "Selected WireGuard config '${selected_config}' from ${generated_count} generated candidate(s)"
+log_info "Target WireGuard config filename is '${target_filename}'"
+cp "${selected_config}" "${tmp_file}"
+chmod 600 "${tmp_file}"
+
 log_info "Replacing existing WireGuard configs in '${WIREGUARD_CONFIG_DIR}'"
 find "${WIREGUARD_CONFIG_DIR}" -maxdepth 1 -type f -name '*.conf' -delete
 
-while IFS= read -r generated_file; do
-	mv "${generated_file}" "${WIREGUARD_CONFIG_DIR}/"
-done < <(find "${tmp_dir}" -maxdepth 1 -type f -name '*.conf')
+mv "${tmp_file}" "${target_config}"
+tmp_file=""
+chmod 600 "${target_config}"
 
-log_info "Installed ${generated_count} WireGuard config file(s)"
+log_info "Installed '${target_config}'"
 log_info "Done"

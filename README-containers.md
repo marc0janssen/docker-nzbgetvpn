@@ -152,7 +152,7 @@ sysctls:
 | `/data` | Downloads and optional user scripts. |
 | `/etc/localtime:ro` | Recommended for correct log and schedule times. |
 
-On container start, missing bundled scripts are copied into `/data/scripts/`. This also works when `/data` is a host bind mount.
+On container start, bundled scripts are copied into `/data/scripts/` and updated when the image template differs from the mounted copy. The default source directories `/data/wireguard-configs` and `/data/openvpn-configs` are also created. Each of these `/data` subdirectories gets a small `README.md`. This also works when `/data` is a host bind mount.
 
 ## Important Environment Variables
 
@@ -263,11 +263,79 @@ It fetches recommended NordVPN WireGuard servers and writes `.conf` files to `/c
 | --- | --- | --- |
 | `NORDVPN_ACCESS_TOKEN` | required | NordVPN access token. |
 | `COUNTRY_NAME` | `Netherlands` | NordVPN country name. |
-| `TOTAL_CONFIGS` | `1` | Number of configs to generate. |
+| `TOTAL_CONFIGS` | `1` | Number of NordVPN recommendations to fetch. If greater than `1`, one generated config is selected randomly. |
 | `DNS` | `103.86.96.100` | DNS written to the config. |
 | `WIREGUARD_CONFIG_DIR` | `/config/wireguard` | Output directory. |
+| `WIREGUARD_CONFIG_FILENAME` | `wg0.conf` | Target filename for the active config. Must end with `.conf` and may not contain `/`. |
+| `WIREGUARD_CONFIG_USE_SOURCE_FILENAME` | `no` | Set `yes` to keep the generated NordVPN filename. |
 | `WIREGUARD_ADDRESS` | `10.5.0.2/32` | WireGuard interface address. |
 | `WIREGUARD_PORT` | `51820` | WireGuard endpoint port. |
+
+Create `NORDVPN_ACCESS_TOKEN` in Nord Account:
+
+1. Log in to `https://my.nordaccount.com/`.
+2. Open `NordVPN`.
+3. Go to `Advanced settings`.
+4. Click `Get access token`.
+5. Verify your email address.
+6. Generate a temporary or non-expiring token.
+7. Copy it immediately; it is only shown once.
+
+Use the copied value as `NORDVPN_ACCESS_TOKEN`. Enable MFA if you use a non-expiring token.
+
+## Bundled Random WireGuard Config Script
+
+Included script:
+
+```text
+/data/scripts/select_random_wireguard_config.sh
+```
+
+It selects a random `*.conf` from a source directory and installs it as the active WireGuard config.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `WIREGUARD_RANDOM_SOURCE_DIR` | `/data/wireguard-configs` | Source directory containing candidate `.conf` files. |
+| `WIREGUARD_CONFIG_DIR` | `/config/wireguard` | Target directory. Existing `*.conf` files are removed after a source config is prepared. |
+| `WIREGUARD_CONFIG_FILENAME` | `wg0.conf` | Target filename. |
+| `WIREGUARD_CONFIG_USE_SOURCE_FILENAME` | `no` | Set `yes` to keep the selected source filename. |
+
+Example:
+
+```yaml
+environment:
+  VPN_CRON_SCHEDULE: "0 */6 * * *"
+  VPN_CRON_SCRIPT: "/data/scripts/select_random_wireguard_config.sh"
+  WIREGUARD_RANDOM_SOURCE_DIR: "/data/wireguard-configs"
+```
+
+## Bundled Random OpenVPN Config Script
+
+Included script:
+
+```text
+/data/scripts/select_random_openvpn_config.sh
+```
+
+It selects a random `*.ovpn` from a source directory and installs it as the active OpenVPN profile.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `OPENVPN_RANDOM_SOURCE_DIR` | `/data/openvpn-configs` | Source directory containing candidate `.ovpn` files. |
+| `OPENVPN_CONFIG_DIR` | `/config/openvpn` | Target directory. Existing `*.ovpn` files are removed after a source profile is prepared. |
+| `OPENVPN_CONFIG_FILENAME` | `openvpn.ovpn` | Target filename. |
+| `OPENVPN_CONFIG_USE_SOURCE_FILENAME` | `no` | Set `yes` to keep the selected source filename. |
+
+Example:
+
+```yaml
+environment:
+  VPN_CRON_SCHEDULE: "0 */6 * * *"
+  VPN_CRON_SCRIPT: "/data/scripts/select_random_openvpn_config.sh"
+  OPENVPN_RANDOM_SOURCE_DIR: "/data/openvpn-configs"
+```
+
+If your `.ovpn` references external cert/key/auth files, those files must also be available in `/config/openvpn/`, or the `.ovpn` must embed them inline.
 
 ## Build Verification
 

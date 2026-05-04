@@ -88,8 +88,8 @@ fi
 ####
 
 # define comma separated list of paths 
-mkdir -p /data/scripts
-install_paths="/usr/sbin/nzbget_bin,/home/nobody,/data/scripts"
+mkdir -p /data/scripts /data/wireguard-configs /data/openvpn-configs
+install_paths="/usr/sbin/nzbget_bin,/home/nobody,/data/scripts,/data/wireguard-configs,/data/openvpn-configs"
 
 # split comma separated string into list for install paths
 IFS=',' read -ra install_paths_list <<< "${install_paths}"
@@ -111,7 +111,7 @@ install_paths=$(echo "${install_paths}" | tr ',' ' ')
 chmod -R 775 ${install_paths}
 
 cat <<EOF > /tmp/permissions_heredoc
-mkdir -p /data/scripts
+mkdir -p /data/scripts /data/wireguard-configs /data/openvpn-configs
 for bundled_script in /usr/local/share/nzbgetvpn/scripts/*.sh; do
 	if [[ -f "\${bundled_script}" ]]; then
 		target_script="/data/scripts/\$(basename "\${bundled_script}")"
@@ -119,9 +119,25 @@ for bundled_script in /usr/local/share/nzbgetvpn/scripts/*.sh; do
 			echo "[info] Installing bundled script '\${target_script}'"
 			cp "\${bundled_script}" "\${target_script}"
 			chmod +x "\${target_script}"
+		elif ! cmp -s "\${bundled_script}" "\${target_script}"; then
+			echo "[info] Updating bundled script '\${target_script}'"
+			cp "\${bundled_script}" "\${target_script}"
+			chmod +x "\${target_script}"
 		fi
 	fi
 done
+if [[ -f /usr/local/share/nzbgetvpn/scripts/README.md && ! -f /data/scripts/README.md ]]; then
+	echo "[info] Installing bundled README '/data/scripts/README.md'"
+	cp /usr/local/share/nzbgetvpn/scripts/README.md /data/scripts/README.md
+fi
+if [[ -f /usr/local/share/nzbgetvpn/wireguard-configs/README.md && ! -f /data/wireguard-configs/README.md ]]; then
+	echo "[info] Installing bundled README '/data/wireguard-configs/README.md'"
+	cp /usr/local/share/nzbgetvpn/wireguard-configs/README.md /data/wireguard-configs/README.md
+fi
+if [[ -f /usr/local/share/nzbgetvpn/openvpn-configs/README.md && ! -f /data/openvpn-configs/README.md ]]; then
+	echo "[info] Installing bundled README '/data/openvpn-configs/README.md'"
+	cp /usr/local/share/nzbgetvpn/openvpn-configs/README.md /data/openvpn-configs/README.md
+fi
 # get previous puid/pgid (if first run then will be empty string)
 previous_puid=\$(cat "/root/puid" 2>/dev/null || true)
 previous_pgid=\$(cat "/root/pgid" 2>/dev/null || true)
