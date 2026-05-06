@@ -4,6 +4,127 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.1.7] - 2026-05-06
+
+### Changed
+
+- Moved VPN self-test execution to the end of each watchdog loop pass so `preruncheck` has populated `vpn_ip` and NZBGet may already be starting.
+- Pass `vpn_ip`, `VPN_DEVICE_TYPE`, and `VPN_ENABLED` into `vpn-selftest.sh` from the watchdog.
+- Derive tunnel IPv4 from `VPN_DEVICE_TYPE` in `vpn-selftest.sh` when `vpn_ip` is unset.
+- Wait up to about 12 seconds (24 x 0.5s) for NZBGet to listen on port `6789` before warning.
+
+## [4.1.6] - 2026-05-06
+
+### Changed
+
+- Combined `[supervisord] loglevel=info` with direct `stdout_logfile=/dev/fd/1` / `stderr_logfile=/dev/fd/2` in `build/nzbget.conf` so Docker logs stay readable (no swallowed banner) while suppressing `DEBG 'watchdog-script' stdout output:` noise from supervisord.
+
+## [4.1.5] - 2026-05-06
+
+### Changed
+
+- Pointed supervisor program `stdout_logfile`/`stderr_logfile` at `/dev/fd/1` and `/dev/fd/2` in `build/nzbget.conf` so script output goes directly to Docker logs without noisy `DEBG 'watchdog-script' stdout output:` lines from supervisord child capture.
+
+## [4.1.4] - 2026-05-06
+
+### Fixed
+
+- Reverted the supervisor loglevel override in `build/nzbget.conf` because it suppressed child script stdout lines, including the startup NZBGetVPN version banner and self-test logs.
+
+## [4.1.3] - 2026-05-06
+
+### Changed
+
+- Set supervisor log level to `info` in `build/nzbget.conf` to suppress noisy debug-prefixed lines like `DEBG 'watchdog-script' stdout output:` in normal container logs.
+
+## [4.1.2] - 2026-05-06
+
+### Changed
+
+- Reduced noisy/empty-looking supervisor log events from firewall startup output by removing decorative separator echoes and filtering blank lines from `ip route` and `iptables -S` output in `run/root/iptable.sh`.
+
+## [4.1.1] - 2026-05-06
+
+### Changed
+
+- Added an upper bound for `VPN_SELFTEST_STARTUP_DELAY` in watchdog processing: values above `300` seconds are now clamped to `300` with a warning.
+
+## [4.1.0] - 2026-05-06
+
+### Added
+
+- Added `VPN_SELFTEST_STARTUP_DELAY` (default `20` seconds) to delay one-shot self-test execution in `VPN_SELFTEST_ENABLED=yes` mode and reduce startup timing warnings.
+
+### Changed
+
+- Added watchdog log output that reports when the one-shot self-test is intentionally delayed during startup.
+
+## [4.0.2] - 2026-05-06
+
+### Changed
+
+- Added watchdog startup logging for the resolved self-test mode (`VPN self-test watchdog mode ...`) so it is visible whether the watchdog receives `VPN_SELFTEST_ENABLED` as expected.
+
+## [4.0.1] - 2026-05-06
+
+### Changed
+
+- Added explicit startup-complete logging of `VPN_SELFTEST_ENABLED` after NZBGet starts listening on port `6789`, including both normalized mode and raw environment value.
+
+## [4.0.0] - 2026-05-06
+
+### Changed
+
+- Renamed the one-shot startup self-test mode from `afterstart` to `yes` for `VPN_SELFTEST_ENABLED`.
+- Updated self-test parsing so `true`/`1` normalize to `yes` and `false`/`0` normalize to `no`.
+- Updated `README.md` and `README-containers.md` examples and accepted values to document `no`, `yes`, or cron expression.
+
+## [3.2.0] - 2026-05-06
+
+### Changed
+
+- Extended boolean parsing across project scripts to also accept `1` and `0` alongside `yes`/`no` and `true`/`false`.
+- Updated runtime script toggles and helper-script filename toggles to normalize all six boolean forms consistently.
+- Updated build and update helper scripts so checksum-acceptance logic also accepts `true` and `1`.
+- Updated README documentation to list `1` and `0` as supported boolean alternatives and clarified self-test boolean aliases.
+
+## [3.1.0] - 2026-05-06
+
+### Changed
+
+- Updated repository runtime scripts to accept both `yes`/`no` and `true`/`false` for boolean environment variables they consume.
+- Added boolean normalization for internal toggles (`VPN_ENABLED`, `ENABLE_PRIVOXY`, `DEBUG`, `VPN_UNHEALTHY_TEST`) and for helper script filename toggles (`*_CONFIG_USE_SOURCE_FILENAME`).
+- Kept `VPN_SELFTEST_ENABLED` scheduling values while also accepting `true` as `afterstart` and `false` as `no`.
+- Updated documentation examples and boolean normalization guidance in `README.md` and `README-containers.md`.
+
+## [3.0.0] - 2026-05-06
+
+### Changed
+
+- Simplified `VPN_SELFTEST_ENABLED` accepted values to only `no` (default), `afterstart`, or a five-field cron expression such as `*/5 * * * *`.
+- Removed temporary `yes` and `no` compatibility aliases for self-test scheduling.
+- Improved invalid-schedule logging so self-test cron parsing errors reference `VPN_SELFTEST_ENABLED`.
+- Updated self-test documentation in `README.md` and `README-containers.md` to reflect the final accepted values.
+
+## [2.2.3] - 2026-05-06
+
+### Changed
+
+- Extended `VPN_SELFTEST_ENABLED` scheduling behavior to accept `none` (default), `afterstart`, and five-field cron expressions like `*/5 * * * *`.
+- Kept backward compatibility by mapping `VPN_SELFTEST_ENABLED=yes` to `afterstart` and `VPN_SELFTEST_ENABLED=no` to `none`.
+- Updated self-test documentation in `README.md` and `README-containers.md` with startup and periodic scheduling examples.
+
+## [2.2.2] - 2026-05-06
+
+### Added
+
+- Added internal startup self-test script `run/nobody/vpn-selftest.sh` that performs read-only checks for container routing, DNS resolver presence, writable data/config paths, VPN interface signaling, and NZBGet process/listener state.
+- Added `VPN_SELFTEST_ENABLED` to run the internal self-test once from the watchdog loop and log results to normal Docker container output.
+
+### Changed
+
+- Documented the new internal self-test toggle and behavior in `README.md` and `README-containers.md`, including that the script remains internal at `/home/nobody/vpn-selftest.sh` and is not exposed via `/data/scripts`.
+
 ## [2.2.1] - 2026-05-04
 
 ### Added

@@ -27,12 +27,27 @@ absolute_dir() {
 	)
 }
 
+normalize_yes_no() {
+	case "${1:-}" in
+		yes|true|1)
+			echo "yes"
+			;;
+		no|false|0)
+			echo "no"
+			;;
+		*)
+			echo ""
+			;;
+	esac
+}
+
 trap cleanup EXIT
 
 WIREGUARD_RANDOM_SOURCE_DIR="${WIREGUARD_RANDOM_SOURCE_DIR:-/data/wireguard-configs}"
 WIREGUARD_CONFIG_DIR="${WIREGUARD_CONFIG_DIR:-/config/wireguard}"
 WIREGUARD_CONFIG_FILENAME="${WIREGUARD_CONFIG_FILENAME:-wg0.conf}"
 WIREGUARD_CONFIG_USE_SOURCE_FILENAME="${WIREGUARD_CONFIG_USE_SOURCE_FILENAME:-no}"
+WIREGUARD_CONFIG_USE_SOURCE_FILENAME_NORMALIZED="$(normalize_yes_no "${WIREGUARD_CONFIG_USE_SOURCE_FILENAME}")"
 
 [[ -d "${WIREGUARD_RANDOM_SOURCE_DIR}" ]] || log_crit "WIREGUARD_RANDOM_SOURCE_DIR '${WIREGUARD_RANDOM_SOURCE_DIR}' does not exist"
 [[ -r "${WIREGUARD_RANDOM_SOURCE_DIR}" ]] || log_crit "WIREGUARD_RANDOM_SOURCE_DIR '${WIREGUARD_RANDOM_SOURCE_DIR}' is not readable"
@@ -40,7 +55,7 @@ WIREGUARD_CONFIG_USE_SOURCE_FILENAME="${WIREGUARD_CONFIG_USE_SOURCE_FILENAME:-no
 [[ -w "${WIREGUARD_CONFIG_DIR}" ]] || log_crit "WIREGUARD_CONFIG_DIR '${WIREGUARD_CONFIG_DIR}' is not writable"
 [[ "${WIREGUARD_CONFIG_FILENAME}" == *.conf ]] || log_crit "WIREGUARD_CONFIG_FILENAME must end with '.conf'"
 [[ "${WIREGUARD_CONFIG_FILENAME}" != */* ]] || log_crit "WIREGUARD_CONFIG_FILENAME must be a filename, not a path"
-[[ "${WIREGUARD_CONFIG_USE_SOURCE_FILENAME}" == "yes" || "${WIREGUARD_CONFIG_USE_SOURCE_FILENAME}" == "no" ]] || log_crit "WIREGUARD_CONFIG_USE_SOURCE_FILENAME must be 'yes' or 'no'"
+[[ -n "${WIREGUARD_CONFIG_USE_SOURCE_FILENAME_NORMALIZED}" ]] || log_crit "WIREGUARD_CONFIG_USE_SOURCE_FILENAME must be one of: 'yes', 'no', 'true', 'false', '1', or '0'"
 
 source_abs="$(absolute_dir "${WIREGUARD_RANDOM_SOURCE_DIR}")" || log_crit "Unable to resolve WIREGUARD_RANDOM_SOURCE_DIR '${WIREGUARD_RANDOM_SOURCE_DIR}'"
 target_abs="$(absolute_dir "${WIREGUARD_CONFIG_DIR}")" || log_crit "Unable to resolve WIREGUARD_CONFIG_DIR '${WIREGUARD_CONFIG_DIR}'"
@@ -59,7 +74,7 @@ config_count="${#configs[@]}"
 
 selected_index=$((RANDOM % config_count))
 selected_config="${configs[${selected_index}]}"
-if [[ "${WIREGUARD_CONFIG_USE_SOURCE_FILENAME}" == "yes" ]]; then
+if [[ "${WIREGUARD_CONFIG_USE_SOURCE_FILENAME_NORMALIZED}" == "yes" ]]; then
 	target_filename="$(basename "${selected_config}")"
 else
 	target_filename="${WIREGUARD_CONFIG_FILENAME}"

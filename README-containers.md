@@ -8,9 +8,9 @@ Full documentation is available in the GitHub repository README.
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 2.2.1
+* NZBGetVPN image/codebase version: 4.1.7
 * NZBGET Current stable version: 26.1
-* NZBGET Current testing version: 26.2-testing-20260504
+* NZBGET Current testing version: 26.2-testing-20260506
 
 ## Tags
 
@@ -19,7 +19,7 @@ Full documentation is available in the GitHub repository README.
 | `stable` | Stable NZBGet release. |
 | `testing` | Testing NZBGet release. |
 | `<version>` | Versioned image, for example `26.1`. |
-| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v2.2.1`. |
+| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.1.7`. |
 
 ## Included
 
@@ -196,6 +196,8 @@ Report vulnerabilities privately through the maintainer contact page linked in t
 | `PUID` / `PGID` | numeric | Runtime file ownership. |
 | `UMASK` | octal | File creation mask. |
 | `DEBUG` | `true`, `false` | Extra script logging. |
+| `VPN_SELFTEST_ENABLED` | `no`, `yes`, cron expression | Control internal read-only self-test scheduling (`false`/`0` = `no`, `true`/`1` = `yes`). |
+| `VPN_SELFTEST_STARTUP_DELAY` | non-negative integer seconds | Delay one-shot self-test when `VPN_SELFTEST_ENABLED=yes` (default `20`, max `300`). |
 
 ## VPN Config
 
@@ -271,6 +273,30 @@ environment:
 ```
 
 Use Compose mapping form for cron schedules because the value contains spaces.
+
+## Internal VPN Self-Test
+
+Internal script path:
+
+```text
+/home/nobody/vpn-selftest.sh
+```
+
+Enable with:
+
+```yaml
+environment:
+  VPN_SELFTEST_ENABLED: "yes"
+```
+
+Or run periodically:
+
+```yaml
+environment:
+  VPN_SELFTEST_ENABLED: "*/5 * * * *"
+```
+
+The script runs from the watchdog loop, logs to normal container stdout, and does not modify VPN or app state.
 
 ## Bundled NordVPN WireGuard Script
 
@@ -364,7 +390,7 @@ If your `.ovpn` references external cert/key/auth files, those files must also b
 
 The Docker build downloads the NZBGet installer from `nzbgetcom/nzbget` and verifies it with the pinned `NZBGET_SHA256` value from the Dockerfile. If the checksum does not match, the build fails. Update scripts require `--sha256 <expected-sha256>` or the explicit `--accept-downloaded-sha256` flag before changing pinned checksums.
 
-After NZBGet is running and listening on port `6789`, startup logs one line with the NZBGetVPN image/codebase version, the NZBGet application version, a link to the GitHub changelog and the maintainer contact page.
+After NZBGet is running and listening on port `6789`, startup logs the NZBGetVPN version line and the resolved `VPN_SELFTEST_ENABLED` mode.
 
 NZBGet TLS verification uses the system CA bundle:
 

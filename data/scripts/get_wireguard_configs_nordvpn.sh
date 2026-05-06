@@ -15,6 +15,20 @@ require_command() {
 	command -v "$1" >/dev/null 2>&1 || log_crit "Required command '$1' is not installed"
 }
 
+normalize_yes_no() {
+	case "${1:-}" in
+		yes|true|1)
+			echo "yes"
+			;;
+		no|false|0)
+			echo "no"
+			;;
+		*)
+			echo ""
+			;;
+	esac
+}
+
 cleanup() {
 	if [[ -n "${tmp_file:-}" && -f "${tmp_file}" ]]; then
 		rm -f "${tmp_file}"
@@ -38,6 +52,7 @@ WIREGUARD_CONFIG_FILENAME="${WIREGUARD_CONFIG_FILENAME:-wg0.conf}"
 WIREGUARD_CONFIG_USE_SOURCE_FILENAME="${WIREGUARD_CONFIG_USE_SOURCE_FILENAME:-no}"
 WIREGUARD_ADDRESS="${WIREGUARD_ADDRESS:-10.5.0.2/32}"
 WIREGUARD_PORT="${WIREGUARD_PORT:-51820}"
+WIREGUARD_CONFIG_USE_SOURCE_FILENAME_NORMALIZED="$(normalize_yes_no "${WIREGUARD_CONFIG_USE_SOURCE_FILENAME}")"
 
 [[ -n "${NORDVPN_ACCESS_TOKEN}" ]] || log_crit "Set NORDVPN_ACCESS_TOKEN before running this script"
 [[ "${TOTAL_CONFIGS}" =~ ^[0-9]+$ && "${TOTAL_CONFIGS}" -gt 0 ]] || log_crit "TOTAL_CONFIGS must be a positive integer"
@@ -46,7 +61,7 @@ WIREGUARD_PORT="${WIREGUARD_PORT:-51820}"
 [[ -w "${WIREGUARD_CONFIG_DIR}" ]] || log_crit "WireGuard config directory '${WIREGUARD_CONFIG_DIR}' is not writable"
 [[ "${WIREGUARD_CONFIG_FILENAME}" == *.conf ]] || log_crit "WIREGUARD_CONFIG_FILENAME must end with '.conf'"
 [[ "${WIREGUARD_CONFIG_FILENAME}" != */* ]] || log_crit "WIREGUARD_CONFIG_FILENAME must be a filename, not a path"
-[[ "${WIREGUARD_CONFIG_USE_SOURCE_FILENAME}" == "yes" || "${WIREGUARD_CONFIG_USE_SOURCE_FILENAME}" == "no" ]] || log_crit "WIREGUARD_CONFIG_USE_SOURCE_FILENAME must be 'yes' or 'no'"
+[[ -n "${WIREGUARD_CONFIG_USE_SOURCE_FILENAME_NORMALIZED}" ]] || log_crit "WIREGUARD_CONFIG_USE_SOURCE_FILENAME must be one of: 'yes', 'no', 'true', 'false', '1', or '0'"
 
 COUNTRIES_URL="https://api.nordvpn.com/v1/servers/countries"
 CREDENTIALS_URL="https://api.nordvpn.com/v1/users/services/credentials"
@@ -129,7 +144,7 @@ done < <(find "${tmp_dir}" -maxdepth 1 -type f -name '*.conf' -print0)
 
 selected_index=$((RANDOM % generated_count))
 selected_config="${generated_configs[${selected_index}]}"
-if [[ "${WIREGUARD_CONFIG_USE_SOURCE_FILENAME}" == "yes" ]]; then
+if [[ "${WIREGUARD_CONFIG_USE_SOURCE_FILENAME_NORMALIZED}" == "yes" ]]; then
 	target_filename="$(basename "${selected_config}")"
 else
 	target_filename="${WIREGUARD_CONFIG_FILENAME}"

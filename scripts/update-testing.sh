@@ -62,6 +62,17 @@ is_sha256() {
 	printf '%s\n' "$1" | grep -Eq '^[0-9a-fA-F]{64}$'
 }
 
+is_truthy() {
+	case "$1" in
+		yes|true|1)
+			return 0
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
 is_release_version() {
 	printf '%s\n' "$1" | grep -Eq '^[A-Za-z0-9_.-]+$'
 }
@@ -113,7 +124,7 @@ if [ -n "${EXPECTED_SHA256}" ] && ! is_sha256 "${EXPECTED_SHA256}"; then
 	exit 1
 fi
 
-if [ -n "${EXPECTED_SHA256}" ] && [ "${ACCEPT_DOWNLOADED_SHA256}" = "yes" ]; then
+if [ -n "${EXPECTED_SHA256}" ] && is_truthy "${ACCEPT_DOWNLOADED_SHA256}"; then
 	echo "Use either --sha256 or --accept-downloaded-sha256, not both" >&2
 	exit 1
 fi
@@ -133,7 +144,7 @@ if [ -n "${EXPECTED_SHA256}" ]; then
 		echo "Actual:   ${NZBGET_SHA256}" >&2
 		exit 1
 	fi
-elif [ "${ACCEPT_DOWNLOADED_SHA256}" != "yes" ]; then
+elif ! is_truthy "${ACCEPT_DOWNLOADED_SHA256}"; then
 	echo "Refusing to pin checksum without verification." >&2
 	echo "Downloaded SHA256: ${NZBGET_SHA256}" >&2
 	echo "Re-run with --sha256 <expected-sha256>, or --accept-downloaded-sha256 if you intentionally accept this artifact." >&2

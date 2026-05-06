@@ -48,6 +48,17 @@ is_sha256() {
 	printf '%s\n' "$1" | grep -Eq '^[0-9a-fA-F]{64}$'
 }
 
+is_truthy() {
+	case "$1" in
+		yes|true|1)
+			return 0
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
 is_semver() {
 	printf '%s\n' "$1" | grep -Eq '^[0-9]+[.][0-9]+[.][0-9]+$'
 }
@@ -122,17 +133,17 @@ if [ -n "${EXPECTED_SHA256_ARG}" ] && ! is_sha256 "${EXPECTED_SHA256_ARG}"; then
 	exit 1
 fi
 
-if [ -n "${EXPECTED_SHA256_ARG}" ] && [ "${ACCEPT_DOWNLOADED_SHA256}" = "yes" ]; then
+if [ -n "${EXPECTED_SHA256_ARG}" ] && is_truthy "${ACCEPT_DOWNLOADED_SHA256}"; then
 	echo "Use either --sha256 or --accept-downloaded-sha256, not both" >&2
 	exit 1
 fi
 
-if [ -z "${NZBGET_VERSION_ARG}" ] && { [ -n "${EXPECTED_SHA256_ARG}" ] || [ "${ACCEPT_DOWNLOADED_SHA256}" = "yes" ]; }; then
+if [ -z "${NZBGET_VERSION_ARG}" ] && { [ -n "${EXPECTED_SHA256_ARG}" ] || is_truthy "${ACCEPT_DOWNLOADED_SHA256}"; }; then
 	echo "--sha256 and --accept-downloaded-sha256 are only valid when updating an NZBGet version" >&2
 	exit 1
 fi
 
-if [ -n "${NZBGET_VERSION_ARG}" ] && [ -z "${EXPECTED_SHA256_ARG}" ] && [ "${ACCEPT_DOWNLOADED_SHA256}" != "yes" ]; then
+if [ -n "${NZBGET_VERSION_ARG}" ] && [ -z "${EXPECTED_SHA256_ARG}" ] && ! is_truthy "${ACCEPT_DOWNLOADED_SHA256}"; then
 	echo "Updating NZBGet requires --sha256 <expected-sha256> or --accept-downloaded-sha256" >&2
 	exit 1
 fi
@@ -151,7 +162,7 @@ if [ -n "${NZBGET_VERSION_ARG}" ]; then
 	fi
 	if [ -n "${EXPECTED_SHA256_ARG}" ]; then
 		./scripts/update-testing.sh "${VERSION_TO_UPDATE}" --sha256 "${EXPECTED_SHA256_ARG}"
-	elif [ "${ACCEPT_DOWNLOADED_SHA256}" = "yes" ]; then
+	elif is_truthy "${ACCEPT_DOWNLOADED_SHA256}"; then
 		./scripts/update-testing.sh "${VERSION_TO_UPDATE}" --accept-downloaded-sha256
 	else
 		./scripts/update-testing.sh "${VERSION_TO_UPDATE}"

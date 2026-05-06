@@ -4,6 +4,17 @@ trim_value() {
 	echo "$1" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~'
 }
 
+is_enabled() {
+	case "${1:-}" in
+		yes|true|1)
+			return 0
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
 is_valid_port() {
 	[[ "$1" =~ ^[0-9]+$ ]] && [[ "$1" -ge 1 && "$1" -le 65535 ]]
 }
@@ -51,7 +62,7 @@ harden_wireguard_config_permissions() {
 
 	shopt -s nullglob
 	for conf_file in "${wireguard_config_dir}"/*.conf; do
-		if [[ "${DEBUG}" == "true" ]]; then
+		if is_enabled "${DEBUG:-}"; then
 			echo "[debug] Setting secure permissions on '${conf_file}'"
 		fi
 		if ! chmod 600 "${conf_file}"; then
@@ -68,7 +79,7 @@ docker_interface=$(ip -4 route ls | grep default | xargs | grep -o -P '[^\s]+$')
 if [[ -z "${docker_interface}" ]] || ! is_valid_interface_name "${docker_interface}"; then
 	echo "[crit] Unable to identify a valid docker interface, exiting..." ; exit 1
 fi
-if [[ "${DEBUG}" == "true" ]]; then
+if is_enabled "${DEBUG:-}"; then
 	echo "[debug] Docker interface defined as ${docker_interface}"
 fi
 
@@ -84,7 +95,7 @@ docker_ip=$(ifconfig "${docker_interface}" | grep -P -o -m 1 '(?<=inet\s)[^\s]+'
 if [[ -z "${docker_ip}" ]]; then
 	echo "[crit] Unable to identify docker IP for ${docker_interface}, exiting..." ; exit 1
 fi
-if [[ "${DEBUG}" == "true" ]]; then
+if is_enabled "${DEBUG:-}"; then
 	echo "[debug] Docker IP defined as ${docker_ip}"
 fi
 
@@ -93,7 +104,7 @@ docker_mask=$(ifconfig "${docker_interface}" | grep -P -o -m 1 '(?<=netmask\s)[^
 if [[ -z "${docker_mask}" ]]; then
 	echo "[crit] Unable to identify docker netmask for ${docker_interface}, exiting..." ; exit 1
 fi
-if [[ "${DEBUG}" == "true" ]]; then
+if is_enabled "${DEBUG:-}"; then
 	echo "[debug] Docker netmask defined as ${docker_mask}"
 fi
 
@@ -149,14 +160,12 @@ for lan_network_item in "${lan_network_list[@]}"; do
 done
 
 echo "[info] ip route defined as follows..."
-echo "--------------------"
-ip route
-echo "--------------------"
+ip route | sed '/^[[:space:]]*$/d'
 
 # setup iptables marks to allow routing of defined ports via lan
 ###
 
-if [[ "${DEBUG}" == "true" ]]; then
+if is_enabled "${DEBUG:-}"; then
 	echo "[debug] Modules currently loaded for kernel" ; lsmod
 fi
 
@@ -237,7 +246,7 @@ for lan_network_item in "${lan_network_list[@]}"; do
 	lan_network_item=$(echo "${lan_network_item}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 
 	# accept input to privoxy if enabled
-	if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
+	if is_enabled "${ENABLE_PRIVOXY:-}"; then
 		iptables -A INPUT -i "${docker_interface}" -p tcp -s "${lan_network_item}" -d "${docker_network_cidr}" -j ACCEPT
 	fi
 
@@ -333,7 +342,7 @@ for lan_network_item in "${lan_network_list[@]}"; do
 	lan_network_item=$(echo "${lan_network_item}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 
 	# accept output from privoxy if enabled - used for lan access
-	if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
+	if is_enabled "${ENABLE_PRIVOXY:-}"; then
 		iptables -A OUTPUT -o "${docker_interface}" -p tcp -s "${docker_network_cidr}" -d "${lan_network_item}" -j ACCEPT
 	fi
 
@@ -349,7 +358,5 @@ iptables -A OUTPUT -o lo -j ACCEPT
 iptables -A OUTPUT -o "${VPN_DEVICE_TYPE}" -j ACCEPT
 
 echo "[info] iptables defined as follows..."
-echo "--------------------"
-iptables -S 2>&1 | tee /tmp/getiptables
+iptables -S 2>&1 | sed '/^[[:space:]]*$/d' | tee /tmp/getiptables
 chmod +r /tmp/getiptables
-echo "--------------------"

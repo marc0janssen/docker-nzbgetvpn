@@ -2,12 +2,29 @@
 
 WATCHDOG_SLEEP_SECS=30
 VPN_UNHEALTHY_MIN_COOLDOWN=300
+VPN_SELFTEST_STARTUP_DELAY_MAX=300
 vpn_unhealthy_count=0
 vpn_unhealthy_last_action=0
 vpn_cron_last_run_minute=""
+vpn_selftest_has_run="no"
+vpn_selftest_last_run_minute=""
+vpn_selftest_mode_logged="no"
+vpn_selftest_startup_delay_logged="no"
+watchdog_start_epoch="$(date +%s)"
 
 is_positive_integer() {
 	[[ "$1" =~ ^[0-9]+$ ]] && [[ "$1" -gt 0 ]]
+}
+
+is_enabled() {
+	case "${1:-}" in
+		yes|true|1)
+			return 0
+			;;
+		*)
+			return 1
+			;;
+	esac
 }
 
 strip_wrapping_quotes() {
@@ -44,6 +61,100 @@ run_script_with_timeout() {
 	else
 		echo "[warn] Command 'timeout' is not available, running '${script}' without timeout"
 		"${script}" "$@"
+	fi
+}
+
+run_vpn_selftest_script() {
+	local selftest_script="/home/nobody/vpn-selftest.sh"
+
+	if [[ ! -x "${selftest_script}" ]]; then
+		echo "[warn] VPN self-test is enabled but script '${selftest_script}' is missing or not executable"
+		return
+	fi
+
+	echo "[info] VPN self-test is enabled, running '${selftest_script}'"
+	if VPN_ENABLED="${VPN_ENABLED:-yes}" VPN_DEVICE_TYPE="${VPN_DEVICE_TYPE:-}" vpn_ip="${vpn_ip:-}" "${selftest_script}"; then
+		echo "[info] VPN self-test completed"
+	else
+		echo "[warn] VPN self-test reported one or more critical checks"
+	fi
+}
+
+get_vpn_selftest_mode() {
+	local configured="${VPN_SELFTEST_ENABLED:-no}"
+	configured="$(strip_wrapping_quotes "${configured}")"
+
+	case "${configured}" in
+		""|no|false|0)
+			echo "no"
+			;;
+		yes|true|1)
+			echo "yes"
+			;;
+		*)
+			echo "${configured}"
+			;;
+	esac
+}
+
+get_vpn_selftest_startup_delay() {
+	local configured="${VPN_SELFTEST_STARTUP_DELAY:-20}"
+
+	if ! [[ "${configured}" =~ ^[0-9]+$ ]]; then
+		echo "[warn] VPN_SELFTEST_STARTUP_DELAY value '${configured}' is invalid, using default '20' seconds"
+		configured=20
+	fi
+	if [[ "${configured}" -gt "${VPN_SELFTEST_STARTUP_DELAY_MAX}" ]]; then
+		echo "[warn] VPN_SELFTEST_STARTUP_DELAY value '${configured}' is above maximum '${VPN_SELFTEST_STARTUP_DELAY_MAX}' seconds, using '${VPN_SELFTEST_STARTUP_DELAY_MAX}' seconds"
+		configured="${VPN_SELFTEST_STARTUP_DELAY_MAX}"
+	fi
+
+	echo "${configured}"
+}
+
+handle_vpn_selftest() {
+	local mode
+	local current_run_minute
+	local startup_delay
+	local now
+	local elapsed
+
+	mode="$(get_vpn_selftest_mode)"
+	if [[ "${vpn_selftest_mode_logged}" == "no" ]]; then
+		echo "[info] VPN self-test watchdog mode '${mode}' (VPN_SELFTEST_ENABLED='${VPN_SELFTEST_ENABLED:-no}')"
+		vpn_selftest_mode_logged="yes"
+	fi
+	if [[ "${mode}" == "no" ]]; then
+		return
+	fi
+
+	if [[ "${mode}" == "yes" ]]; then
+		if [[ "${vpn_selftest_has_run}" == "yes" ]]; then
+			return
+		fi
+		startup_delay="$(get_vpn_selftest_startup_delay)"
+		now="$(date +%s)"
+		elapsed=$((now-watchdog_start_epoch))
+		if [[ "${elapsed}" -lt "${startup_delay}" ]]; then
+			if [[ "${vpn_selftest_startup_delay_logged}" == "no" ]]; then
+				echo "[info] Delaying one-shot VPN self-test by ${startup_delay} seconds after watchdog start (elapsed ${elapsed}s)"
+				vpn_selftest_startup_delay_logged="yes"
+			fi
+			return
+		fi
+		run_vpn_selftest_script
+		vpn_selftest_has_run="yes"
+		return
+	fi
+
+	current_run_minute="$(date +%Y%m%d%H%M)"
+	if [[ "${vpn_selftest_last_run_minute}" == "${current_run_minute}" ]]; then
+		return
+	fi
+
+	if cron_schedule_matches_now "${mode}" "VPN_SELFTEST_ENABLED"; then
+		run_vpn_selftest_script
+		vpn_selftest_last_run_minute="${current_run_minute}"
 	fi
 }
 
@@ -97,7 +208,7 @@ handle_vpn_unhealthy() {
 	elapsed=$((now-vpn_unhealthy_last_action))
 
 	if [[ "${vpn_unhealthy_last_action}" -ne 0 && "${elapsed}" -lt "${cooldown}" ]]; then
-		if [[ "${DEBUG}" == "true" ]]; then
+		if is_enabled "${DEBUG:-}"; then
 			echo "[debug] VPN unhealthy action '${action}' suppressed by cooldown (${elapsed}/${cooldown} seconds)"
 		fi
 		return
@@ -142,7 +253,7 @@ handle_vpn_unhealthy() {
 }
 
 vpn_unhealthy_test_enabled() {
-	[[ "${VPN_UNHEALTHY_TEST:-no}" == "yes" ]]
+	is_enabled "${VPN_UNHEALTHY_TEST:-no}"
 }
 
 cron_number_matches() {
@@ -200,6 +311,7 @@ cron_number_matches() {
 
 cron_schedule_matches_now() {
 	local schedule="${1}"
+	local schedule_name="${2:-VPN_CRON_SCHEDULE}"
 	local minute
 	local hour
 	local day
@@ -213,7 +325,7 @@ cron_schedule_matches_now() {
 
 	read -r minute hour day month weekday extra <<< "${schedule}"
 	if [[ -z "${minute}" || -z "${hour}" || -z "${day}" || -z "${month}" || -z "${weekday}" || -n "${extra:-}" ]]; then
-		echo "[warn] VPN_CRON_SCHEDULE '${schedule}' is invalid, expected 5 fields like '* * * * *'"
+		echo "[warn] ${schedule_name} '${schedule}' is invalid, expected 5 fields like '* * * * *'"
 		return 1
 	fi
 
@@ -271,7 +383,7 @@ handle_vpn_cron_script() {
 		return
 	fi
 
-	if cron_schedule_matches_now "${schedule}"; then
+	if cron_schedule_matches_now "${schedule}" "VPN_CRON_SCHEDULE"; then
 		echo "[info] VPN_CRON_SCHEDULE '${schedule}' matched, running '${script}'"
 		if VPN_CRON_SCHEDULE="${schedule}" run_script_with_timeout "${VPN_CRON_SCRIPT_TIMEOUT:-300}" "${script}"; then
 			echo "[info] VPN_CRON_SCRIPT '${script}' completed"
@@ -292,7 +404,7 @@ while true; do
 	privoxy_running="false"
 	ip_change="false"
 
-	if [[ "${VPN_ENABLED}" == "yes" ]]; then
+	if is_enabled "${VPN_ENABLED:-yes}"; then
 
 		# run script to get all required info
 		source /home/nobody/preruncheck.sh
@@ -321,7 +433,7 @@ while true; do
 
 			fi
 
-			if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
+			if is_enabled "${ENABLE_PRIVOXY:-}"; then
 
 				# check if privoxy is running, if not then skip shutdown of process
 				if ! pgrep -fa "/usr/bin/privoxy" > /dev/null; then
@@ -344,7 +456,7 @@ while true; do
 
 			fi
 
-			if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
+			if is_enabled "${ENABLE_PRIVOXY:-}"; then
 
 				if [[ "${privoxy_running}" == "false" ]]; then
 
@@ -376,7 +488,7 @@ while true; do
 
 		fi
 
-		if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
+		if is_enabled "${ENABLE_PRIVOXY:-}"; then
 
 			# check if privoxy is running, if not then start via privoxy.sh
 			if ! pgrep -fa "/usr/bin/privoxy" > /dev/null; then
@@ -392,9 +504,11 @@ while true; do
 
 	fi
 
-	if [[ "${DEBUG}" == "true" && "${VPN_ENABLED}" == "yes" ]]; then
+	if is_enabled "${DEBUG:-}" && is_enabled "${VPN_ENABLED:-yes}"; then
 		echo "[debug] VPN IP is ${vpn_ip}"
 	fi
+
+	handle_vpn_selftest
 
 	sleep "${WATCHDOG_SLEEP_SECS}s"
 
