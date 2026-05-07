@@ -1,29 +1,30 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+shared_lib="${script_dir}/lib.sh"
+if [[ ! -r "${shared_lib}" ]]; then
+	shared_lib="/usr/local/share/nzbgetvpn/scripts/lib.sh"
+fi
+if [[ ! -r "${shared_lib}" ]]; then
+	printf '[crit] [rotate-on-poor-speed] Shared helper library not found at %s or /usr/local/share/nzbgetvpn/scripts/lib.sh\n' "${script_dir}/lib.sh" >&2
+	exit 1
+fi
+# shellcheck source=/dev/null
+. "${shared_lib}"
+NZBGETVPN_LOG_TAG="rotate-on-poor-speed"
+
 log_info() {
-	printf '[info] [rotate-on-poor-speed] %s\n' "$*"
+	nzbgetvpn_log_info "$*"
 }
 
 log_warn() {
-	printf '[warn] [rotate-on-poor-speed] %s\n' "$*" >&2
+	nzbgetvpn_log_warn "$*" >&2
 }
 
 log_crit() {
-	printf '[crit] [rotate-on-poor-speed] %s\n' "$*" >&2
+	nzbgetvpn_log_crit "$*" >&2
 	exit 1
-}
-
-normalize_yes_no() {
-	case "${1:-}" in
-	yes | true | 1) echo "yes" ;;
-	no | false | 0) echo "no" ;;
-	*) echo "" ;;
-	esac
-}
-
-is_positive_integer() {
-	[[ "${1:-}" =~ ^[0-9]+$ ]] && [[ "${1}" -gt 0 ]]
 }
 
 is_positive_number() {
@@ -31,17 +32,11 @@ is_positive_number() {
 	awk -v n="${1}" 'BEGIN {exit (n > 0) ? 0 : 1}'
 }
 
-trim() {
-	printf '%s' "${1:-}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
-}
-
-validate_absolute_path() {
+require_absolute_path() {
 	local value="$1"
 	local name="$2"
 
-	[[ -n "${value}" ]] || log_crit "${name} is empty"
-	[[ "${value}" == /* ]] || log_crit "${name} must be an absolute path"
-	[[ "${value}" != *..* ]] || log_crit "${name} must not contain '..'"
+	validate_absolute_path "${value}" || log_crit "${name} is empty, not absolute, or contains '..'"
 }
 
 require_command() {
@@ -175,10 +170,10 @@ main() {
 	local selected_mode
 
 	require_command curl
-	validate_absolute_path "${state_file}" "ROTATE_STATE_FILE"
-	validate_absolute_path "${wg_script}" "ROTATE_WIREGUARD_SCRIPT"
-	validate_absolute_path "${ovpn_script}" "ROTATE_OPENVPN_SCRIPT"
-	validate_absolute_path "${refresh_script}" "ROTATE_WIREGUARD_REFRESH_SCRIPT"
+	require_absolute_path "${state_file}" "ROTATE_STATE_FILE"
+	require_absolute_path "${wg_script}" "ROTATE_WIREGUARD_SCRIPT"
+	require_absolute_path "${ovpn_script}" "ROTATE_OPENVPN_SCRIPT"
+	require_absolute_path "${refresh_script}" "ROTATE_WIREGUARD_REFRESH_SCRIPT"
 
 	is_positive_integer "${timeout_secs}" || log_crit "ROTATE_SPEEDTEST_TIMEOUT must be a positive integer"
 	is_positive_integer "${attempts}" || log_crit "ROTATE_SPEEDTEST_ATTEMPTS must be a positive integer"
@@ -197,7 +192,7 @@ main() {
 		log_crit "ROTATE_POST_ROTATION_ACTION must be 'none' or 'watchdog-exit'"
 		;;
 	esac
-	validate_absolute_path "${restart_request_file}" "ROTATE_RESTART_REQUEST_FILE"
+	require_absolute_path "${restart_request_file}" "ROTATE_RESTART_REQUEST_FILE"
 
 	case "${mode}" in
 	auto)

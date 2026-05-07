@@ -19,6 +19,7 @@ Use environment variables first. If you need custom logic, copy to a new filenam
 | `select_random_wireguard_config.sh` | Pick random WireGuard profile from source directory. |
 | `select_random_openvpn_config.sh` | Pick random OpenVPN profile from source directory. |
 | `rotate_on_poor_speed.sh` | Rotate profile after repeated poor speed/latency checks. |
+| `lib.sh` | Shared shell helpers used by runtime and bundled scripts. |
 | `benchmark_endpoints.sh` | Benchmark endpoints and report best candidate. |
 | `backup_config.sh` | Create timestamped backups of config data. |
 | `log_sanitizer.sh` | Redact tokens/IP/paths before sharing logs. |

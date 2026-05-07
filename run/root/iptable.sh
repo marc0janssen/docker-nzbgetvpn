@@ -1,19 +1,12 @@
 #!/bin/bash
 
-trim_value() {
-	echo "$1" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~'
-}
-
-is_enabled() {
-	case "${1:-}" in
-	yes | true | 1)
-		return 0
-		;;
-	*)
-		return 1
-		;;
-	esac
-}
+shared_lib="/usr/local/share/nzbgetvpn/scripts/lib.sh"
+if [[ ! -r "${shared_lib}" ]]; then
+	echo "[crit] Shared helper library not found at '/usr/local/share/nzbgetvpn/scripts/lib.sh'"
+	exit 1
+fi
+# shellcheck source=/dev/null
+. "${shared_lib}"
 
 is_valid_port() {
 	[[ "$1" =~ ^[0-9]+$ ]] && [[ "$1" -ge 1 && "$1" -le 65535 ]]
@@ -29,7 +22,7 @@ validate_cidr_list() {
 	local item
 
 	for item in "$@"; do
-		item=$(trim_value "${item}")
+		item=$(trim "${item}")
 		if [[ -z "${item}" ]]; then
 			echo "[crit] ${name} contains an empty network, exiting..."
 			exit 1
@@ -47,7 +40,7 @@ validate_port_list() {
 	local item
 
 	for item in "$@"; do
-		item=$(trim_value "${item}")
+		item=$(trim "${item}")
 		if ! is_valid_port "${item}"; then
 			echo "[crit] ${name} contains invalid port '${item}', exiting..."
 			exit 1

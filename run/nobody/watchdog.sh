@@ -1,5 +1,13 @@
 #!/bin/bash
 
+shared_lib="/usr/local/share/nzbgetvpn/scripts/lib.sh"
+if [[ ! -r "${shared_lib}" ]]; then
+	echo "[crit] Shared helper library not found at '/usr/local/share/nzbgetvpn/scripts/lib.sh'"
+	exit 1
+fi
+# shellcheck source=/dev/null
+. "${shared_lib}"
+
 WATCHDOG_SLEEP_SECS=30
 VPN_UNHEALTHY_MIN_COOLDOWN=300
 VPN_SELFTEST_STARTUP_DELAY_MAX=300
@@ -17,21 +25,6 @@ vpn_selftest_startup_delay_logged="no"
 vpn_selftest_ready_file_cleared="no"
 watchdog_start_epoch="$(date +%s)"
 nzbget_failsafe_applied="no"
-
-is_positive_integer() {
-	[[ "$1" =~ ^[0-9]+$ ]] && [[ "$1" -gt 0 ]]
-}
-
-is_enabled() {
-	case "${1:-}" in
-	yes | true | 1)
-		return 0
-		;;
-	*)
-		return 1
-		;;
-	esac
-}
 
 strip_wrapping_quotes() {
 	local value="$1"

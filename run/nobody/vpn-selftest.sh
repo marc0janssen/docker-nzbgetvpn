@@ -1,37 +1,35 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+shared_lib="/usr/local/share/nzbgetvpn/scripts/lib.sh"
+if [[ ! -r "${shared_lib}" ]]; then
+	echo "[crit] [vpn-selftest] Shared helper library not found at '/usr/local/share/nzbgetvpn/scripts/lib.sh'"
+	exit 1
+fi
+# shellcheck source=/dev/null
+. "${shared_lib}"
+NZBGETVPN_LOG_TAG="vpn-selftest"
+
 fail_count=0
 warn_count=0
 
 log_info() {
-	echo "[info] [vpn-selftest] $*"
+	nzbgetvpn_log_info "$*"
 }
 
 log_warn() {
-	echo "[warn] [vpn-selftest] $*"
+	nzbgetvpn_log_warn "$*"
 	warn_count=$((warn_count + 1))
 }
 
 log_crit() {
-	echo "[crit] [vpn-selftest] $*"
+	nzbgetvpn_log_crit "$*"
 	fail_count=$((fail_count + 1))
-}
-
-is_enabled() {
-	case "${1:-}" in
-	yes | true | 1)
-		return 0
-		;;
-	*)
-		return 1
-		;;
-	esac
 }
 
 ready_path_warn() {
 	# Does not increment warn_count; path validation is orthogonal to VPN/NZBGet checks.
-	echo "[warn] [vpn-selftest] $*"
+	nzbgetvpn_log_warn "$*"
 }
 
 ready_timestamp() {

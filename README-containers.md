@@ -12,7 +12,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.24.16
+* NZBGetVPN image/codebase version: 4.24.18
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 

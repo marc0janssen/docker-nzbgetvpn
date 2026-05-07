@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.24.18] - 2026-05-07
+
+### Fixed
+
+- Hardened runtime script trust boundaries by removing `/data/scripts/lib.sh` fallback from `run/root/iptable.sh`, `run/nobody/watchdog.sh`, and `run/nobody/vpn-selftest.sh`; these scripts now only source `/usr/local/share/nzbgetvpn/scripts/lib.sh`.
+
+## [4.24.17] - 2026-05-07
+
+### Changed
+
+- Added shared helper library `data/scripts/lib.sh` and updated `run/nobody/watchdog.sh`, `run/nobody/vpn-selftest.sh`, `run/root/iptable.sh`, and `data/scripts/rotate_on_poor_speed.sh` to reuse common enable/normalize/path/log helper logic.
+- Updated `data/scripts/README.md` with the bundled `lib.sh` helper entry for operator visibility.
+
 ## [4.24.16] - 2026-05-07
 
 ### Fixed
