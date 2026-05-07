@@ -532,10 +532,10 @@ handle_backup_cron_script() {
 }
 
 handle_rotate_cron_script() {
-	local enabled="${ROTATE_ON_POOR_SPEED_ENABLED:-yes}"
-	local schedule="${ROTATE_ON_POOR_SPEED_SCHEDULE:-*/20 * * * *}"
-	local script="${ROTATE_ON_POOR_SPEED_SCRIPT:-/data/scripts/rotate_on_poor_speed.sh}"
-	local timeout_secs="${ROTATE_ON_POOR_SPEED_TIMEOUT:-90}"
+	local enabled="${ROTATE_ON_POOR_SPEED_ENABLED:-$(nzbgetvpn_get_default ROTATE_ON_POOR_SPEED_ENABLED)}"
+	local schedule="${ROTATE_ON_POOR_SPEED_SCHEDULE:-$(nzbgetvpn_get_default ROTATE_ON_POOR_SPEED_SCHEDULE)}"
+	local script="${ROTATE_ON_POOR_SPEED_SCRIPT:-$(nzbgetvpn_get_default ROTATE_ON_POOR_SPEED_SCRIPT)}"
+	local timeout_secs="${ROTATE_ON_POOR_SPEED_TIMEOUT:-$(nzbgetvpn_get_default ROTATE_ON_POOR_SPEED_TIMEOUT)}"
 	local current_run_minute
 
 	enabled="$(strip_wrapping_quotes "${enabled}")"
@@ -573,8 +573,8 @@ handle_rotate_cron_script() {
 }
 
 handle_rotate_restart_request() {
-	local request_file="${ROTATE_RESTART_REQUEST_FILE:-/tmp/rotate-on-poor-speed-exit-watchdog}"
-	local exit_delay="${ROTATE_RESTART_EXIT_DELAY:-5}"
+	local request_file="${ROTATE_RESTART_REQUEST_FILE:-$(nzbgetvpn_get_default ROTATE_RESTART_REQUEST_FILE)}"
+	local exit_delay="${ROTATE_RESTART_EXIT_DELAY:-$(nzbgetvpn_get_default ROTATE_RESTART_EXIT_DELAY)}"
 
 	if [[ ! -f "${request_file}" ]]; then
 		return

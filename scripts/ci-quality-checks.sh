@@ -73,6 +73,7 @@ main() {
 	sh -n build.sh build-testing.sh scripts/*.sh
 	bash -n build/root/install.sh run/root/iptable.sh run/nobody/watchdog.sh run/nobody/nzbget.sh
 	bash -n data/scripts/*.sh
+	./scripts/sync-rotate-defaults-doc.sh check
 	wc -c README-containers.md
 	git status --short
 

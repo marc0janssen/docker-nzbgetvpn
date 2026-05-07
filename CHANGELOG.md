@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.24.19] - 2026-05-07
+
+### Changed
+
+- Centralized adaptive-rotation defaults in `data/scripts/lib.sh` and updated `data/scripts/rotate_on_poor_speed.sh` plus `run/nobody/watchdog.sh` to consume the shared defaults instead of duplicating hard-coded values.
+- Added `scripts/sync-rotate-defaults-doc.sh` to render/check `data/scripts/docs/rotate_on_poor_speed.md` defaults from the shared runtime source and wired this drift check into `scripts/ci-quality-checks.sh`.
+- Updated `README.md`, `README-containers.md`, and `data/scripts/README.md` to document the generated/validated defaults workflow.
+
 ## [4.24.18] - 2026-05-07
 
 ### Fixed

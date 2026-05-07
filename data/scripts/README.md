@@ -62,6 +62,7 @@ NOTIFY_UNHEALTHY_SCRIPT=/data/scripts/notify_discord.sh
 
 ## Per-Script Docs
 
+- `rotate_on_poor_speed` defaults are centralized in `data/scripts/lib.sh` and rendered into docs via `./scripts/sync-rotate-defaults-doc.sh`.
 - [`docs/get_wireguard_configs_nordvpn.md`](docs/get_wireguard_configs_nordvpn.md)
 - [`docs/select_random_wireguard_config.md`](docs/select_random_wireguard_config.md)
 - [`docs/select_random_openvpn_config.md`](docs/select_random_openvpn_config.md)

@@ -129,26 +129,26 @@ execute_rotation() {
 }
 
 main() {
-	local mode="${ROTATE_MODE:-auto}"
+	local mode="${ROTATE_MODE:-$(nzbgetvpn_get_default ROTATE_MODE)}"
 	local speedtest_urls_raw="${ROTATE_SPEEDTEST_URLS:-}"
 	local speedtest_url_fallback="${ROTATE_SPEEDTEST_URL:-}"
-	local speedtest_default_urls="https://speed.cloudflare.com/__down?bytes=4000000,https://proof.ovh.net/files/10Mb.dat"
+	local speedtest_default_urls
 	local speedtest_weights_raw="${ROTATE_SPEEDTEST_WEIGHTS:-}"
-	local speedtest_default_weights="0.60,0.40"
-	local timeout_secs="${ROTATE_SPEEDTEST_TIMEOUT:-20}"
-	local attempts="${ROTATE_SPEEDTEST_ATTEMPTS:-1}"
-	local min_successful_endpoints="${ROTATE_MIN_SUCCESSFUL_ENDPOINTS:-1}"
-	local min_mbps="${ROTATE_MIN_DOWNLOAD_MBPS:-10}"
-	local max_latency_ms="${ROTATE_MAX_LATENCY_MS:-700}"
-	local fail_streak_required="${ROTATE_FAIL_STREAK:-3}"
-	local cooldown_seconds="${ROTATE_COOLDOWN_SECONDS:-1800}"
-	local state_file="${ROTATE_STATE_FILE:-/data/rotate-on-poor-speed-state}"
-	local wg_script="${ROTATE_WIREGUARD_SCRIPT:-/data/scripts/select_random_wireguard_config.sh}"
-	local ovpn_script="${ROTATE_OPENVPN_SCRIPT:-/data/scripts/select_random_openvpn_config.sh}"
-	local refresh_script="${ROTATE_WIREGUARD_REFRESH_SCRIPT:-/data/scripts/get_wireguard_configs_nordvpn.sh}"
+	local speedtest_default_weights
+	local timeout_secs="${ROTATE_SPEEDTEST_TIMEOUT:-$(nzbgetvpn_get_default ROTATE_SPEEDTEST_TIMEOUT)}"
+	local attempts="${ROTATE_SPEEDTEST_ATTEMPTS:-$(nzbgetvpn_get_default ROTATE_SPEEDTEST_ATTEMPTS)}"
+	local min_successful_endpoints="${ROTATE_MIN_SUCCESSFUL_ENDPOINTS:-$(nzbgetvpn_get_default ROTATE_MIN_SUCCESSFUL_ENDPOINTS)}"
+	local min_mbps="${ROTATE_MIN_DOWNLOAD_MBPS:-$(nzbgetvpn_get_default ROTATE_MIN_DOWNLOAD_MBPS)}"
+	local max_latency_ms="${ROTATE_MAX_LATENCY_MS:-$(nzbgetvpn_get_default ROTATE_MAX_LATENCY_MS)}"
+	local fail_streak_required="${ROTATE_FAIL_STREAK:-$(nzbgetvpn_get_default ROTATE_FAIL_STREAK)}"
+	local cooldown_seconds="${ROTATE_COOLDOWN_SECONDS:-$(nzbgetvpn_get_default ROTATE_COOLDOWN_SECONDS)}"
+	local state_file="${ROTATE_STATE_FILE:-$(nzbgetvpn_get_default ROTATE_STATE_FILE)}"
+	local wg_script="${ROTATE_WIREGUARD_SCRIPT:-$(nzbgetvpn_get_default ROTATE_WIREGUARD_SCRIPT)}"
+	local ovpn_script="${ROTATE_OPENVPN_SCRIPT:-$(nzbgetvpn_get_default ROTATE_OPENVPN_SCRIPT)}"
+	local refresh_script="${ROTATE_WIREGUARD_REFRESH_SCRIPT:-$(nzbgetvpn_get_default ROTATE_WIREGUARD_REFRESH_SCRIPT)}"
 	local refresh_enabled
-	local post_action="${ROTATE_POST_ROTATION_ACTION:-none}"
-	local restart_request_file="${ROTATE_RESTART_REQUEST_FILE:-/tmp/rotate-on-poor-speed-exit-watchdog}"
+	local post_action="${ROTATE_POST_ROTATION_ACTION:-$(nzbgetvpn_get_default ROTATE_POST_ROTATION_ACTION)}"
+	local restart_request_file="${ROTATE_RESTART_REQUEST_FILE:-$(nzbgetvpn_get_default ROTATE_RESTART_REQUEST_FILE)}"
 	local now current_streak previous_streak last_rotate_epoch
 	local speed_mbps latency_ms poor_reason=""
 	local endpoint
@@ -169,6 +169,9 @@ main() {
 	local use_custom_weights="no"
 	local selected_mode
 
+	speedtest_default_urls="$(nzbgetvpn_get_default ROTATE_SPEEDTEST_URLS)"
+	speedtest_default_weights="$(nzbgetvpn_get_default ROTATE_SPEEDTEST_WEIGHTS)"
+
 	require_command curl
 	require_absolute_path "${state_file}" "ROTATE_STATE_FILE"
 	require_absolute_path "${wg_script}" "ROTATE_WIREGUARD_SCRIPT"
@@ -183,7 +186,7 @@ main() {
 	[[ "${min_mbps}" =~ ^[0-9]+([.][0-9]+)?$ ]] || log_crit "ROTATE_MIN_DOWNLOAD_MBPS must be numeric"
 	[[ "${max_latency_ms}" =~ ^[0-9]+$ ]] || log_crit "ROTATE_MAX_LATENCY_MS must be an integer"
 
-	refresh_enabled="$(normalize_yes_no "${ROTATE_WIREGUARD_REFRESH_ENABLED:-no}")"
+	refresh_enabled="$(normalize_yes_no "${ROTATE_WIREGUARD_REFRESH_ENABLED:-$(nzbgetvpn_get_default ROTATE_WIREGUARD_REFRESH_ENABLED)}")"
 	[[ -n "${refresh_enabled}" ]] || log_crit "ROTATE_WIREGUARD_REFRESH_ENABLED must be yes/no/true/false/1/0"
 	case "${post_action}" in
 	none | watchdog-exit)
