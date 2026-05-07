@@ -8,7 +8,7 @@ Full documentation is available in the GitHub repository README.
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.6.1
+* NZBGetVPN image/codebase version: 4.7.4
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -19,7 +19,7 @@ Full documentation is available in the GitHub repository README.
 | `stable` | Stable NZBGet release. |
 | `testing` | Testing NZBGet release. |
 | `<version>` | Versioned image, for example `26.1`. |
-| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.6.1`. |
+| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.7.4`. |
 
 ## Included
 
@@ -201,12 +201,12 @@ Report vulnerabilities privately through the maintainer contact page linked in t
 | `VPN_SELFTEST_STARTUP_DELAY` | non-negative integer seconds | Delay one-shot self-test when `VPN_SELFTEST_ENABLED=yes` (default `20`, max `300`). |
 | `VPN_SELFTEST_NZBGET_PORT` | TCP port `1-65535` | NZBGet listen port used by self-test checks (`6789` by default). |
 | `VPN_SELFTEST_STATE_HOOK` | executable absolute path | Optional script called on readiness transitions (`ready`/`not_ready`). |
-| `VPN_SELFTEST_STATE_FILE` | absolute path | File storing previous self-test state (default `/tmp/nzbgetvpn-selftest-state`). |
+| `VPN_SELFTEST_STATE_FILE` | absolute path | File storing previous self-test state (default `/data/nzbgetvpn-selftest-state`). If this default file exists but is not writable by the current runtime user, self-test falls back to `/data/nzbgetvpn-selftest-state-uid<uid>`. |
 | `VPN_SELFTEST_STATE_HOOK_TIMEOUT` | positive integer seconds | State-hook timeout (default `30`). |
 | `VPN_SELFTEST_STATUS_FILE` | absolute path | Optional JSON status snapshot written atomically after each self-test run. |
 | `VPN_SELFTEST_DEBOUNCE_CRIT` | positive integer | Debounce critical failures before switching to `not_ready` and exiting non-zero (default `1`). |
 | `VPN_SELFTEST_DEBOUNCE_WARN` | positive integer | When strict mode is enabled, debounce warnings before switching to `not_ready` (default `1`). |
-| `VPN_SELFTEST_DEBOUNCE_FILE` | absolute path | Stores consecutive critical/warning streak counters between runs (default `/tmp/nzbgetvpn-selftest-debounce`). |
+| `VPN_SELFTEST_DEBOUNCE_FILE` | absolute path | Stores consecutive critical/warning streak counters between runs (default `/data/nzbgetvpn-selftest-debounce`). If this default file exists but is not writable by the current runtime user, self-test falls back to `/data/nzbgetvpn-selftest-debounce-uid<uid>`. |
 | `VPN_SELFTEST_READY_FILE` | absolute path | Optional: write `ok <UTC>` on self-test success (atomic); remove file on critical failure. Watchdog also clears stale file on startup before fresh checks. |
 | `VPN_SELFTEST_READY_STRICT` | `yes`/`no`/boolean | If truthy, ready file only when zero warnings. |
 
@@ -311,7 +311,7 @@ The script runs from the watchdog loop, logs to normal container stdout, and doe
 
 ## Docker Healthcheck
 
-The image defines a native Docker `HEALTHCHECK` (`interval=60s`, `timeout=30s`, `start-period=120s`, `retries=3`) that runs `/root/healthcheck.sh`. It executes the internal self-test and marks the container unhealthy only for critical failures. Warnings remain healthy. Health probes do not modify ready/state-hook tracking files.
+The image defines a native Docker `HEALTHCHECK` (`interval=60s`, `timeout=30s`, `start-period=120s`, `retries=3`) that runs `/root/healthcheck.sh`. It executes the internal self-test and marks the container unhealthy only for critical failures. Warnings remain healthy. Health probes do not modify ready/state/status/debounce tracking files.
 
 ## Docker Compose Orchestration Examples
 

@@ -29,7 +29,7 @@ main() {
 	trap 'rm -f -- "${tmp_output}"' EXIT
 
 	# Disable side effects during docker healthcheck probes.
-	if VPN_SELFTEST_READY_FILE="" VPN_SELFTEST_STATE_FILE="" VPN_SELFTEST_STATE_HOOK="" VPN_SELFTEST_STATUS_FILE="" "${selftest_script}" >"${tmp_output}" 2>&1; then
+	if VPN_SELFTEST_READY_FILE="" VPN_SELFTEST_STATE_FILE="" VPN_SELFTEST_STATE_HOOK="" VPN_SELFTEST_STATUS_FILE="" VPN_SELFTEST_DEBOUNCE_FILE="" "${selftest_script}" >"${tmp_output}" 2>&1; then
 		exit 0
 	fi
 

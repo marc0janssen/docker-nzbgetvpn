@@ -184,6 +184,28 @@ validate_debounce_file_path() {
 	return 0
 }
 
+get_default_runtime_path() {
+	local kind="$1"
+	local base_path="$2"
+	local uid
+
+	if [[ -n "${kind}" && -n "${base_path}" && -e "${base_path}" && ! -w "${base_path}" ]]; then
+		uid="$(id -u 2>/dev/null || echo 0)"
+		case "${kind}" in
+			state)
+				state_path_warn "Default state file '${base_path}' exists but is not writable by uid ${uid}; using '${base_path}-uid${uid}'"
+				;;
+			debounce)
+				debounce_path_warn "Default debounce file '${base_path}' exists but is not writable by uid ${uid}; using '${base_path}-uid${uid}'"
+				;;
+		esac
+		echo "${base_path}-uid${uid}"
+		return 0
+	fi
+
+	echo "${base_path}"
+}
+
 get_positive_int_default() {
 	local value="${1:-}"
 	local default_value="${2}"
@@ -294,13 +316,19 @@ run_script_with_timeout() {
 }
 
 handle_state_change_hook() {
-	local state_file="${VPN_SELFTEST_STATE_FILE:-/tmp/nzbgetvpn-selftest-state}"
+	local state_file
 	local hook_script="${VPN_SELFTEST_STATE_HOOK:-}"
 	local hook_timeout="${VPN_SELFTEST_STATE_HOOK_TIMEOUT:-30}"
 	local current_state="$1"
 	local previous_state="unknown"
 	local dir
 	local tmp
+
+	if [[ -n "${VPN_SELFTEST_STATE_FILE:-}" ]]; then
+		state_file="${VPN_SELFTEST_STATE_FILE}"
+	else
+		state_file="$(get_default_runtime_path "state" "/data/nzbgetvpn-selftest-state")"
+	fi
 
 	validate_state_file_path "${state_file}" || return 0
 	dir="$(dirname -- "${state_file}")"
@@ -447,12 +475,18 @@ check_nzbget_state() {
 }
 
 main() {
-	local debounce_file="${VPN_SELFTEST_DEBOUNCE_FILE:-/tmp/nzbgetvpn-selftest-debounce}"
+	local debounce_file
 	local debounce_crit_required
 	local debounce_warn_required
 	local debounce_crit_streak=0
 	local debounce_warn_streak=0
 	local effective_state="ready"
+
+	if [[ -n "${VPN_SELFTEST_DEBOUNCE_FILE:-}" ]]; then
+		debounce_file="${VPN_SELFTEST_DEBOUNCE_FILE}"
+	else
+		debounce_file="$(get_default_runtime_path "debounce" "/data/nzbgetvpn-selftest-debounce")"
+	fi
 
 	log_info "Starting internal self-test"
 	check_dir_writable "/config"

@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.7.4] - 2026-05-07
+
+### Changed
+
+- Removed the optional DNS leak check from `run/nobody/vpn-selftest.sh` and removed its related environment variables (`VPN_SELFTEST_DNS_LEAK_TEST`, `VPN_SELFTEST_DNS_LEAK_STRICT`, `VPN_SELFTEST_DNS_LEAK_TIMEOUT`).
+
+### Fixed
+
+- Removed `tcpdump` from the image package list because it is no longer required by self-test logic.
+
+## [4.7.2] - 2026-05-07
+
+### Changed
+
+- Changed self-test runtime defaults from `/tmp` to `/data` for `VPN_SELFTEST_DEBOUNCE_FILE` and `VPN_SELFTEST_STATE_FILE` (`/data/nzbgetvpn-selftest-debounce` and `/data/nzbgetvpn-selftest-state`).
+
+## [4.7.1] - 2026-05-07
+
+### Fixed
+
+- Avoided noisy self-test runtime warnings caused by mixed root/nobody ownership in sticky `/tmp`: healthcheck now disables debounce-file side effects, and watchdog self-test falls back to per-UID default state/debounce filenames when the shared default file exists but is not writable.
+
 ## [4.6.1] - 2026-05-07
 
 ### Changed
