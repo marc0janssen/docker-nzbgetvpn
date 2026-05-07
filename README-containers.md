@@ -8,7 +8,7 @@ Full documentation is available in the GitHub repository README.
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.14.0
+* NZBGetVPN image/codebase version: 4.15.1
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -19,7 +19,7 @@ Full documentation is available in the GitHub repository README.
 | `stable` | Stable NZBGet release. |
 | `testing` | Testing NZBGet release. |
 | `<version>` | Versioned image, for example `26.1`. |
-| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.14.0`. |
+| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.15.1`. |
 
 ## Included
 
@@ -167,6 +167,7 @@ Bundled notification examples are also included:
 - `/data/scripts/notify_pushover.sh`
 
 They are intended for `NOTIFY_SELFTEST_STATE_SCRIPT` and `NOTIFY_UNHEALTHY_SCRIPT` flows.
+The bundle also includes `/data/scripts/log_sanitizer.sh` to sanitize logs before sharing.
 
 ## Backup And Restore
 
@@ -522,6 +523,24 @@ Included script:
 
 This script creates timestamped `.tgz` backups from `/config` to `/data/backups` by default.  
 Backup environment variables are listed in **Scheduled Config Backups**.
+
+## Bundled Log Sanitizer Script
+
+Included script:
+
+```text
+/data/scripts/log_sanitizer.sh
+```
+
+Use this helper before sharing logs externally. It redacts common secrets/tokens, IPv4/IPv6 addresses, and absolute paths.
+Run it primarily inside the container where `/data/scripts/log_sanitizer.sh` exists by default. Host-side execution is also possible when `/data` is bind-mounted and this script is available on the host path.
+
+Examples:
+
+```sh
+/data/scripts/log_sanitizer.sh /data/nzbgetvpn.log /data/nzbgetvpn.sanitized.log
+docker logs nzbgetvpn 2>&1 | /data/scripts/log_sanitizer.sh > /data/nzbgetvpn-dockerlogs.sanitized.log
+```
 
 ## Build Verification
 

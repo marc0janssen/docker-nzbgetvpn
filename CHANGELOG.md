@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.15.1] - 2026-05-07
+
+### Changed
+
+- Clarified `log_sanitizer.sh` execution context in docs: preferred usage is inside the container (`/data/scripts/log_sanitizer.sh`), with optional host-side invocation when `/data` is bind-mounted.
+
+## [4.15.0] - 2026-05-07
+
+### Added
+
+- Added bundled helper `data/scripts/log_sanitizer.sh` to sanitize logs before sharing by redacting common tokens/secrets, IP addresses, and absolute paths.
+
+### Changed
+
+- Documented log-sanitizer usage in `README.md`, `README-containers.md`, and `data/scripts/README.md`.
+
 ## [4.14.0] - 2026-05-07
 
 ### Added

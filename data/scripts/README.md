@@ -17,6 +17,7 @@ Bundled scripts are managed by the image. On container start, they are installed
 | `select_random_wireguard_config.sh` | Pick a random `*.conf` from `/data/wireguard-configs` and install it in `/config/wireguard`. |
 | `select_random_openvpn_config.sh` | Pick a random `*.ovpn` from `/data/openvpn-configs` and install it in `/config/openvpn`. |
 | `backup_config.sh` | Create timestamped archives of `/config` to `/data/backups` (or custom target). |
+| `log_sanitizer.sh` | Redact tokens/secrets, IP addresses, and absolute paths from logs before sharing. |
 | `notify_discord.sh` | Send a state/unhealthy notification to a Discord webhook. |
 | `notify_telegram.sh` | Send a state/unhealthy notification through the Telegram Bot API. |
 | `notify_pushover.sh` | Send a state/unhealthy notification through Pushover. |
@@ -186,6 +187,31 @@ Notes:
 
 - `BACKUP_TARGET_DIR` is created automatically when missing.
 - `NZBGETVPN_TIMESTAMP_TZ=local` switches timestamp formatting to local container time.
+
+## `log_sanitizer.sh`
+
+Sanitizes log output before sharing it externally. The helper redacts:
+
+- common token/secret assignments and bearer tokens
+- IPv4 and IPv6 addresses
+- absolute filesystem paths
+
+Where to run it:
+
+- Preferred: inside the container (`/data/scripts/log_sanitizer.sh` is always present there).
+- Optional: on the Docker host only when `/data` is bind-mounted and the same script path exists on the host.
+
+Manual run:
+
+```text
+/data/scripts/log_sanitizer.sh /data/nzbgetvpn.log /data/nzbgetvpn.sanitized.log
+```
+
+Pipe Docker logs:
+
+```text
+docker logs nzbgetvpn 2>&1 | /data/scripts/log_sanitizer.sh > /data/nzbgetvpn-dockerlogs.sanitized.log
+```
 
 ## Notification Scripts
 
