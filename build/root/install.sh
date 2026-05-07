@@ -111,6 +111,7 @@ chmod -R 775 ${install_paths}
 
 cat <<EOF >/tmp/permissions_heredoc
 mkdir -p /data/scripts /data/wireguard-configs /data/openvpn-configs /data/backups
+mkdir -p /data/scripts/docs
 for bundled_script in /usr/local/share/nzbgetvpn/scripts/*.sh; do
 	if [[ -f "\${bundled_script}" ]]; then
 		target_script="/data/scripts/\$(basename "\${bundled_script}")"
@@ -122,6 +123,18 @@ for bundled_script in /usr/local/share/nzbgetvpn/scripts/*.sh; do
 			echo "[info] Updating bundled script '\${target_script}'"
 			cp "\${bundled_script}" "\${target_script}"
 			chmod +x "\${target_script}"
+		fi
+	fi
+done
+for bundled_doc in /usr/local/share/nzbgetvpn/scripts/docs/*.md; do
+	if [[ -f "\${bundled_doc}" ]]; then
+		target_doc="/data/scripts/docs/\$(basename "\${bundled_doc}")"
+		if [[ ! -f "\${target_doc}" ]]; then
+			echo "[info] Installing bundled script doc '\${target_doc}'"
+			cp "\${bundled_doc}" "\${target_doc}"
+		elif ! cmp -s "\${bundled_doc}" "\${target_doc}"; then
+			echo "[info] Updating bundled script doc '\${target_doc}'"
+			cp "\${bundled_doc}" "\${target_doc}"
 		fi
 	fi
 done

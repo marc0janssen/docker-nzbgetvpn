@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.24.25] - 2026-05-07
+
+### Changed
+
+- Added `data/scripts/docs/*.md` to both Dockerfiles so helper-script documentation is bundled into the image under `/usr/local/share/nzbgetvpn/scripts/docs/`.
+- Extended startup install/sync logic in `build/root/install.sh` to install and update bundled script docs into `/data/scripts/docs/` alongside bundled helper scripts.
+- Updated `README.md` and `README-containers.md` to document container-side availability of bundled script docs.
+
 ## [4.24.24] - 2026-05-07
 
 ### Changed
