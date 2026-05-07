@@ -158,6 +158,95 @@ validate_status_file_path() {
 	return 0
 }
 
+debounce_path_warn() {
+	# Debounce should not alter warning counters used for strict readiness.
+	echo "[warn] [vpn-selftest] $*"
+}
+
+validate_debounce_file_path() {
+	local path="${1:-}"
+
+	if [[ -z "${path}" ]]; then
+		return 1
+	fi
+	if [[ "${path}" != /* ]]; then
+		debounce_path_warn "VPN_SELFTEST_DEBOUNCE_FILE must be an absolute path, skipping debounce state"
+		return 1
+	fi
+	if [[ "${path}" == *..* ]]; then
+		debounce_path_warn "VPN_SELFTEST_DEBOUNCE_FILE must not contain '..', skipping debounce state"
+		return 1
+	fi
+	if [[ "${#path}" -gt 4096 ]]; then
+		debounce_path_warn "VPN_SELFTEST_DEBOUNCE_FILE path is too long, skipping debounce state"
+		return 1
+	fi
+	return 0
+}
+
+get_positive_int_default() {
+	local value="${1:-}"
+	local default_value="${2}"
+
+	if [[ -z "${value}" ]]; then
+		echo "${default_value}"
+		return 0
+	fi
+	if ! [[ "${value}" =~ ^[0-9]+$ ]] || [[ "${value}" -lt 1 ]]; then
+		echo "${default_value}"
+		return 0
+	fi
+	echo "${value}"
+}
+
+load_debounce_streaks() {
+	local path="$1"
+	local crit_out_var="$2"
+	local warn_out_var="$3"
+	local crit=0
+	local warn=0
+
+	if [[ -f "${path}" ]]; then
+		crit="$(awk -F= '$1=="crit"{print $2}' "${path}" 2>/dev/null | head -n1 || true)"
+		warn="$(awk -F= '$1=="warn"{print $2}' "${path}" 2>/dev/null | head -n1 || true)"
+	fi
+	if ! [[ "${crit}" =~ ^[0-9]+$ ]]; then crit=0; fi
+	if ! [[ "${warn}" =~ ^[0-9]+$ ]]; then warn=0; fi
+
+	printf -v "${crit_out_var}" '%s' "${crit}"
+	printf -v "${warn_out_var}" '%s' "${warn}"
+}
+
+save_debounce_streaks() {
+	local path="$1"
+	local crit="$2"
+	local warn="$3"
+	local dir
+	local tmp
+
+	dir="$(dirname -- "${path}")"
+	if [[ ! -d "${dir}" || ! -w "${dir}" ]]; then
+		debounce_path_warn "VPN_SELFTEST_DEBOUNCE_FILE parent directory '${dir}' is unavailable, skipping debounce state"
+		return 0
+	fi
+
+	tmp="$(mktemp "${dir}/.nzbgetvpn-selftest-debounce.XXXXXX")" || {
+		debounce_path_warn "Failed to create temp file for VPN_SELFTEST_DEBOUNCE_FILE in '${dir}', skipping debounce state"
+		return 0
+	}
+	trap 'rm -f -- "${tmp}"' EXIT
+	printf 'crit=%s\nwarn=%s\n' "${crit}" "${warn}" > "${tmp}" || {
+		debounce_path_warn "Failed to write VPN_SELFTEST_DEBOUNCE_FILE temp, skipping debounce state"
+		return 0
+	}
+	chmod 644 "${tmp}" 2>/dev/null || true
+	if ! mv -f -- "${tmp}" "${path}" 2>/dev/null; then
+		debounce_path_warn "Failed to replace VPN_SELFTEST_DEBOUNCE_FILE '${path}', skipping debounce state"
+		return 0
+	fi
+	trap - EXIT
+}
+
 json_escape() {
 	# Minimal JSON string escaping for our controlled values.
 	# shellcheck disable=SC2001
@@ -185,7 +274,7 @@ write_status_json() {
 	trap 'rm -f -- "${tmp}"' EXIT
 
 	cat >"${tmp}" <<EOF
-{"timestamp_utc":"$(json_escape "${now}")","state":"$(json_escape "${state}")","warn_count":${warn_count},"fail_count":${fail_count},"vpn_enabled":"$(json_escape "${VPN_ENABLED:-yes}")","vpn_device_type":"$(json_escape "${VPN_DEVICE_TYPE:-}")","vpn_ip_signal":"$(json_escape "${vpn_ip_value}")","nzbget_port":${VPN_SELFTEST_NZBGET_PORT:-6789}}
+{"timestamp_utc":"$(json_escape "${now}")","state":"$(json_escape "${state}")","warn_count":${warn_count},"fail_count":${fail_count},"vpn_enabled":"$(json_escape "${VPN_ENABLED:-yes}")","vpn_device_type":"$(json_escape "${VPN_DEVICE_TYPE:-}")","vpn_ip_signal":"$(json_escape "${vpn_ip_value}")","nzbget_port":${VPN_SELFTEST_NZBGET_PORT:-6789},"debounce_crit_streak":${VPN_SELFTEST_DEBOUNCE_CRIT_STREAK:-0},"debounce_warn_streak":${VPN_SELFTEST_DEBOUNCE_WARN_STREAK:-0}}
 EOF
 
 	chmod 644 "${tmp}" || true
@@ -358,6 +447,13 @@ check_nzbget_state() {
 }
 
 main() {
+	local debounce_file="${VPN_SELFTEST_DEBOUNCE_FILE:-/tmp/nzbgetvpn-selftest-debounce}"
+	local debounce_crit_required
+	local debounce_warn_required
+	local debounce_crit_streak=0
+	local debounce_warn_streak=0
+	local effective_state="ready"
+
 	log_info "Starting internal self-test"
 	check_dir_writable "/config"
 	check_dir_writable "/data"
@@ -373,21 +469,61 @@ main() {
 
 	check_nzbget_state
 
-	if [[ "${fail_count}" -gt 0 ]]; then
-		write_status_json "not_ready"
-		handle_state_change_hook "not_ready"
-		clear_ready_file
-		log_crit "Self-test finished with ${fail_count} critical issue(s) and ${warn_count} warning(s)"
-		exit 1
+	debounce_crit_required="$(get_positive_int_default "${VPN_SELFTEST_DEBOUNCE_CRIT:-1}" 1)"
+	debounce_warn_required="$(get_positive_int_default "${VPN_SELFTEST_DEBOUNCE_WARN:-1}" 1)"
+
+	if validate_debounce_file_path "${debounce_file}"; then
+		load_debounce_streaks "${debounce_file}" debounce_crit_streak debounce_warn_streak
 	fi
 
-	if is_enabled "${VPN_SELFTEST_READY_STRICT:-no}" && [[ "${warn_count}" -gt 0 ]]; then
-		write_status_json "not_ready"
-		handle_state_change_hook "not_ready"
+	if [[ "${fail_count}" -gt 0 ]]; then
+		debounce_crit_streak=$((debounce_crit_streak + 1))
 	else
-		write_status_json "ready"
-		handle_state_change_hook "ready"
+		debounce_crit_streak=0
 	fi
+
+	if [[ "${warn_count}" -gt 0 ]]; then
+		debounce_warn_streak=$((debounce_warn_streak + 1))
+	else
+		debounce_warn_streak=0
+	fi
+
+	export VPN_SELFTEST_DEBOUNCE_CRIT_STREAK="${debounce_crit_streak}"
+	export VPN_SELFTEST_DEBOUNCE_WARN_STREAK="${debounce_warn_streak}"
+
+	if validate_debounce_file_path "${debounce_file}"; then
+		save_debounce_streaks "${debounce_file}" "${debounce_crit_streak}" "${debounce_warn_streak}"
+	fi
+
+	if [[ "${fail_count}" -gt 0 ]]; then
+		if [[ "${debounce_crit_streak}" -ge "${debounce_crit_required}" ]]; then
+			effective_state="not_ready"
+		else
+			log_warn "Critical failures debounced (${debounce_crit_streak}/${debounce_crit_required}); delaying not_ready state"
+		fi
+	fi
+
+	if [[ "${effective_state}" != "not_ready" ]] && is_enabled "${VPN_SELFTEST_READY_STRICT:-no}" && [[ "${warn_count}" -gt 0 ]]; then
+		if [[ "${debounce_warn_streak}" -ge "${debounce_warn_required}" ]]; then
+			effective_state="not_ready"
+		else
+			log_info "Warnings debounced in strict mode (${debounce_warn_streak}/${debounce_warn_required}); keeping ready state"
+		fi
+	fi
+
+	write_status_json "${effective_state}"
+	handle_state_change_hook "${effective_state}"
+
+	if [[ "${effective_state}" == "not_ready" ]]; then
+		clear_ready_file
+		if [[ "${fail_count}" -gt 0 ]]; then
+			log_crit "Self-test finished with ${fail_count} critical issue(s) and ${warn_count} warning(s)"
+			exit 1
+		fi
+		log_info "Self-test finished with ${warn_count} warning(s) but strict mode marked not_ready"
+		exit 0
+	fi
+
 	update_ready_file
 	log_info "Self-test finished successfully with ${warn_count} warning(s)"
 }

@@ -8,7 +8,7 @@ Full documentation is available in the GitHub repository README.
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.5.1
+* NZBGetVPN image/codebase version: 4.6.0
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -19,7 +19,7 @@ Full documentation is available in the GitHub repository README.
 | `stable` | Stable NZBGet release. |
 | `testing` | Testing NZBGet release. |
 | `<version>` | Versioned image, for example `26.1`. |
-| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.5.1`. |
+| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.6.0`. |
 
 ## Included
 
@@ -204,6 +204,9 @@ Report vulnerabilities privately through the maintainer contact page linked in t
 | `VPN_SELFTEST_STATE_FILE` | absolute path | File storing previous self-test state (default `/tmp/nzbgetvpn-selftest-state`). |
 | `VPN_SELFTEST_STATE_HOOK_TIMEOUT` | positive integer seconds | State-hook timeout (default `30`). |
 | `VPN_SELFTEST_STATUS_FILE` | absolute path | Optional JSON status snapshot written atomically after each self-test run. |
+| `VPN_SELFTEST_DEBOUNCE_CRIT` | positive integer | Debounce critical failures before switching to `not_ready` and exiting non-zero (default `1`). |
+| `VPN_SELFTEST_DEBOUNCE_WARN` | positive integer | When strict mode is enabled, debounce warnings before switching to `not_ready` (default `1`). |
+| `VPN_SELFTEST_DEBOUNCE_FILE` | absolute path | Stores consecutive critical/warning streak counters between runs (default `/tmp/nzbgetvpn-selftest-debounce`). |
 | `VPN_SELFTEST_READY_FILE` | absolute path | Optional: write `ok <UTC>` on self-test success (atomic); remove file on critical failure. Watchdog also clears stale file on startup before fresh checks. |
 | `VPN_SELFTEST_READY_STRICT` | `yes`/`no`/boolean | If truthy, ready file only when zero warnings. |
 

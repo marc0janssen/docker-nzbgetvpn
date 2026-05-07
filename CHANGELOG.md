@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.6.0] - 2026-05-07
+
+### Added
+
+- Debounce/grace options for self-test readiness: `VPN_SELFTEST_DEBOUNCE_CRIT`, `VPN_SELFTEST_DEBOUNCE_WARN` and `VPN_SELFTEST_DEBOUNCE_FILE` to reduce flapping during transient failures.
+
 ## [4.5.1] - 2026-05-07
 
 ### Fixed
