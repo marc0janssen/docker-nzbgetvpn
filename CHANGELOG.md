@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.6.1] - 2026-05-07
+
+### Changed
+
+- Added Docker Compose orchestration examples for health/ready/status/state-hook based workflows.
+
 ## [4.6.0] - 2026-05-07
 
 ### Added

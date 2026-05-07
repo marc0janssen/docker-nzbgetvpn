@@ -10,7 +10,7 @@ This image builds on top of [`binhex/arch-int-vpn`](https://github.com/binhex/ar
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 4.6.0
+* NZBGetVPN image/codebase version: 4.6.1
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -23,7 +23,7 @@ The NZBGetVPN image/codebase version is stored in `VERSION`. The two NZBGet vers
 | `marc0janssen/nzbgetvpn:stable` | Stable NZBGet release from `Dockerfile`. |
 | `marc0janssen/nzbgetvpn:testing` | Testing NZBGet release from `Dockerfile-testing`. |
 | `marc0janssen/nzbgetvpn:<version>` | Versioned image, for example `26.1` or `26.2-testing-20260504`. |
-| `marc0janssen/nzbgetvpn:<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version from `VERSION`, for example `26.1-image-v4.6.0`. |
+| `marc0janssen/nzbgetvpn:<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version from `VERSION`, for example `26.1-image-v4.6.1`. |
 
 ## What Is Included
 
@@ -396,6 +396,126 @@ The healthcheck runs `/root/healthcheck.sh`, which executes the internal self-te
 
 Use `VPN_HEALTHCHECK_ENABLED=no` when you need Docker to always report healthy while still keeping the internal self-test feature available for logs/ready-marker workflows.
 
+### Docker Compose Orchestration Examples
+
+Examples below show how to coordinate other containers with NZBGetVPN readiness using:
+
+- Docker `HEALTHCHECK` (container becomes `healthy` / `unhealthy`)
+- `VPN_SELFTEST_READY_FILE` (presence-based marker file)
+- `VPN_SELFTEST_STATUS_FILE` (JSON details, including `state`)
+- `VPN_SELFTEST_STATE_HOOK` (trigger actions only on transitions)
+
+#### Example: Gate a dependent service on Docker health
+
+```yaml
+services:
+  nzbgetvpn:
+    image: marc0janssen/nzbgetvpn:stable
+    container_name: nzbgetvpn
+    environment:
+      VPN_ENABLED: "yes"
+      VPN_SELFTEST_ENABLED: "*/1 * * * *"
+    volumes:
+      - ./config:/config
+      - ./data:/data
+    ports:
+      - "6789:6789"
+
+  depends-on-nzbgetvpn:
+    image: alpine:3.20
+    depends_on:
+      nzbgetvpn:
+        condition: service_healthy
+    command: ["sh", "-c", "echo nzbgetvpn is healthy; sleep 3600"]
+```
+
+Notes:
+- Compose health gating only works when the base Docker engine reports health and your Compose version supports `condition: service_healthy`.
+- The built-in healthcheck maps critical self-test failures to `unhealthy`. Warnings remain `healthy`.
+
+#### Example: Use the ready-file marker on a shared volume
+
+```yaml
+services:
+  nzbgetvpn:
+    image: marc0janssen/nzbgetvpn:stable
+    environment:
+      VPN_SELFTEST_ENABLED: "*/1 * * * *"
+      VPN_SELFTEST_READY_FILE: "/data/.nzbgetvpn-ready"
+      VPN_SELFTEST_READY_STRICT: "yes"
+    volumes:
+      - ./config:/config
+      - ./data:/data
+
+  wait-for-ready-file:
+    image: alpine:3.20
+    depends_on:
+      - nzbgetvpn
+    volumes:
+      - ./data:/data
+    command:
+      - sh
+      - -c
+      - |
+        echo "Waiting for /data/.nzbgetvpn-ready..."
+        while [ ! -f /data/.nzbgetvpn-ready ]; do sleep 2; done
+        echo "Ready file present."
+        sleep 3600
+```
+
+#### Example: Use the status JSON (no ready-file needed)
+
+```yaml
+services:
+  nzbgetvpn:
+    image: marc0janssen/nzbgetvpn:stable
+    environment:
+      VPN_SELFTEST_ENABLED: "*/1 * * * *"
+      VPN_SELFTEST_STATUS_FILE: "/data/.nzbgetvpn-status.json"
+    volumes:
+      - ./config:/config
+      - ./data:/data
+
+  wait-for-ready-status:
+    image: alpine:3.20
+    depends_on:
+      - nzbgetvpn
+    volumes:
+      - ./data:/data
+    command:
+      - sh
+      - -c
+      - |
+        echo "Waiting for status state=ready..."
+        while true; do
+          if [ -f /data/.nzbgetvpn-status.json ] && grep -q '"state":"ready"' /data/.nzbgetvpn-status.json; then
+            break
+          fi
+          sleep 2
+        done
+        echo "Status is ready."
+        sleep 3600
+```
+
+#### Example: Run a hook only when state changes
+
+```yaml
+services:
+  nzbgetvpn:
+    image: marc0janssen/nzbgetvpn:stable
+    environment:
+      VPN_SELFTEST_ENABLED: "*/1 * * * *"
+      VPN_SELFTEST_STATE_FILE: "/data/.nzbgetvpn-selftest-state"
+      VPN_SELFTEST_STATE_HOOK: "/config/scripts/selftest-state-hook.sh"
+      VPN_SELFTEST_STATE_HOOK_TIMEOUT: "30"
+    volumes:
+      - ./config:/config
+      - ./data:/data
+```
+
+The hook receives:
+`VPN_SELFTEST_PREVIOUS_STATE`, `VPN_SELFTEST_CURRENT_STATE`, `VPN_SELFTEST_WARN_COUNT`, and `VPN_SELFTEST_FAIL_COUNT`.
+
 ### Bundled NordVPN WireGuard Script
 
 The image includes:
@@ -617,7 +737,7 @@ Supervisor uses `loglevel=info` plus program `stdout_logfile=/dev/fd/1` and `std
 After NZBGet is running and listening on port `6789`, startup logs the NZBGetVPN image/codebase version, the NZBGet application version, a link to the GitHub changelog and the maintainer contact page:
 
 ```text
-[info] NZBGetVPN 4.6.0 | NZBGet 26.1 | Changelog: https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md | Contact page: https://bio.mjanssen.nl/@Marco
+[info] NZBGetVPN 4.6.1 | NZBGet 26.1 | Changelog: https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md | Contact page: https://bio.mjanssen.nl/@Marco
 [info] VPN self-test mode 'yes' (VPN_SELFTEST_ENABLED='yes')
 [info] VPN self-test watchdog mode 'yes' (VPN_SELFTEST_ENABLED='yes')
 [info] Delaying one-shot VPN self-test by 20 seconds after watchdog start (elapsed 0s)
@@ -648,7 +768,7 @@ The build scripts are safe by default: without arguments they build the values a
 | `./build.sh newest --accept-downloaded-sha256 --base newest` | Update both NZBGet stable and the base image before building. |
 | `./build-testing.sh newest --accept-downloaded-sha256 --base newest` | Update both NZBGet testing and the base image before building. |
 
-Both build scripts read the NZBGetVPN codebase version from `VERSION`. Stable builds also push `<nzbget-version>-image-v<version>`, for example `26.1-image-v4.6.0`. Testing builds push the same combined pattern, for example `26.2-testing-20260504-image-v4.6.0`. The same codebase version is also written to the OCI image label `org.opencontainers.image.version`.
+Both build scripts read the NZBGetVPN codebase version from `VERSION`. Stable builds also push `<nzbget-version>-image-v<version>`, for example `26.1-image-v4.6.1`. Testing builds push the same combined pattern, for example `26.2-testing-20260504-image-v4.6.1`. The same codebase version is also written to the OCI image label `org.opencontainers.image.version`.
 
 When `--base newest` resolves to a different base image tag, `scripts/update-base-image.sh` bumps the patch value in `VERSION` and updates the README version lines before the image build starts. If the Dockerfile is already on the newest resolved base tag, `VERSION` is left unchanged.
 

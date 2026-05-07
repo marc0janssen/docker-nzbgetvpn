@@ -8,7 +8,7 @@ Full documentation is available in the GitHub repository README.
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.6.0
+* NZBGetVPN image/codebase version: 4.6.1
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -19,7 +19,7 @@ Full documentation is available in the GitHub repository README.
 | `stable` | Stable NZBGet release. |
 | `testing` | Testing NZBGet release. |
 | `<version>` | Versioned image, for example `26.1`. |
-| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.6.0`. |
+| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.6.1`. |
 
 ## Included
 
@@ -312,6 +312,40 @@ The script runs from the watchdog loop, logs to normal container stdout, and doe
 ## Docker Healthcheck
 
 The image defines a native Docker `HEALTHCHECK` (`interval=60s`, `timeout=30s`, `start-period=120s`, `retries=3`) that runs `/root/healthcheck.sh`. It executes the internal self-test and marks the container unhealthy only for critical failures. Warnings remain healthy. Health probes do not modify ready/state-hook tracking files.
+
+## Docker Compose Orchestration Examples
+
+Gate other services on NZBGetVPN health:
+
+```yaml
+services:
+  nzbgetvpn:
+    image: marc0janssen/nzbgetvpn:stable
+    environment:
+      VPN_SELFTEST_ENABLED: "*/1 * * * *"
+      VPN_SELFTEST_READY_FILE: "/data/.nzbgetvpn-ready"
+      VPN_SELFTEST_READY_STRICT: "yes"
+      VPN_SELFTEST_STATUS_FILE: "/data/.nzbgetvpn-status.json"
+    volumes:
+      - ./config:/config
+      - ./data:/data
+
+  my-service:
+    image: alpine:3.20
+    depends_on:
+      nzbgetvpn:
+        condition: service_healthy
+    volumes:
+      - ./data:/data
+    command:
+      - sh
+      - -c
+      - |
+        while [ ! -f /data/.nzbgetvpn-ready ]; do sleep 2; done
+        while ! grep -q '"state":"ready"' /data/.nzbgetvpn-status.json; do sleep 2; done
+        echo "nzbgetvpn ready + healthy"
+        sleep 3600
+```
 
 ## Bundled NordVPN WireGuard Script
 
