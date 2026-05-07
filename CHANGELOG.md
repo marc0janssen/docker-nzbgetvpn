@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.24.7] - 2026-05-07
+
+### Changed
+
+- Simplified `README.md` into a compact operator-focused document with generated anchor-based table of contents and direct links to detailed docs.
+- Simplified `README-containers.md` to keep Docker Hub content concise while linking to full repository docs.
+- Replaced the large monolithic `data/scripts/README.md` with an index-style helper overview and added per-script docs under `data/scripts/docs/` to reduce merge-conflict hotspots.
+
 ## [4.24.6] - 2026-05-07
 
 ### Changed
