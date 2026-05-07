@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.8.1] - 2026-05-07
+
+### Changed
+
+- Added explicit environment-variable examples in `README.md` for `notify_discord.sh`, `notify_telegram.sh`, and `notify_pushover.sh`.
+
+## [4.8.0] - 2026-05-07
+
+### Added
+
+- Added bundled notification helper examples in `data/scripts/`: `notify_discord.sh`, `notify_telegram.sh`, and `notify_pushover.sh`, designed for `VPN_SELFTEST_STATE_HOOK` and `VPN_UNHEALTHY_SCRIPT` usage.
+
+### Changed
+
+- Documented notification-helper configuration and usage in `README.md`, `README-containers.md`, and `data/scripts/README.md`.
+
+## [4.7.5] - 2026-05-07
+
+### Changed
+
+- Clarified notification guidance in the self-test/healthcheck documentation: Discord/Telegram/Pushover integrations are not built in, but can be implemented cleanly via `VPN_SELFTEST_STATE_HOOK` state transitions (`ready` -> `not_ready`) or `VPN_UNHEALTHY_SCRIPT`.
+
 ## [4.7.4] - 2026-05-07
 
 ### Changed

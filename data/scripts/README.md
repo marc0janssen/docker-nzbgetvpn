@@ -11,6 +11,9 @@ Bundled scripts:
 | `get_wireguard_configs_nordvpn.sh` | Fetch NordVPN WireGuard recommendations and install one active WireGuard config. |
 | `select_random_wireguard_config.sh` | Pick a random `*.conf` from `/data/wireguard-configs` and install it in `/config/wireguard`. |
 | `select_random_openvpn_config.sh` | Pick a random `*.ovpn` from `/data/openvpn-configs` and install it in `/config/openvpn`. |
+| `notify_discord.sh` | Send a state/unhealthy notification to a Discord webhook. |
+| `notify_telegram.sh` | Send a state/unhealthy notification through the Telegram Bot API. |
+| `notify_pushover.sh` | Send a state/unhealthy notification through Pushover. |
 
 ## NordVPN Access Token
 
@@ -47,6 +50,35 @@ Example unhealthy action usage:
 VPN_UNHEALTHY_ACTION=script+exit
 VPN_UNHEALTHY_SCRIPT=/data/scripts/get_wireguard_configs_nordvpn.sh
 ```
+
+Example self-test transition hook usage:
+
+```text
+VPN_SELFTEST_ENABLED=*/2 * * * *
+VPN_SELFTEST_STATE_HOOK=/data/scripts/notify_discord.sh
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+```
+
+Notification helper scripts support:
+
+- `NOTIFY_MESSAGE` (optional custom message override)
+- Self-test state context from `VPN_SELFTEST_STATE_HOOK`:
+  - `VPN_SELFTEST_PREVIOUS_STATE`
+  - `VPN_SELFTEST_CURRENT_STATE`
+  - `VPN_SELFTEST_WARN_COUNT`
+  - `VPN_SELFTEST_FAIL_COUNT`
+
+Service-specific variables:
+
+- `notify_discord.sh`
+  - required: `DISCORD_WEBHOOK_URL`
+  - optional: `DISCORD_USERNAME`, `DISCORD_AVATAR_URL`, `DISCORD_MENTIONS`
+- `notify_telegram.sh`
+  - required: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
+  - optional: `TELEGRAM_MESSAGE_THREAD_ID`, `TELEGRAM_PARSE_MODE`
+- `notify_pushover.sh`
+  - required: `PUSHOVER_APP_TOKEN`, `PUSHOVER_USER_KEY`
+  - optional: `PUSHOVER_TITLE`, `PUSHOVER_PRIORITY`, `PUSHOVER_DEVICE`, `PUSHOVER_SOUND`
 
 Make sure custom scripts are executable:
 

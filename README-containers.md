@@ -8,7 +8,7 @@ Full documentation is available in the GitHub repository README.
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.7.4
+* NZBGetVPN image/codebase version: 4.8.1
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -19,7 +19,7 @@ Full documentation is available in the GitHub repository README.
 | `stable` | Stable NZBGet release. |
 | `testing` | Testing NZBGet release. |
 | `<version>` | Versioned image, for example `26.1`. |
-| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.7.4`. |
+| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.8.1`. |
 
 ## Included
 
@@ -159,6 +159,14 @@ sysctls:
 | `/etc/localtime:ro` | Recommended for correct log and schedule times. |
 
 On container start, bundled scripts are copied into `/data/scripts/` and updated when the image template differs from the mounted copy. The default source directories `/data/wireguard-configs` and `/data/openvpn-configs` are also created. Each of these `/data` subdirectories gets a small `README.md`. This also works when `/data` is a host bind mount.
+
+Bundled notification examples are also included:
+
+- `/data/scripts/notify_discord.sh`
+- `/data/scripts/notify_telegram.sh`
+- `/data/scripts/notify_pushover.sh`
+
+They are intended for `VPN_SELFTEST_STATE_HOOK` and `VPN_UNHEALTHY_SCRIPT` flows.
 
 ## Backup And Restore
 
@@ -313,6 +321,8 @@ The script runs from the watchdog loop, logs to normal container stdout, and doe
 
 The image defines a native Docker `HEALTHCHECK` (`interval=60s`, `timeout=30s`, `start-period=120s`, `retries=3`) that runs `/root/healthcheck.sh`. It executes the internal self-test and marks the container unhealthy only for critical failures. Warnings remain healthy. Health probes do not modify ready/state/status/debounce tracking files.
 
+Healthchecks + notifications (Discord/Telegram/Pushover) are not built in, but can be integrated cleanly via `VPN_SELFTEST_STATE_HOOK` (for `ready` -> `not_ready` transitions) or via `VPN_UNHEALTHY_SCRIPT`.
+
 ## Docker Compose Orchestration Examples
 
 Gate other services on NZBGetVPN health:
@@ -434,6 +444,36 @@ environment:
 ```
 
 If your `.ovpn` references external cert/key/auth files, those files must also be available in `/config/openvpn/`, or the `.ovpn` must embed them inline.
+
+## Bundled Notification Scripts
+
+Included scripts:
+
+```text
+/data/scripts/notify_discord.sh
+/data/scripts/notify_telegram.sh
+/data/scripts/notify_pushover.sh
+```
+
+Use these scripts from:
+
+- `VPN_SELFTEST_STATE_HOOK` for readiness transitions (`ready -> not_ready`)
+- `VPN_UNHEALTHY_SCRIPT` for unhealthy callbacks
+
+Shared behavior:
+
+- Optional `NOTIFY_MESSAGE` to override the generated message.
+- When run via `VPN_SELFTEST_STATE_HOOK`, scripts consume:
+  - `VPN_SELFTEST_PREVIOUS_STATE`
+  - `VPN_SELFTEST_CURRENT_STATE`
+  - `VPN_SELFTEST_WARN_COUNT`
+  - `VPN_SELFTEST_FAIL_COUNT`
+
+Required variables:
+
+- Discord: `DISCORD_WEBHOOK_URL`
+- Telegram: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
+- Pushover: `PUSHOVER_APP_TOKEN`, `PUSHOVER_USER_KEY`
 
 ## Build Verification
 

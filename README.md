@@ -10,7 +10,7 @@ This image builds on top of [`binhex/arch-int-vpn`](https://github.com/binhex/ar
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 4.7.4
+* NZBGetVPN image/codebase version: 4.8.1
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -23,7 +23,7 @@ The NZBGetVPN image/codebase version is stored in `VERSION`. The two NZBGet vers
 | `marc0janssen/nzbgetvpn:stable` | Stable NZBGet release from `Dockerfile`. |
 | `marc0janssen/nzbgetvpn:testing` | Testing NZBGet release from `Dockerfile-testing`. |
 | `marc0janssen/nzbgetvpn:<version>` | Versioned image, for example `26.1` or `26.2-testing-20260504`. |
-| `marc0janssen/nzbgetvpn:<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version from `VERSION`, for example `26.1-image-v4.7.4`. |
+| `marc0janssen/nzbgetvpn:<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version from `VERSION`, for example `26.1-image-v4.8.1`. |
 
 ## What Is Included
 
@@ -179,6 +179,14 @@ id <username>
 ```
 
 The image includes helper script templates. On container start, bundled scripts are copied into `/data/scripts/` and updated when the image template differs from the mounted copy. The default source directories `/data/wireguard-configs` and `/data/openvpn-configs` are also created. Each of these `/data` subdirectories gets a small `README.md`. If you bind mount a host directory over `/data`, startup recreates these missing directories and README files in that mounted directory.
+
+Bundled notification examples are also available:
+
+- `/data/scripts/notify_discord.sh`
+- `/data/scripts/notify_telegram.sh`
+- `/data/scripts/notify_pushover.sh`
+
+They are designed for `VPN_SELFTEST_STATE_HOOK` and `VPN_UNHEALTHY_SCRIPT` workflows.
 
 ## Backup And Restore
 
@@ -395,6 +403,8 @@ interval=60s, timeout=30s, start-period=120s, retries=3
 The healthcheck runs `/root/healthcheck.sh`, which executes the internal self-test and maps critical self-test failures to `unhealthy`. Warnings do not mark the container unhealthy. Healthcheck probes do not write ready marker files, status files, state files or debounce files, so `VPN_SELFTEST_READY_FILE`, `VPN_SELFTEST_STATUS_FILE`, `VPN_SELFTEST_STATE_*` and `VPN_SELFTEST_DEBOUNCE_FILE` behavior remain owned by watchdog-driven self-test scheduling.
 
 Use `VPN_HEALTHCHECK_ENABLED=no` when you need Docker to always report healthy while still keeping the internal self-test feature available for logs/ready-marker workflows.
+
+Healthchecks + notifications (Discord/Telegram/Pushover) are not built in, but can be integrated cleanly via `VPN_SELFTEST_STATE_HOOK` (for `ready` -> `not_ready` transitions) or via `VPN_UNHEALTHY_SCRIPT`.
 
 ### Docker Compose Orchestration Examples
 
@@ -625,6 +635,80 @@ environment:
 
 The script only copies the selected `.ovpn` file. If your profile references external files such as `ca.crt`, `client.crt`, `client.key`, or an auth file, those files must already be available in `/config/openvpn/`, or the `.ovpn` profile must embed them inline.
 
+### Bundled Notification Scripts
+
+The image also includes:
+
+```text
+/data/scripts/notify_discord.sh
+/data/scripts/notify_telegram.sh
+/data/scripts/notify_pushover.sh
+```
+
+These scripts send notifications using Discord, Telegram, or Pushover and are safe to use from either:
+
+- `VPN_SELFTEST_STATE_HOOK` (state transitions such as `ready -> not_ready`)
+- `VPN_UNHEALTHY_SCRIPT` (unhealthy action callbacks)
+
+Shared behavior:
+
+- Optional `NOTIFY_MESSAGE` to override the default generated message.
+- When used via `VPN_SELFTEST_STATE_HOOK`, they consume:
+  - `VPN_SELFTEST_PREVIOUS_STATE`
+  - `VPN_SELFTEST_CURRENT_STATE`
+  - `VPN_SELFTEST_WARN_COUNT`
+  - `VPN_SELFTEST_FAIL_COUNT`
+
+Required service variables:
+
+- Discord: `DISCORD_WEBHOOK_URL`
+- Telegram: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
+- Pushover: `PUSHOVER_APP_TOKEN`, `PUSHOVER_USER_KEY`
+
+Example variables (`notify_discord.sh`):
+
+```yaml
+environment:
+  DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..."
+  DISCORD_USERNAME: "NZBGetVPN"
+  DISCORD_AVATAR_URL: "https://example.com/nzbgetvpn.png"
+  DISCORD_MENTIONS: "<@123456789012345678>"
+  NOTIFY_MESSAGE: "NZBGetVPN needs attention"
+```
+
+Example variables (`notify_telegram.sh`):
+
+```yaml
+environment:
+  TELEGRAM_BOT_TOKEN: "123456789:your-bot-token"
+  TELEGRAM_CHAT_ID: "-1001234567890"
+  TELEGRAM_MESSAGE_THREAD_ID: "42"
+  TELEGRAM_PARSE_MODE: "Markdown"
+  NOTIFY_MESSAGE: "NZBGetVPN needs attention"
+```
+
+Example variables (`notify_pushover.sh`):
+
+```yaml
+environment:
+  PUSHOVER_APP_TOKEN: "your-app-token"
+  PUSHOVER_USER_KEY: "your-user-key"
+  PUSHOVER_TITLE: "NZBGetVPN"
+  PUSHOVER_PRIORITY: "1"
+  PUSHOVER_DEVICE: "iphone"
+  PUSHOVER_SOUND: "pushover"
+  NOTIFY_MESSAGE: "NZBGetVPN needs attention"
+```
+
+Example (`VPN_SELFTEST_STATE_HOOK` with Discord):
+
+```yaml
+environment:
+  VPN_SELFTEST_ENABLED: "*/2 * * * *"
+  VPN_SELFTEST_STATE_HOOK: "/data/scripts/notify_discord.sh"
+  DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..."
+```
+
 ## Accepted Value Patterns
 
 | Kind | Valid examples | Invalid examples |
@@ -737,7 +821,7 @@ Supervisor uses `loglevel=info` plus program `stdout_logfile=/dev/fd/1` and `std
 After NZBGet is running and listening on port `6789`, startup logs the NZBGetVPN image/codebase version, the NZBGet application version, a link to the GitHub changelog and the maintainer contact page:
 
 ```text
-[info] NZBGetVPN 4.7.4 | NZBGet 26.1 | Changelog: https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md | Contact page: https://bio.mjanssen.nl/@Marco
+[info] NZBGetVPN 4.8.1 | NZBGet 26.1 | Changelog: https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md | Contact page: https://bio.mjanssen.nl/@Marco
 [info] VPN self-test mode 'yes' (VPN_SELFTEST_ENABLED='yes')
 [info] VPN self-test watchdog mode 'yes' (VPN_SELFTEST_ENABLED='yes')
 [info] Delaying one-shot VPN self-test by 20 seconds after watchdog start (elapsed 0s)
@@ -768,7 +852,7 @@ The build scripts are safe by default: without arguments they build the values a
 | `./build.sh newest --accept-downloaded-sha256 --base newest` | Update both NZBGet stable and the base image before building. |
 | `./build-testing.sh newest --accept-downloaded-sha256 --base newest` | Update both NZBGet testing and the base image before building. |
 
-Both build scripts read the NZBGetVPN codebase version from `VERSION`. Stable builds also push `<nzbget-version>-image-v<version>`, for example `26.1-image-v4.7.4`. Testing builds push the same combined pattern, for example `26.2-testing-20260504-image-v4.7.4`. The same codebase version is also written to the OCI image label `org.opencontainers.image.version`.
+Both build scripts read the NZBGetVPN codebase version from `VERSION`. Stable builds also push `<nzbget-version>-image-v<version>`, for example `26.1-image-v4.8.1`. Testing builds push the same combined pattern, for example `26.2-testing-20260504-image-v4.8.1`. The same codebase version is also written to the OCI image label `org.opencontainers.image.version`.
 
 When `--base newest` resolves to a different base image tag, `scripts/update-base-image.sh` bumps the patch value in `VERSION` and updates the README version lines before the image build starts. If the Dockerfile is already on the newest resolved base tag, `VERSION` is left unchanged.
 
