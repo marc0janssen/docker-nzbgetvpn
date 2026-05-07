@@ -1,0 +1,17 @@
+name: Smoke Test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  runtime-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run runtime smoke test
+        run: ./scripts/ci-smoke-test.sh

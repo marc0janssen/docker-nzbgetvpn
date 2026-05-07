@@ -24,7 +24,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 4.24.7
+* NZBGetVPN image/codebase version: 4.24.11
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -141,6 +141,15 @@ Script details are split into smaller files to reduce maintenance overhead and m
 ## Build and Update
 
 Use `build.sh`, `build-testing.sh`, and scripts in `scripts/`.
+
+Runtime smoke test (container start, `6789` listen, Privoxy `8118` reachability when enabled, and self-test exit checks):
+
+```sh
+./scripts/ci-smoke-test.sh
+```
+
+Full smoke-test documentation: [`ci/README.md`](ci/README.md)
+On Apple Silicon or other non-amd64 hosts, use `SMOKE_PLATFORM=linux/amd64`.
 
 ## Troubleshooting
 

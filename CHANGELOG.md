@@ -4,6 +4,44 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.24.11] - 2026-05-07
+
+### Fixed
+
+- Removed the host-side `rg` dependency from `scripts/ci-smoke-test.sh` by replacing the running-container check with a Docker-native `docker compose ps -q` + `docker inspect` wait loop.
+
+### Changed
+
+- Documented host requirements (`docker compose` and `nc`) in `ci/README.md`.
+
+## [4.24.10] - 2026-05-07
+
+### Changed
+
+- Updated `ci/docker-compose.smoke.yml` and `scripts/ci-smoke-test.sh` to run smoke tests with explicit platform selection (`SMOKE_PLATFORM`, default `linux/amd64`) to avoid manifest-platform mismatches on Apple Silicon and other non-amd64 hosts.
+- Expanded smoke-test docs in `ci/README.md`, `README.md`, and `README-containers.md` with platform guidance and a direct workaround for `no match for platform in manifest`.
+
+## [4.24.9] - 2026-05-07
+
+### Added
+
+- Added `ci/README.md` with a dedicated runtime smoke-test guide covering purpose, validated checks, local usage, optional debug mode, and troubleshooting commands.
+
+### Changed
+
+- Updated `README.md` and `README-containers.md` to link to the dedicated smoke-test documentation.
+
+## [4.24.8] - 2026-05-07
+
+### Added
+
+- Added runtime smoke-test assets (`ci/docker-compose.smoke.yml` and `scripts/ci-smoke-test.sh`) that validate container startup, NZBGet listen port `6789`, Privoxy reachability on `8118` when enabled, and successful self-test exits.
+- Added GitHub Actions workflow `.github/workflows/smoke-test.yml` to run the smoke test on push and pull request events.
+
+### Changed
+
+- Updated `README.md` and `README-containers.md` with a short CI smoke-test reference.
+
 ## [4.24.7] - 2026-05-07
 
 ### Changed

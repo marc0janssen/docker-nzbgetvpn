@@ -9,7 +9,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.24.7
+* NZBGetVPN image/codebase version: 4.24.11
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -92,6 +92,9 @@ Bundled scripts are managed in `/data/scripts`.
 For complete environment matrix, self-test/unhealthy logic, provider setup, troubleshooting, and build/update workflow:
 
 - [`README.md`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/README.md)
+- Runtime smoke-test helper: `./scripts/ci-smoke-test.sh`
+- Runtime smoke-test docs: [`ci/README.md`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/ci/README.md)
+- For Apple Silicon/non-amd64 hosts, run smoke tests with `SMOKE_PLATFORM=linux/amd64`.
 
 ## Security
 

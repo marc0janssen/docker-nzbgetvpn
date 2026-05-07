@@ -1,0 +1,25 @@
+services:
+  nzbgetvpn-smoke:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: nzbgetvpn-smoke
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "6789:6789/tcp"
+      - "8118:8118/tcp"
+    environment:
+      VPN_ENABLED: "no"
+      ENABLE_PRIVOXY: "yes"
+      PUID: "1000"
+      PGID: "1000"
+      UMASK: "000"
+    volumes:
+      - nzbgetvpn-smoke-config:/config
+      - nzbgetvpn-smoke-data:/data
+    restart: "no"
+
+volumes:
+  nzbgetvpn-smoke-config:
+  nzbgetvpn-smoke-data:
