@@ -28,8 +28,8 @@ main() {
 	tmp_output="$(mktemp /tmp/nzbgetvpn-healthcheck.XXXXXX)"
 	trap 'rm -f -- "${tmp_output}"' EXIT
 
-	# Disable state side effects during docker healthcheck probes.
-	if VPN_SELFTEST_READY_FILE="" VPN_SELFTEST_STATE_FILE="" VPN_SELFTEST_STATE_HOOK="" "${selftest_script}" >"${tmp_output}" 2>&1; then
+	# Disable side effects during docker healthcheck probes.
+	if VPN_SELFTEST_READY_FILE="" VPN_SELFTEST_STATE_FILE="" VPN_SELFTEST_STATE_HOOK="" VPN_SELFTEST_STATUS_FILE="" "${selftest_script}" >"${tmp_output}" 2>&1; then
 		exit 0
 	fi
 

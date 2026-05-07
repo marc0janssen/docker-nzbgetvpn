@@ -132,6 +132,67 @@ validate_state_file_path() {
 	return 0
 }
 
+status_path_warn() {
+	# Status output should not alter warning counters used for strict readiness.
+	echo "[warn] [vpn-selftest] $*"
+}
+
+validate_status_file_path() {
+	local path="${1:-}"
+
+	if [[ -z "${path}" ]]; then
+		return 1
+	fi
+	if [[ "${path}" != /* ]]; then
+		status_path_warn "VPN_SELFTEST_STATUS_FILE must be an absolute path, skipping status write"
+		return 1
+	fi
+	if [[ "${path}" == *..* ]]; then
+		status_path_warn "VPN_SELFTEST_STATUS_FILE must not contain '..', skipping status write"
+		return 1
+	fi
+	if [[ "${#path}" -gt 4096 ]]; then
+		status_path_warn "VPN_SELFTEST_STATUS_FILE path is too long, skipping status write"
+		return 1
+	fi
+	return 0
+}
+
+json_escape() {
+	# Minimal JSON string escaping for our controlled values.
+	# shellcheck disable=SC2001
+	echo -n "${1:-}" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+}
+
+write_status_json() {
+	local path="${VPN_SELFTEST_STATUS_FILE:-}"
+	local dir
+	local tmp
+	local now
+	local state="$1"
+	local vpn_ip_value="${vpn_ip:-${VPN_IP:-}}"
+
+	validate_status_file_path "${path}" || return 0
+
+	dir="$(dirname -- "${path}")"
+	if [[ ! -d "${dir}" || ! -w "${dir}" ]]; then
+		status_path_warn "VPN_SELFTEST_STATUS_FILE parent directory '${dir}' is unavailable, skipping status write"
+		return 0
+	fi
+
+	now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+	tmp="$(mktemp "${dir}/.nzbgetvpn-status.XXXXXX")"
+	trap 'rm -f -- "${tmp}"' EXIT
+
+	cat >"${tmp}" <<EOF
+{"timestamp_utc":"$(json_escape "${now}")","state":"$(json_escape "${state}")","warn_count":${warn_count},"fail_count":${fail_count},"vpn_enabled":"$(json_escape "${VPN_ENABLED:-yes}")","vpn_device_type":"$(json_escape "${VPN_DEVICE_TYPE:-}")","vpn_ip_signal":"$(json_escape "${vpn_ip_value}")","nzbget_port":${VPN_SELFTEST_NZBGET_PORT:-6789}}
+EOF
+
+	chmod 644 "${tmp}" || true
+	mv -f -- "${tmp}" "${path}"
+	trap - EXIT
+}
+
 run_script_with_timeout() {
 	local timeout_secs="$1"
 	shift
@@ -150,6 +211,7 @@ handle_state_change_hook() {
 	local current_state="$1"
 	local previous_state="unknown"
 	local dir
+	local tmp
 
 	validate_state_file_path "${state_file}" || return 0
 	dir="$(dirname -- "${state_file}")"
@@ -169,7 +231,22 @@ handle_state_change_hook() {
 		esac
 	fi
 
-	printf '%s\n' "${current_state}" > "${state_file}"
+	# Write atomically and never fail self-test if state tracking cannot persist.
+	tmp="$(mktemp "${dir}/.nzbgetvpn-selftest-state.XXXXXX")" || {
+		state_path_warn "Failed to create temp file for VPN_SELFTEST_STATE_FILE in '${dir}', skipping state tracking"
+		return 0
+	}
+	trap 'rm -f -- "${tmp}"' EXIT
+	printf '%s\n' "${current_state}" > "${tmp}" || {
+		state_path_warn "Failed to write VPN_SELFTEST_STATE_FILE temp, skipping state tracking"
+		return 0
+	}
+	chmod 644 "${tmp}" 2>/dev/null || true
+	if ! mv -f -- "${tmp}" "${state_file}" 2>/dev/null; then
+		state_path_warn "Failed to replace VPN_SELFTEST_STATE_FILE '${state_file}', skipping state tracking"
+		return 0
+	fi
+	trap - EXIT
 
 	if [[ -z "${hook_script}" ]]; then
 		return 0
@@ -297,6 +374,7 @@ main() {
 	check_nzbget_state
 
 	if [[ "${fail_count}" -gt 0 ]]; then
+		write_status_json "not_ready"
 		handle_state_change_hook "not_ready"
 		clear_ready_file
 		log_crit "Self-test finished with ${fail_count} critical issue(s) and ${warn_count} warning(s)"
@@ -304,8 +382,10 @@ main() {
 	fi
 
 	if is_enabled "${VPN_SELFTEST_READY_STRICT:-no}" && [[ "${warn_count}" -gt 0 ]]; then
+		write_status_json "not_ready"
 		handle_state_change_hook "not_ready"
 	else
+		write_status_json "ready"
 		handle_state_change_hook "ready"
 	fi
 	update_ready_file

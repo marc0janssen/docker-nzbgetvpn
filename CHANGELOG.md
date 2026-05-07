@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.5.1] - 2026-05-07
+
+### Fixed
+
+- Made self-test state tracking best-effort and atomic so permission issues on the state file cannot fail the self-test (prevents Docker healthcheck from flipping unhealthy due to state persistence errors).
+
+## [4.5.0] - 2026-05-07
+
+### Added
+
+- `VPN_SELFTEST_STATUS_FILE`: optional JSON status snapshot written atomically after each self-test run for automation/monitoring.
+
 ## [4.4.0] - 2026-05-07
 
 ### Added
