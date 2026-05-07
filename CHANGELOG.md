@@ -4,6 +4,76 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.13.3] - 2026-05-07
+
+### Changed
+
+- Added a startup info log in `watchdog.sh` when `BACKUP_CRON_SCHEDULE` is configured, showing active backup scheduler settings (`BACKUP_CRON_SCHEDULE`, `BACKUP_CRON_SCRIPT`, `BACKUP_CRON_SCRIPT_TIMEOUT`).
+
+## [4.13.2] - 2026-05-07
+
+### Changed
+
+- Added complete `docker-compose.yml` examples (with remarks) to `data/scripts/README.md` for WireGuard rotation + backups, OpenVPN rotation + transition notifications, and NordVPN refresh + unhealthy handling.
+
+## [4.13.1] - 2026-05-07
+
+### Changed
+
+- Expanded `data/scripts/README.md` with detailed usage examples for each bundled helper script, including manual execution, scheduler hooks, unhealthy hooks, and notification hook configurations.
+
+## [4.13.0] - 2026-05-07
+
+### Changed
+
+- `VPN_SELFTEST_STATUS_FILE` JSON output now includes timezone-aware `timestamp` and `timestamp_tz` fields controlled by `NZBGETVPN_TIMESTAMP_TZ`, while keeping legacy `timestamp_utc` for compatibility.
+- Updated README documentation to describe timezone handling for ready file, self-test status JSON, and backup timestamps.
+
+## [4.12.0] - 2026-05-07
+
+### Added
+
+- Added `NZBGETVPN_TIMESTAMP_TZ` (`utc` or `local`) to control timezone mode for generated timestamps used by `VPN_SELFTEST_READY_FILE` and `data/scripts/backup_config.sh`.
+
+### Changed
+
+- Ready-file and backup timestamp documentation now describes timezone selection behavior instead of UTC-only output.
+
+## [4.11.0] - 2026-05-07
+
+### Added
+
+- Dedicated notification variables for self-test transitions and unhealthy events: `NOTIFY_SELFTEST_STATE_SCRIPT`, `NOTIFY_SELFTEST_STATE_TIMEOUT`, `NOTIFY_UNHEALTHY_SCRIPT`, and `NOTIFY_UNHEALTHY_TIMEOUT`.
+- Watchdog support for `NOTIFY_UNHEALTHY_SCRIPT` as a notification path independent from `VPN_UNHEALTHY_ACTION`.
+
+### Changed
+
+- Reorganized environment-variable documentation so backup scheduling/retention variables are grouped in a single overview section (`Scheduled Config Backups`) instead of being split across multiple sections.
+- Removed duplicated self-test behavior paragraphs in `README.md` to improve readability.
+- Notification documentation now points to dedicated `NOTIFY_*` variables while keeping legacy `VPN_SELFTEST_STATE_HOOK*` compatibility in runtime behavior.
+
+## [4.10.0] - 2026-05-07
+
+### Added
+
+- Added dedicated backup scheduler variables in watchdog: `BACKUP_CRON_SCHEDULE`, `BACKUP_CRON_SCRIPT` (default `/data/scripts/backup_config.sh`), and `BACKUP_CRON_SCRIPT_TIMEOUT`.
+
+### Changed
+
+- Automatic config backups are now scheduled independently from `VPN_CRON_*`; backup documentation examples now use `BACKUP_CRON_*`.
+
+## [4.9.0] - 2026-05-07
+
+### Added
+
+- Added bundled automatic config-backup helper script `data/scripts/backup_config.sh` for scheduled or unhealthy-hook usage.
+- Added `/data/backups` as a default managed data directory with bundled README template.
+
+### Changed
+
+- Config-backup defaults now target `/data/backups`, and the backup script creates the destination path automatically when it does not exist.
+- Documented automatic config-backup usage and variables in `README.md`, `README-containers.md`, and `data/scripts/README.md`.
+
 ## [4.8.1] - 2026-05-07
 
 ### Changed

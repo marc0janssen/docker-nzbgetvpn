@@ -34,6 +34,40 @@ ready_path_warn() {
 	echo "[warn] [vpn-selftest] $*"
 }
 
+ready_timestamp() {
+	local tz_mode="${NZBGETVPN_TIMESTAMP_TZ:-utc}"
+
+	case "${tz_mode}" in
+		utc)
+			date -u +%Y-%m-%dT%H:%M:%SZ
+			;;
+		local)
+			date +%Y-%m-%dT%H:%M:%S%z
+			;;
+		*)
+			ready_path_warn "NZBGETVPN_TIMESTAMP_TZ must be 'utc' or 'local', falling back to 'utc'"
+			date -u +%Y-%m-%dT%H:%M:%SZ
+			;;
+	esac
+}
+
+status_timestamp() {
+	local tz_mode="${NZBGETVPN_TIMESTAMP_TZ:-utc}"
+
+	case "${tz_mode}" in
+		utc)
+			date -u +%Y-%m-%dT%H:%M:%SZ
+			;;
+		local)
+			date +%Y-%m-%dT%H:%M:%S%z
+			;;
+		*)
+			status_path_warn "NZBGETVPN_TIMESTAMP_TZ must be 'utc' or 'local', falling back to 'utc'"
+			date -u +%Y-%m-%dT%H:%M:%SZ
+			;;
+	esac
+}
+
 validate_ready_file_path() {
 	local path="${1:-}"
 
@@ -83,7 +117,7 @@ write_ready_file() {
 
 	tmp="$(mktemp "${dir}/.nzbgetvpn-ready.XXXXXX")"
 	trap 'rm -f -- "${tmp}"' EXIT
-	printf 'ok %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "${tmp}"
+	printf 'ok %s\n' "$(ready_timestamp)" > "${tmp}"
 	chmod 644 "${tmp}"
 	mv -f -- "${tmp}" "${path}"
 	trap - EXIT
@@ -280,6 +314,8 @@ write_status_json() {
 	local dir
 	local tmp
 	local now
+	local now_utc
+	local ts_mode
 	local state="$1"
 	local vpn_ip_value="${vpn_ip:-${VPN_IP:-}}"
 
@@ -291,12 +327,18 @@ write_status_json() {
 		return 0
 	fi
 
-	now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+	now_utc="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+	now="$(status_timestamp)"
+	ts_mode="${NZBGETVPN_TIMESTAMP_TZ:-utc}"
+	case "${ts_mode}" in
+		utc|local) ;;
+		*) ts_mode="utc" ;;
+	esac
 	tmp="$(mktemp "${dir}/.nzbgetvpn-status.XXXXXX")"
 	trap 'rm -f -- "${tmp}"' EXIT
 
 	cat >"${tmp}" <<EOF
-{"timestamp_utc":"$(json_escape "${now}")","state":"$(json_escape "${state}")","warn_count":${warn_count},"fail_count":${fail_count},"vpn_enabled":"$(json_escape "${VPN_ENABLED:-yes}")","vpn_device_type":"$(json_escape "${VPN_DEVICE_TYPE:-}")","vpn_ip_signal":"$(json_escape "${vpn_ip_value}")","nzbget_port":${VPN_SELFTEST_NZBGET_PORT:-6789},"debounce_crit_streak":${VPN_SELFTEST_DEBOUNCE_CRIT_STREAK:-0},"debounce_warn_streak":${VPN_SELFTEST_DEBOUNCE_WARN_STREAK:-0}}
+{"timestamp":"$(json_escape "${now}")","timestamp_tz":"$(json_escape "${ts_mode}")","timestamp_utc":"$(json_escape "${now_utc}")","state":"$(json_escape "${state}")","warn_count":${warn_count},"fail_count":${fail_count},"vpn_enabled":"$(json_escape "${VPN_ENABLED:-yes}")","vpn_device_type":"$(json_escape "${VPN_DEVICE_TYPE:-}")","vpn_ip_signal":"$(json_escape "${vpn_ip_value}")","nzbget_port":${VPN_SELFTEST_NZBGET_PORT:-6789},"debounce_crit_streak":${VPN_SELFTEST_DEBOUNCE_CRIT_STREAK:-0},"debounce_warn_streak":${VPN_SELFTEST_DEBOUNCE_WARN_STREAK:-0}}
 EOF
 
 	chmod 644 "${tmp}" || true
@@ -317,8 +359,8 @@ run_script_with_timeout() {
 
 handle_state_change_hook() {
 	local state_file
-	local hook_script="${VPN_SELFTEST_STATE_HOOK:-}"
-	local hook_timeout="${VPN_SELFTEST_STATE_HOOK_TIMEOUT:-30}"
+	local hook_script="${NOTIFY_SELFTEST_STATE_SCRIPT:-${VPN_SELFTEST_STATE_HOOK:-}}"
+	local hook_timeout="${NOTIFY_SELFTEST_STATE_TIMEOUT:-${VPN_SELFTEST_STATE_HOOK_TIMEOUT:-30}}"
 	local current_state="$1"
 	local previous_state="unknown"
 	local dir
@@ -372,17 +414,17 @@ handle_state_change_hook() {
 		return 0
 	fi
 	if [[ ! -x "${hook_script}" ]]; then
-		state_path_warn "VPN_SELFTEST_STATE_HOOK '${hook_script}' is not executable, skipping hook"
+		state_path_warn "NOTIFY_SELFTEST_STATE_SCRIPT '${hook_script}' is not executable, skipping hook"
 		return 0
 	fi
 	if ! [[ "${hook_timeout}" =~ ^[0-9]+$ ]] || [[ "${hook_timeout}" -lt 1 ]]; then
-		state_path_warn "VPN_SELFTEST_STATE_HOOK_TIMEOUT '${hook_timeout}' is invalid, using 30 seconds"
+		state_path_warn "NOTIFY_SELFTEST_STATE_TIMEOUT '${hook_timeout}' is invalid, using 30 seconds"
 		hook_timeout=30
 	fi
 
 	log_info "Self-test state changed (${previous_state} -> ${current_state}), running '${hook_script}'"
 	if ! VPN_SELFTEST_PREVIOUS_STATE="${previous_state}" VPN_SELFTEST_CURRENT_STATE="${current_state}" VPN_SELFTEST_WARN_COUNT="${warn_count}" VPN_SELFTEST_FAIL_COUNT="${fail_count}" run_script_with_timeout "${hook_timeout}" "${hook_script}"; then
-		state_path_warn "VPN_SELFTEST_STATE_HOOK '${hook_script}' failed or timed out"
+		state_path_warn "NOTIFY_SELFTEST_STATE_SCRIPT '${hook_script}' failed or timed out"
 	fi
 }
 

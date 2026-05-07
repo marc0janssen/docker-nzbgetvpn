@@ -1,84 +1,450 @@
 # NZBGetVPN Helper Scripts
 
-This directory contains helper scripts that can be run manually, with `VPN_CRON_SCRIPT`, or with `VPN_UNHEALTHY_SCRIPT`.
+This directory contains bundled helper scripts that can run:
 
-Bundled scripts are managed by the image. On container start, they are installed or updated from the image templates. Put your own custom scripts under a different filename.
+- manually
+- from `VPN_CRON_SCRIPT`
+- from `VPN_UNHEALTHY_SCRIPT`
+- from notification hooks (`NOTIFY_SELFTEST_STATE_SCRIPT` / `NOTIFY_UNHEALTHY_SCRIPT`)
 
-Bundled scripts:
+Bundled scripts are managed by the image. On container start, they are installed or updated from image templates. Keep your own custom scripts under a different filename to avoid overwrite.
+
+## Bundled Scripts Overview
 
 | Script | Purpose |
 | --- | --- |
 | `get_wireguard_configs_nordvpn.sh` | Fetch NordVPN WireGuard recommendations and install one active WireGuard config. |
 | `select_random_wireguard_config.sh` | Pick a random `*.conf` from `/data/wireguard-configs` and install it in `/config/wireguard`. |
 | `select_random_openvpn_config.sh` | Pick a random `*.ovpn` from `/data/openvpn-configs` and install it in `/config/openvpn`. |
+| `backup_config.sh` | Create timestamped archives of `/config` to `/data/backups` (or custom target). |
 | `notify_discord.sh` | Send a state/unhealthy notification to a Discord webhook. |
 | `notify_telegram.sh` | Send a state/unhealthy notification through the Telegram Bot API. |
 | `notify_pushover.sh` | Send a state/unhealthy notification through Pushover. |
 
-## NordVPN Access Token
+## General Usage Patterns
 
-`get_wireguard_configs_nordvpn.sh` needs `NORDVPN_ACCESS_TOKEN`.
+### 1) Run manually (inside container)
 
-Create it in Nord Account:
+```text
+docker exec -it nzbgetvpn /bin/bash
+/data/scripts/backup_config.sh
+```
 
-1. Log in to `https://my.nordaccount.com/`.
-2. Open `NordVPN`.
-3. Go to `Advanced settings`.
-4. Click `Get access token`.
-5. Verify your email address.
-6. Generate a temporary or non-expiring token.
-7. Copy it immediately; it is only shown once.
+### 2) Run on schedule (`VPN_CRON_*`)
 
-Use the copied value as:
+```text
+VPN_CRON_SCHEDULE=0 */6 * * *
+VPN_CRON_SCRIPT=/data/scripts/select_random_wireguard_config.sh
+VPN_CRON_SCRIPT_TIMEOUT=300
+```
+
+### 3) Run when VPN is unhealthy (`VPN_UNHEALTHY_*`)
+
+```text
+VPN_UNHEALTHY_ACTION=script+exit
+VPN_UNHEALTHY_SCRIPT=/data/scripts/get_wireguard_configs_nordvpn.sh
+VPN_UNHEALTHY_SCRIPT_TIMEOUT=300
+```
+
+### 4) Run as notification hook
+
+```text
+NOTIFY_SELFTEST_STATE_SCRIPT=/data/scripts/notify_discord.sh
+NOTIFY_SELFTEST_STATE_TIMEOUT=30
+```
+
+## Script Examples
+
+## `get_wireguard_configs_nordvpn.sh`
+
+Fetches NordVPN recommendations, downloads config(s), installs one active WireGuard profile into `/config/wireguard`.
+
+Required:
 
 ```text
 NORDVPN_ACCESS_TOKEN=your-token
 ```
 
-Enable MFA if you use a non-expiring token. Revoke exposed or lost tokens in Nord Account.
+Create token in Nord Account:
 
-Example scheduler usage:
+1. Log in to `https://my.nordaccount.com/`.
+2. Open `NordVPN`.
+3. Go to `Advanced settings`.
+4. Click `Get access token`.
+5. Verify email.
+6. Generate token.
+7. Copy token immediately.
+
+Manual run:
+
+```text
+/data/scripts/get_wireguard_configs_nordvpn.sh
+```
+
+Run every 6 hours:
 
 ```text
 VPN_CRON_SCHEDULE=0 */6 * * *
-VPN_CRON_SCRIPT=/data/scripts/select_random_wireguard_config.sh
+VPN_CRON_SCRIPT=/data/scripts/get_wireguard_configs_nordvpn.sh
+VPN_CRON_SCRIPT_TIMEOUT=300
+NORDVPN_ACCESS_TOKEN=your-token
 ```
 
-Example unhealthy action usage:
+Run when unhealthy:
 
 ```text
 VPN_UNHEALTHY_ACTION=script+exit
 VPN_UNHEALTHY_SCRIPT=/data/scripts/get_wireguard_configs_nordvpn.sh
+VPN_UNHEALTHY_SCRIPT_TIMEOUT=300
+NORDVPN_ACCESS_TOKEN=your-token
 ```
 
-Example self-test transition hook usage:
+## `select_random_wireguard_config.sh`
+
+Selects a random `.conf` from `/data/wireguard-configs` and installs it as active config.
+
+Prepare source directory:
 
 ```text
-VPN_SELFTEST_ENABLED=*/2 * * * *
-VPN_SELFTEST_STATE_HOOK=/data/scripts/notify_discord.sh
+mkdir -p /data/wireguard-configs
+# copy your *.conf files into /data/wireguard-configs
+```
+
+Manual run:
+
+```text
+/data/scripts/select_random_wireguard_config.sh
+```
+
+Scheduled rotation:
+
+```text
+VPN_CRON_SCHEDULE=0 */12 * * *
+VPN_CRON_SCRIPT=/data/scripts/select_random_wireguard_config.sh
+VPN_CRON_SCRIPT_TIMEOUT=300
+```
+
+## `select_random_openvpn_config.sh`
+
+Selects a random `.ovpn` from `/data/openvpn-configs` and installs it as active OpenVPN config.
+
+Prepare source directory:
+
+```text
+mkdir -p /data/openvpn-configs
+# copy your *.ovpn files (and referenced cert/key files) into /data/openvpn-configs
+```
+
+Manual run:
+
+```text
+/data/scripts/select_random_openvpn_config.sh
+```
+
+Scheduled rotation:
+
+```text
+VPN_CRON_SCHEDULE=30 */12 * * *
+VPN_CRON_SCRIPT=/data/scripts/select_random_openvpn_config.sh
+VPN_CRON_SCRIPT_TIMEOUT=300
+```
+
+## `backup_config.sh`
+
+Creates `tar.gz` backups of `/config` (default source) and stores them in `/data/backups` (default target).
+
+Important variables:
+
+```text
+BACKUP_SOURCE_DIR=/config
+BACKUP_TARGET_DIR=/data/backups
+BACKUP_FILENAME_PREFIX=nzbgetvpn-config-backup
+BACKUP_KEEP_COUNT=10
+NZBGETVPN_TIMESTAMP_TZ=utc
+```
+
+Manual backup:
+
+```text
+/data/scripts/backup_config.sh
+```
+
+Scheduled backup:
+
+```text
+BACKUP_CRON_SCHEDULE=0 */6 * * *
+BACKUP_CRON_SCRIPT=/data/scripts/backup_config.sh
+BACKUP_CRON_SCRIPT_TIMEOUT=300
+BACKUP_SOURCE_DIR=/config
+BACKUP_TARGET_DIR=/data/backups
+BACKUP_FILENAME_PREFIX=nzbgetvpn-config
+BACKUP_KEEP_COUNT=20
+NZBGETVPN_TIMESTAMP_TZ=utc
+```
+
+Notes:
+
+- `BACKUP_TARGET_DIR` is created automatically when missing.
+- `NZBGETVPN_TIMESTAMP_TZ=local` switches timestamp formatting to local container time.
+
+## Notification Scripts
+
+These scripts can be used for:
+
+- self-test state transitions (`NOTIFY_SELFTEST_STATE_SCRIPT`)
+- unhealthy threshold events (`NOTIFY_UNHEALTHY_SCRIPT`)
+
+Common optional override:
+
+```text
+NOTIFY_MESSAGE=Custom message text
+```
+
+Self-test transition context variables (provided by runtime):
+
+```text
+VPN_SELFTEST_PREVIOUS_STATE
+VPN_SELFTEST_CURRENT_STATE
+VPN_SELFTEST_WARN_COUNT
+VPN_SELFTEST_FAIL_COUNT
+```
+
+### `notify_discord.sh`
+
+Required:
+
+```text
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 ```
 
-Notification helper scripts support:
+Optional:
 
-- `NOTIFY_MESSAGE` (optional custom message override)
-- Self-test state context from `VPN_SELFTEST_STATE_HOOK`:
-  - `VPN_SELFTEST_PREVIOUS_STATE`
-  - `VPN_SELFTEST_CURRENT_STATE`
-  - `VPN_SELFTEST_WARN_COUNT`
-  - `VPN_SELFTEST_FAIL_COUNT`
+```text
+DISCORD_USERNAME=NZBGetVPN
+DISCORD_AVATAR_URL=https://example.com/icon.png
+DISCORD_MENTIONS=@everyone
+```
 
-Service-specific variables:
+Self-test transition example:
 
-- `notify_discord.sh`
-  - required: `DISCORD_WEBHOOK_URL`
-  - optional: `DISCORD_USERNAME`, `DISCORD_AVATAR_URL`, `DISCORD_MENTIONS`
-- `notify_telegram.sh`
-  - required: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
-  - optional: `TELEGRAM_MESSAGE_THREAD_ID`, `TELEGRAM_PARSE_MODE`
-- `notify_pushover.sh`
-  - required: `PUSHOVER_APP_TOKEN`, `PUSHOVER_USER_KEY`
-  - optional: `PUSHOVER_TITLE`, `PUSHOVER_PRIORITY`, `PUSHOVER_DEVICE`, `PUSHOVER_SOUND`
+```text
+VPN_SELFTEST_ENABLED=*/2 * * * *
+NOTIFY_SELFTEST_STATE_SCRIPT=/data/scripts/notify_discord.sh
+NOTIFY_SELFTEST_STATE_TIMEOUT=30
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+```
+
+Unhealthy notification example:
+
+```text
+NOTIFY_UNHEALTHY_SCRIPT=/data/scripts/notify_discord.sh
+NOTIFY_UNHEALTHY_TIMEOUT=300
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+```
+
+### `notify_telegram.sh`
+
+Required:
+
+```text
+TELEGRAM_BOT_TOKEN=123456:ABCDEF...
+TELEGRAM_CHAT_ID=-1001234567890
+```
+
+Optional:
+
+```text
+TELEGRAM_MESSAGE_THREAD_ID=123
+TELEGRAM_PARSE_MODE=Markdown
+```
+
+Self-test transition example:
+
+```text
+NOTIFY_SELFTEST_STATE_SCRIPT=/data/scripts/notify_telegram.sh
+NOTIFY_SELFTEST_STATE_TIMEOUT=30
+TELEGRAM_BOT_TOKEN=123456:ABCDEF...
+TELEGRAM_CHAT_ID=-1001234567890
+```
+
+### `notify_pushover.sh`
+
+Required:
+
+```text
+PUSHOVER_APP_TOKEN=your-app-token
+PUSHOVER_USER_KEY=your-user-key
+```
+
+Optional:
+
+```text
+PUSHOVER_TITLE=NZBGetVPN
+PUSHOVER_PRIORITY=0
+PUSHOVER_DEVICE=iphone
+PUSHOVER_SOUND=pushover
+```
+
+Self-test transition example:
+
+```text
+NOTIFY_SELFTEST_STATE_SCRIPT=/data/scripts/notify_pushover.sh
+NOTIFY_SELFTEST_STATE_TIMEOUT=30
+PUSHOVER_APP_TOKEN=your-app-token
+PUSHOVER_USER_KEY=your-user-key
+```
+
+## Complete `docker-compose.yml` Examples (with remarks)
+
+Below are complete examples focused on helper-script usage patterns.
+
+### Example A: WireGuard random rotation + scheduled backups
+
+```yaml
+services:
+  nzbgetvpn:
+    image: marc0janssen/nzbgetvpn:stable
+    container_name: nzbgetvpn
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "6789:6789"
+    environment:
+      VPN_ENABLED: "yes"
+      VPN_CLIENT: "wireguard"
+      VPN_PROV: "custom"
+      LAN_NETWORK: "192.168.1.0/24"
+
+      # Rotate WireGuard profile every 12 hours.
+      VPN_CRON_SCHEDULE: "0 */12 * * *"
+      VPN_CRON_SCRIPT: "/data/scripts/select_random_wireguard_config.sh"
+      VPN_CRON_SCRIPT_TIMEOUT: "300"
+
+      # Independent backup scheduler every 6 hours.
+      BACKUP_CRON_SCHEDULE: "0 */6 * * *"
+      BACKUP_CRON_SCRIPT: "/data/scripts/backup_config.sh"
+      BACKUP_CRON_SCRIPT_TIMEOUT: "300"
+      BACKUP_SOURCE_DIR: "/config"
+      BACKUP_TARGET_DIR: "/data/backups"
+      BACKUP_FILENAME_PREFIX: "nzbgetvpn-config"
+      BACKUP_KEEP_COUNT: "20"
+      NZBGETVPN_TIMESTAMP_TZ: "utc"
+
+    volumes:
+      - ./config:/config
+      - ./data:/data
+    restart: unless-stopped
+```
+
+Remarks:
+
+- Put multiple WireGuard `*.conf` files in `./data/wireguard-configs`.
+- `NZBGETVPN_TIMESTAMP_TZ=utc` gives `Z`-suffixed timestamps for backups/markers/status.
+- Keep `./data/backups` private; it may contain sensitive config and provider material.
+
+### Example B: OpenVPN random rotation + Discord self-test transitions
+
+```yaml
+services:
+  nzbgetvpn:
+    image: marc0janssen/nzbgetvpn:stable
+    container_name: nzbgetvpn
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "6789:6789"
+    environment:
+      VPN_ENABLED: "yes"
+      VPN_CLIENT: "openvpn"
+      VPN_PROV: "custom"
+      LAN_NETWORK: "192.168.1.0/24"
+
+      # Rotate OpenVPN profile every 12 hours.
+      VPN_CRON_SCHEDULE: "30 */12 * * *"
+      VPN_CRON_SCRIPT: "/data/scripts/select_random_openvpn_config.sh"
+      VPN_CRON_SCRIPT_TIMEOUT: "300"
+
+      # Continuous self-test + ready/status files.
+      VPN_SELFTEST_ENABLED: "*/2 * * * *"
+      VPN_SELFTEST_READY_FILE: "/data/.nzbgetvpn-ready"
+      VPN_SELFTEST_STATUS_FILE: "/data/.nzbgetvpn-status.json"
+      VPN_SELFTEST_READY_STRICT: "yes"
+      NZBGETVPN_TIMESTAMP_TZ: "local"
+
+      # Notify only on readiness transitions.
+      NOTIFY_SELFTEST_STATE_SCRIPT: "/data/scripts/notify_discord.sh"
+      NOTIFY_SELFTEST_STATE_TIMEOUT: "30"
+      DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/REPLACE/ME"
+      DISCORD_USERNAME: "NZBGetVPN"
+
+    volumes:
+      - ./config:/config
+      - ./data:/data
+    restart: unless-stopped
+```
+
+Remarks:
+
+- Put multiple OpenVPN `*.ovpn` files in `./data/openvpn-configs` (plus referenced cert/key files).
+- `NZBGETVPN_TIMESTAMP_TZ=local` uses container local time for ready/status/backups.
+- Self-test notifications trigger only on `ready <-> not_ready` transitions, not on every run.
+
+### Example C: NordVPN config refresh on unhealthy + Telegram alert
+
+```yaml
+services:
+  nzbgetvpn:
+    image: marc0janssen/nzbgetvpn:stable
+    container_name: nzbgetvpn
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "6789:6789"
+    environment:
+      VPN_ENABLED: "yes"
+      VPN_CLIENT: "wireguard"
+      VPN_PROV: "custom"
+      LAN_NETWORK: "192.168.1.0/24"
+
+      # Refresh NordVPN configs every 6 hours.
+      VPN_CRON_SCHEDULE: "0 */6 * * *"
+      VPN_CRON_SCRIPT: "/data/scripts/get_wireguard_configs_nordvpn.sh"
+      VPN_CRON_SCRIPT_TIMEOUT: "300"
+      NORDVPN_ACCESS_TOKEN: "REPLACE_WITH_YOUR_TOKEN"
+
+      # If unhealthy threshold is hit: refresh config and exit.
+      VPN_UNHEALTHY_ACTION: "script+exit"
+      VPN_UNHEALTHY_SCRIPT: "/data/scripts/get_wireguard_configs_nordvpn.sh"
+      VPN_UNHEALTHY_SCRIPT_TIMEOUT: "300"
+      VPN_UNHEALTHY_AFTER: "10"
+      VPN_UNHEALTHY_COOLDOWN: "300"
+      VPN_UNHEALTHY_EXIT_DELAY: "5"
+
+      # Dedicated unhealthy notification.
+      NOTIFY_UNHEALTHY_SCRIPT: "/data/scripts/notify_telegram.sh"
+      NOTIFY_UNHEALTHY_TIMEOUT: "300"
+      TELEGRAM_BOT_TOKEN: "123456:ABCDEF_REPLACE_ME"
+      TELEGRAM_CHAT_ID: "-1001234567890"
+
+    volumes:
+      - ./config:/config
+      - ./data:/data
+    restart: unless-stopped
+```
+
+Remarks:
+
+- Rotate/revoke `NORDVPN_ACCESS_TOKEN` if exposed.
+- With `script+exit`, container exits only after the script succeeds; pair with restart policy.
+- Use `VPN_UNHEALTHY_TEST=yes` only temporarily for validation, then remove it.
+
+## Permissions
 
 Make sure custom scripts are executable:
 

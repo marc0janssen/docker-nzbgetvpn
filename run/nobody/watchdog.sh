@@ -6,6 +6,8 @@ VPN_SELFTEST_STARTUP_DELAY_MAX=300
 vpn_unhealthy_count=0
 vpn_unhealthy_last_action=0
 vpn_cron_last_run_minute=""
+backup_cron_last_run_minute=""
+backup_cron_config_logged="no"
 vpn_selftest_has_run="no"
 vpn_selftest_last_run_minute=""
 vpn_selftest_mode_logged="no"
@@ -212,14 +214,16 @@ get_vpn_unhealthy_cooldown() {
 
 handle_vpn_unhealthy() {
 	local action="${VPN_UNHEALTHY_ACTION:-none}"
+	local notify_script="${NOTIFY_UNHEALTHY_SCRIPT:-}"
+	local notify_timeout="${NOTIFY_UNHEALTHY_TIMEOUT:-300}"
 	local after
 	local cooldown
 	local exit_delay
 	local now
 	local elapsed
 
-	if [[ "${action}" == "none" || -z "${action}" ]]; then
-		return
+	if [[ -z "${action}" ]]; then
+		action="none"
 	fi
 
 	after=$(get_vpn_unhealthy_after)
@@ -239,7 +243,21 @@ handle_vpn_unhealthy() {
 		return
 	fi
 
+	if [[ -n "${notify_script}" ]]; then
+		if [[ ! -x "${notify_script}" ]]; then
+			echo "[warn] NOTIFY_UNHEALTHY_SCRIPT '${notify_script}' is not executable"
+		else
+			echo "[warn] VPN has been unhealthy for ${vpn_unhealthy_count} watchdog checks, running notify script '${notify_script}'"
+			if ! VPN_UNHEALTHY_COUNT="${vpn_unhealthy_count}" run_script_with_timeout "${notify_timeout}" "${notify_script}"; then
+				echo "[warn] NOTIFY_UNHEALTHY_SCRIPT '${notify_script}' failed or timed out"
+			fi
+		fi
+	fi
+
 	case "${action}" in
+		none)
+			:
+			;;
 		script|script+exit)
 			if [[ -z "${VPN_UNHEALTHY_SCRIPT:-}" ]]; then
 				echo "[warn] VPN_UNHEALTHY_ACTION is 'script' but VPN_UNHEALTHY_SCRIPT is not set"
@@ -419,10 +437,50 @@ handle_vpn_cron_script() {
 	fi
 }
 
+handle_backup_cron_script() {
+	local schedule="${BACKUP_CRON_SCHEDULE:-}"
+	local script="${BACKUP_CRON_SCRIPT:-/data/scripts/backup_config.sh}"
+	local timeout_secs="${BACKUP_CRON_SCRIPT_TIMEOUT:-300}"
+	local current_run_minute
+
+	schedule="$(strip_wrapping_quotes "${schedule}")"
+	script="$(strip_wrapping_quotes "${script}")"
+	timeout_secs="$(strip_wrapping_quotes "${timeout_secs}")"
+
+	if [[ -z "${schedule}" ]]; then
+		return
+	fi
+
+	if [[ ! -x "${script}" ]]; then
+		echo "[warn] BACKUP_CRON_SCRIPT '${script}' is not executable"
+		return
+	fi
+	if [[ "${backup_cron_config_logged}" == "no" ]]; then
+		echo "[info] Scheduled config backup is enabled (BACKUP_CRON_SCHEDULE='${schedule}', BACKUP_CRON_SCRIPT='${script}', BACKUP_CRON_SCRIPT_TIMEOUT='${timeout_secs}')"
+		backup_cron_config_logged="yes"
+	fi
+
+	current_run_minute="$(date +%Y%m%d%H%M)"
+	if [[ "${backup_cron_last_run_minute}" == "${current_run_minute}" ]]; then
+		return
+	fi
+
+	if cron_schedule_matches_now "${schedule}" "BACKUP_CRON_SCHEDULE"; then
+		echo "[info] BACKUP_CRON_SCHEDULE '${schedule}' matched, running '${script}'"
+		if BACKUP_CRON_SCHEDULE="${schedule}" run_script_with_timeout "${BACKUP_CRON_SCRIPT_TIMEOUT:-300}" "${script}"; then
+			echo "[info] BACKUP_CRON_SCRIPT '${script}' completed"
+		else
+			echo "[warn] BACKUP_CRON_SCRIPT '${script}' failed or timed out"
+		fi
+		backup_cron_last_run_minute="${current_run_minute}"
+	fi
+}
+
 # while loop to check ip and port
 while true; do
 
 	handle_vpn_cron_script
+	handle_backup_cron_script
 
 	# reset triggers to negative values
 	nzbget_running="false"

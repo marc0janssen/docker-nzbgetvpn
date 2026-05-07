@@ -8,7 +8,7 @@ Full documentation is available in the GitHub repository README.
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.8.1
+* NZBGetVPN image/codebase version: 4.13.3
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -19,7 +19,7 @@ Full documentation is available in the GitHub repository README.
 | `stable` | Stable NZBGet release. |
 | `testing` | Testing NZBGet release. |
 | `<version>` | Versioned image, for example `26.1`. |
-| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.8.1`. |
+| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.13.3`. |
 
 ## Included
 
@@ -158,7 +158,7 @@ sysctls:
 | `/data` | Downloads and optional user scripts. |
 | `/etc/localtime:ro` | Recommended for correct log and schedule times. |
 
-On container start, bundled scripts are copied into `/data/scripts/` and updated when the image template differs from the mounted copy. The default source directories `/data/wireguard-configs` and `/data/openvpn-configs` are also created. Each of these `/data` subdirectories gets a small `README.md`. This also works when `/data` is a host bind mount.
+On container start, bundled scripts are copied into `/data/scripts/` and updated when the image template differs from the mounted copy. The default source directories `/data/wireguard-configs`, `/data/openvpn-configs`, and `/data/backups` are also created. Each of these `/data` subdirectories gets a small `README.md`. This also works when `/data` is a host bind mount.
 
 Bundled notification examples are also included:
 
@@ -166,7 +166,7 @@ Bundled notification examples are also included:
 - `/data/scripts/notify_telegram.sh`
 - `/data/scripts/notify_pushover.sh`
 
-They are intended for `VPN_SELFTEST_STATE_HOOK` and `VPN_UNHEALTHY_SCRIPT` flows.
+They are intended for `NOTIFY_SELFTEST_STATE_SCRIPT` and `NOTIFY_UNHEALTHY_SCRIPT` flows.
 
 ## Backup And Restore
 
@@ -208,15 +208,16 @@ Report vulnerabilities privately through the maintainer contact page linked in t
 | `VPN_SELFTEST_ENABLED` | `no`, `yes`, cron expression | Control internal read-only self-test scheduling (`false`/`0` = `no`, `true`/`1` = `yes`). |
 | `VPN_SELFTEST_STARTUP_DELAY` | non-negative integer seconds | Delay one-shot self-test when `VPN_SELFTEST_ENABLED=yes` (default `20`, max `300`). |
 | `VPN_SELFTEST_NZBGET_PORT` | TCP port `1-65535` | NZBGet listen port used by self-test checks (`6789` by default). |
-| `VPN_SELFTEST_STATE_HOOK` | executable absolute path | Optional script called on readiness transitions (`ready`/`not_ready`). |
+| `NOTIFY_SELFTEST_STATE_SCRIPT` | executable absolute path | Dedicated notify script called on readiness transitions (`ready`/`not_ready`). |
 | `VPN_SELFTEST_STATE_FILE` | absolute path | File storing previous self-test state (default `/data/nzbgetvpn-selftest-state`). If this default file exists but is not writable by the current runtime user, self-test falls back to `/data/nzbgetvpn-selftest-state-uid<uid>`. |
-| `VPN_SELFTEST_STATE_HOOK_TIMEOUT` | positive integer seconds | State-hook timeout (default `30`). |
-| `VPN_SELFTEST_STATUS_FILE` | absolute path | Optional JSON status snapshot written atomically after each self-test run. |
+| `NOTIFY_SELFTEST_STATE_TIMEOUT` | positive integer seconds | Self-test notify timeout (default `30`). |
+| `VPN_SELFTEST_STATUS_FILE` | absolute path | Optional JSON status snapshot written atomically after each self-test run; includes timezone-aware `timestamp`/`timestamp_tz` plus legacy `timestamp_utc`. |
 | `VPN_SELFTEST_DEBOUNCE_CRIT` | positive integer | Debounce critical failures before switching to `not_ready` and exiting non-zero (default `1`). |
 | `VPN_SELFTEST_DEBOUNCE_WARN` | positive integer | When strict mode is enabled, debounce warnings before switching to `not_ready` (default `1`). |
 | `VPN_SELFTEST_DEBOUNCE_FILE` | absolute path | Stores consecutive critical/warning streak counters between runs (default `/data/nzbgetvpn-selftest-debounce`). If this default file exists but is not writable by the current runtime user, self-test falls back to `/data/nzbgetvpn-selftest-debounce-uid<uid>`. |
-| `VPN_SELFTEST_READY_FILE` | absolute path | Optional: write `ok <UTC>` on self-test success (atomic); remove file on critical failure. Watchdog also clears stale file on startup before fresh checks. |
+| `VPN_SELFTEST_READY_FILE` | absolute path | Optional: write `ok <timestamp>` on self-test success (atomic); remove file on critical failure. Watchdog also clears stale file on startup before fresh checks. |
 | `VPN_SELFTEST_READY_STRICT` | `yes`/`no`/boolean | If truthy, ready file only when zero warnings. |
+| `NZBGETVPN_TIMESTAMP_TZ` | `utc`, `local` | Timestamp mode used for ready-file, self-test status JSON timestamp, and backup timestamps (`utc` default). |
 
 ## VPN Config
 
@@ -260,6 +261,8 @@ The watchdog runs every 30 seconds. If the VPN IP is missing for multiple checks
 | `VPN_UNHEALTHY_EXIT_DELAY` | `5` | Delay before exit after a successful script with `script+exit`. |
 | `VPN_UNHEALTHY_SCRIPT_TIMEOUT` | `300` | Max runtime for the unhealthy script. |
 | `VPN_UNHEALTHY_TEST` | `no` | Set `yes` to simulate a missing VPN IP for testing. |
+| `NOTIFY_UNHEALTHY_SCRIPT` | unset | Dedicated notify script run when unhealthy threshold is reached. |
+| `NOTIFY_UNHEALTHY_TIMEOUT` | `300` | Max runtime for the dedicated unhealthy notify script. |
 
 Example:
 
@@ -293,6 +296,33 @@ environment:
 
 Use Compose mapping form for cron schedules because the value contains spaces.
 
+### Scheduled Config Backups
+
+Use a dedicated backup scheduler independent from `VPN_CRON_*`:
+
+| Variable | Description |
+| --- | --- |
+| `BACKUP_CRON_SCHEDULE` | Five-field cron expression for backups. |
+| `BACKUP_CRON_SCRIPT` | Backup script path, default `/data/scripts/backup_config.sh`. |
+| `BACKUP_CRON_SCRIPT_TIMEOUT` | Max backup script runtime, default `300`. |
+| `BACKUP_SOURCE_DIR` | Backup source directory, default `/config`. |
+| `BACKUP_TARGET_DIR` | Backup destination, default `/data/backups` (auto-created). |
+| `BACKUP_FILENAME_PREFIX` | Backup filename prefix, default `nzbgetvpn-config-backup`. |
+| `BACKUP_KEEP_COUNT` | Number of newest backups to keep, default `10` (`0` disables cleanup). |
+| `NZBGETVPN_TIMESTAMP_TZ` | Timestamp mode for backup filenames: `utc` (suffix `Z`, default) or `local` (suffix `L`). |
+
+Example:
+
+```yaml
+environment:
+  BACKUP_CRON_SCHEDULE: "0 */6 * * *"
+  BACKUP_CRON_SCRIPT: "/data/scripts/backup_config.sh"
+  BACKUP_CRON_SCRIPT_TIMEOUT: "300"
+  BACKUP_SOURCE_DIR: "/config"
+  BACKUP_TARGET_DIR: "/data/backups"
+  BACKUP_KEEP_COUNT: "20"
+```
+
 ## Internal VPN Self-Test
 
 Internal script path:
@@ -315,13 +345,13 @@ environment:
   VPN_SELFTEST_ENABLED: "*/5 * * * *"
 ```
 
-The script runs from the watchdog loop, logs to normal container stdout, and does not modify VPN or app state. With `VPN_SELFTEST_ENABLED=yes`, results are a one-shot startup snapshot. With a cron expression, readiness is continuously re-evaluated and the optional ready marker can be updated or removed over time. On container restart, watchdog clears any stale ready marker once before the next self-test cycle. Listen checks target `VPN_SELFTEST_NZBGET_PORT` (default `6789`). Optional `VPN_SELFTEST_STATE_HOOK` runs only when readiness transitions.
+The script runs from the watchdog loop, logs to normal container stdout, and does not modify VPN or app state. With `VPN_SELFTEST_ENABLED=yes`, results are a one-shot startup snapshot. With a cron expression, readiness is continuously re-evaluated and the optional ready marker can be updated or removed over time. On container restart, watchdog clears any stale ready marker once before the next self-test cycle. Listen checks target `VPN_SELFTEST_NZBGET_PORT` (default `6789`). Optional `NOTIFY_SELFTEST_STATE_SCRIPT` runs only when readiness transitions.
 
 ## Docker Healthcheck
 
 The image defines a native Docker `HEALTHCHECK` (`interval=60s`, `timeout=30s`, `start-period=120s`, `retries=3`) that runs `/root/healthcheck.sh`. It executes the internal self-test and marks the container unhealthy only for critical failures. Warnings remain healthy. Health probes do not modify ready/state/status/debounce tracking files.
 
-Healthchecks + notifications (Discord/Telegram/Pushover) are not built in, but can be integrated cleanly via `VPN_SELFTEST_STATE_HOOK` (for `ready` -> `not_ready` transitions) or via `VPN_UNHEALTHY_SCRIPT`.
+Healthchecks + notifications (Discord/Telegram/Pushover) are not built in, but can be integrated cleanly via `NOTIFY_SELFTEST_STATE_SCRIPT` (for `ready` -> `not_ready` transitions) or via `NOTIFY_UNHEALTHY_SCRIPT`.
 
 ## Docker Compose Orchestration Examples
 
@@ -457,13 +487,13 @@ Included scripts:
 
 Use these scripts from:
 
-- `VPN_SELFTEST_STATE_HOOK` for readiness transitions (`ready -> not_ready`)
-- `VPN_UNHEALTHY_SCRIPT` for unhealthy callbacks
+- `NOTIFY_SELFTEST_STATE_SCRIPT` for readiness transitions (`ready -> not_ready`)
+- `NOTIFY_UNHEALTHY_SCRIPT` for unhealthy callbacks
 
 Shared behavior:
 
 - Optional `NOTIFY_MESSAGE` to override the generated message.
-- When run via `VPN_SELFTEST_STATE_HOOK`, scripts consume:
+- When run via `NOTIFY_SELFTEST_STATE_SCRIPT`, scripts consume:
   - `VPN_SELFTEST_PREVIOUS_STATE`
   - `VPN_SELFTEST_CURRENT_STATE`
   - `VPN_SELFTEST_WARN_COUNT`
@@ -474,6 +504,17 @@ Required variables:
 - Discord: `DISCORD_WEBHOOK_URL`
 - Telegram: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
 - Pushover: `PUSHOVER_APP_TOKEN`, `PUSHOVER_USER_KEY`
+
+## Bundled Config Backup Script
+
+Included script:
+
+```text
+/data/scripts/backup_config.sh
+```
+
+This script creates timestamped `.tgz` backups from `/config` to `/data/backups` by default.  
+Backup environment variables are listed in **Scheduled Config Backups**.
 
 ## Build Verification
 

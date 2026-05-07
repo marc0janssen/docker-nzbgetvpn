@@ -88,8 +88,8 @@ fi
 ####
 
 # define comma separated list of paths 
-mkdir -p /data/scripts /data/wireguard-configs /data/openvpn-configs
-install_paths="/usr/sbin/nzbget_bin,/home/nobody,/data/scripts,/data/wireguard-configs,/data/openvpn-configs"
+mkdir -p /data/scripts /data/wireguard-configs /data/openvpn-configs /data/backups
+install_paths="/usr/sbin/nzbget_bin,/home/nobody,/data/scripts,/data/wireguard-configs,/data/openvpn-configs,/data/backups"
 
 # split comma separated string into list for install paths
 IFS=',' read -ra install_paths_list <<< "${install_paths}"
@@ -111,7 +111,7 @@ install_paths=$(echo "${install_paths}" | tr ',' ' ')
 chmod -R 775 ${install_paths}
 
 cat <<EOF > /tmp/permissions_heredoc
-mkdir -p /data/scripts /data/wireguard-configs /data/openvpn-configs
+mkdir -p /data/scripts /data/wireguard-configs /data/openvpn-configs /data/backups
 for bundled_script in /usr/local/share/nzbgetvpn/scripts/*.sh; do
 	if [[ -f "\${bundled_script}" ]]; then
 		target_script="/data/scripts/\$(basename "\${bundled_script}")"
@@ -137,6 +137,10 @@ fi
 if [[ -f /usr/local/share/nzbgetvpn/openvpn-configs/README.md && ! -f /data/openvpn-configs/README.md ]]; then
 	echo "[info] Installing bundled README '/data/openvpn-configs/README.md'"
 	cp /usr/local/share/nzbgetvpn/openvpn-configs/README.md /data/openvpn-configs/README.md
+fi
+if [[ -f /usr/local/share/nzbgetvpn/backups/README.md && ! -f /data/backups/README.md ]]; then
+	echo "[info] Installing bundled README '/data/backups/README.md'"
+	cp /usr/local/share/nzbgetvpn/backups/README.md /data/backups/README.md
 fi
 # get previous puid/pgid (if first run then will be empty string)
 previous_puid=\$(cat "/root/puid" 2>/dev/null || true)
