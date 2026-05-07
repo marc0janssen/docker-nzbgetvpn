@@ -10,7 +10,7 @@ This image builds on top of [`binhex/arch-int-vpn`](https://github.com/binhex/ar
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 4.21.2
+* NZBGetVPN image/codebase version: 4.24.6
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -23,7 +23,7 @@ The NZBGetVPN image/codebase version is stored in `VERSION`. The two NZBGet vers
 | `marc0janssen/nzbgetvpn:stable` | Stable NZBGet release from `Dockerfile`. |
 | `marc0janssen/nzbgetvpn:testing` | Testing NZBGet release from `Dockerfile-testing`. |
 | `marc0janssen/nzbgetvpn:<version>` | Versioned image, for example `26.1` or `26.2-testing-20260504`. |
-| `marc0janssen/nzbgetvpn:<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version from `VERSION`, for example `26.1-image-v4.21.2`. |
+| `marc0janssen/nzbgetvpn:<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version from `VERSION`, for example `26.1-image-v4.24.6`. |
 
 ## What Is Included
 
@@ -189,6 +189,8 @@ Bundled notification examples are also available:
 They are designed for `NOTIFY_SELFTEST_STATE_SCRIPT` and `NOTIFY_UNHEALTHY_SCRIPT` workflows.
 The bundle also includes `/data/scripts/log_sanitizer.sh` to sanitize logs before sharing and `/data/scripts/upgrade_check.sh` for pre-update checks.
 
+Bundled helper scripts should generally be configured through environment variables. If you need custom logic, copy a bundled script to a different filename under `/data/scripts` and point hooks/schedules to the copied file instead of editing bundled template filenames in place.
+
 ## Backup And Restore
 
 Back up `/config` and `/data` together. `/config` contains NZBGet configuration, provider profiles, OpenVPN files and WireGuard files. `/data` contains downloads, bundled helper script copies and optional user data.
@@ -318,16 +320,21 @@ The script measures throughput/latency, tracks a persistent poor-performance str
 - WireGuard: `/data/scripts/select_random_wireguard_config.sh`
 - OpenVPN: `/data/scripts/select_random_openvpn_config.sh`
 - Optional NordVPN refresh before WireGuard rotation: `/data/scripts/get_wireguard_configs_nordvpn.sh`
+- Optional multi-endpoint benchmark helper: `/data/scripts/benchmark_endpoints.sh`
 
 Use it from the dedicated rotation scheduler (enabled by default):
 
 ```yaml
 environment:
   ROTATE_ON_POOR_SPEED_ENABLED: "yes"
-  ROTATE_ON_POOR_SPEED_SCHEDULE: "*/10 * * * *"
+  ROTATE_ON_POOR_SPEED_SCHEDULE: "*/20 * * * *"
   ROTATE_ON_POOR_SPEED_SCRIPT: "/data/scripts/rotate_on_poor_speed.sh"
   ROTATE_ON_POOR_SPEED_TIMEOUT: "90"
   ROTATE_MODE: "auto"
+  ROTATE_SPEEDTEST_URLS: "https://speed.cloudflare.com/__down?bytes=4000000,https://proof.ovh.net/files/10Mb.dat"
+  ROTATE_SPEEDTEST_WEIGHTS: "0.60,0.40"
+  ROTATE_SPEEDTEST_ATTEMPTS: "1"
+  ROTATE_MIN_SUCCESSFUL_ENDPOINTS: "1"
   ROTATE_MIN_DOWNLOAD_MBPS: "10"
   ROTATE_MAX_LATENCY_MS: "700"
   ROTATE_FAIL_STREAK: "3"
@@ -337,8 +344,26 @@ environment:
 ```
 
 Set `ROTATE_POST_ROTATION_ACTION=watchdog-exit` when you want a successful rotation to force a watchdog exit (and therefore a container restart when Docker restart policy is enabled).
+Prefer `ROTATE_SPEEDTEST_URLS` for multi-endpoint decisioning and optionally set `ROTATE_SPEEDTEST_WEIGHTS` for weighted aggregation; legacy `ROTATE_SPEEDTEST_URL` remains available as a single-endpoint fallback.
 Use Compose `restart: unless-stopped` with `ROTATE_POST_ROTATION_ACTION=watchdog-exit`; without a restart policy the container exits and stays down.
 Set `ROTATE_ON_POOR_SPEED_ENABLED=no` to disable this scheduler without affecting `VPN_CRON_*`.
+
+### Speed + Latency Benchmark
+
+The bundled helper below benchmarks multiple endpoints and reports the best candidate:
+
+```text
+/data/scripts/benchmark_endpoints.sh
+```
+
+Run it with `VPN_CRON_SCRIPT` for periodic checks:
+
+```yaml
+environment:
+  VPN_CRON_SCHEDULE: "*/30 * * * *"
+  VPN_CRON_SCRIPT: "/data/scripts/benchmark_endpoints.sh"
+  VPN_CRON_SCRIPT_TIMEOUT: "90"
+```
 
 ### VPN Unhealthy Actions
 
@@ -415,7 +440,7 @@ The watchdog checks the schedule every 30 seconds, before the blocking VPN check
 | Variable | Required | Values / format | Default | Description |
 | --- | --- | --- | --- | --- |
 | `ROTATE_ON_POOR_SPEED_ENABLED` | No | `yes`, `no`, `true`, `false`, `1`, `0` | `yes` | Enable or disable the dedicated adaptive-rotation scheduler. |
-| `ROTATE_ON_POOR_SPEED_SCHEDULE` | No | Five-field cron expression | `*/10 * * * *` | Cron schedule for adaptive rotation checks. |
+| `ROTATE_ON_POOR_SPEED_SCHEDULE` | No | Five-field cron expression | `*/20 * * * *` | Cron schedule for adaptive rotation checks. |
 | `ROTATE_ON_POOR_SPEED_SCRIPT` | No | Executable path | `/data/scripts/rotate_on_poor_speed.sh` | Script path run by the dedicated rotation scheduler. |
 | `ROTATE_ON_POOR_SPEED_TIMEOUT` | No | Positive integer seconds | `90` | Timeout for `ROTATE_ON_POOR_SPEED_SCRIPT` when `timeout` is available. |
 
@@ -979,7 +1004,7 @@ Supervisor uses `loglevel=info` and captures script output into `/data/nzbgetvpn
 After NZBGet is running and listening on port `6789`, startup logs the NZBGetVPN image/codebase version, the NZBGet application version, a link to the GitHub changelog and the maintainer contact page:
 
 ```text
-[info] NZBGetVPN 4.21.2 | NZBGet 26.1 | Changelog: https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md | Contact page: https://bio.mjanssen.nl/@Marco
+[info] NZBGetVPN 4.24.6 | NZBGet 26.1 | Changelog: https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md | Contact page: https://bio.mjanssen.nl/@Marco
 [info] VPN self-test mode 'yes' (VPN_SELFTEST_ENABLED='yes')
 [info] VPN self-test watchdog mode 'yes' (VPN_SELFTEST_ENABLED='yes')
 [info] Delaying one-shot VPN self-test by 20 seconds after watchdog start (elapsed 0s)
@@ -1021,7 +1046,7 @@ The build scripts are safe by default: without arguments they build the values a
 | `./build.sh newest --accept-downloaded-sha256 --base newest` | Update both NZBGet stable and the base image before building. |
 | `./build-testing.sh newest --accept-downloaded-sha256 --base newest` | Update both NZBGet testing and the base image before building. |
 
-Both build scripts read the NZBGetVPN codebase version from `VERSION`. Stable builds also push `<nzbget-version>-image-v<version>`, for example `26.1-image-v4.21.2`. Testing builds push the same combined pattern, for example `26.2-testing-20260504-image-v4.21.2`. The same codebase version is also written to the OCI image label `org.opencontainers.image.version`.
+Both build scripts read the NZBGetVPN codebase version from `VERSION`. Stable builds also push `<nzbget-version>-image-v<version>`, for example `26.1-image-v4.24.6`. Testing builds push the same combined pattern, for example `26.2-testing-20260504-image-v4.24.6`. The same codebase version is also written to the OCI image label `org.opencontainers.image.version`.
 
 When `--base newest` resolves to a different base image tag, `scripts/update-base-image.sh` bumps the patch value in `VERSION` and updates the README version lines before the image build starts. If the Dockerfile is already on the newest resolved base tag, `VERSION` is left unchanged.
 

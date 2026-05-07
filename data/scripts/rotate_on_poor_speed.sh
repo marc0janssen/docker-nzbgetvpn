@@ -26,6 +26,15 @@ is_positive_integer() {
 	[[ "${1:-}" =~ ^[0-9]+$ ]] && [[ "${1}" -gt 0 ]]
 }
 
+is_positive_number() {
+	[[ "${1:-}" =~ ^[0-9]+([.][0-9]+)?$ ]] || return 1
+	awk -v n="${1}" 'BEGIN {exit (n > 0) ? 0 : 1}'
+}
+
+trim() {
+	printf '%s' "${1:-}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+}
+
 validate_absolute_path() {
 	local value="$1"
 	local name="$2"
@@ -126,8 +135,14 @@ execute_rotation() {
 
 main() {
 	local mode="${ROTATE_MODE:-auto}"
-	local speedtest_url="${ROTATE_SPEEDTEST_URL:-https://speed.cloudflare.com/__down?bytes=4000000}"
+	local speedtest_urls_raw="${ROTATE_SPEEDTEST_URLS:-}"
+	local speedtest_url_fallback="${ROTATE_SPEEDTEST_URL:-}"
+	local speedtest_default_urls="https://speed.cloudflare.com/__down?bytes=4000000,https://proof.ovh.net/files/10Mb.dat"
+	local speedtest_weights_raw="${ROTATE_SPEEDTEST_WEIGHTS:-}"
+	local speedtest_default_weights="0.60,0.40"
 	local timeout_secs="${ROTATE_SPEEDTEST_TIMEOUT:-20}"
+	local attempts="${ROTATE_SPEEDTEST_ATTEMPTS:-1}"
+	local min_successful_endpoints="${ROTATE_MIN_SUCCESSFUL_ENDPOINTS:-1}"
 	local min_mbps="${ROTATE_MIN_DOWNLOAD_MBPS:-10}"
 	local max_latency_ms="${ROTATE_MAX_LATENCY_MS:-700}"
 	local fail_streak_required="${ROTATE_FAIL_STREAK:-3}"
@@ -141,6 +156,22 @@ main() {
 	local restart_request_file="${ROTATE_RESTART_REQUEST_FILE:-/tmp/rotate-on-poor-speed-exit-watchdog}"
 	local now current_streak previous_streak last_rotate_epoch
 	local speed_mbps latency_ms poor_reason=""
+	local endpoint
+	local attempt
+	local endpoint_speed endpoint_latency
+	local endpoint_success_count
+	local endpoint_speed_sum
+	local endpoint_latency_sum
+	local endpoint_avg_speed
+	local endpoint_avg_latency
+	local successful_endpoints=0
+	local all_endpoint_count=0
+	local successful_weight_sum="0"
+	local weighted_speed_sum="0"
+	local weighted_latency_sum="0"
+	local endpoint_weight
+	local endpoint_index=0
+	local use_custom_weights="no"
 	local selected_mode
 
 	require_command curl
@@ -150,6 +181,8 @@ main() {
 	validate_absolute_path "${refresh_script}" "ROTATE_WIREGUARD_REFRESH_SCRIPT"
 
 	is_positive_integer "${timeout_secs}" || log_crit "ROTATE_SPEEDTEST_TIMEOUT must be a positive integer"
+	is_positive_integer "${attempts}" || log_crit "ROTATE_SPEEDTEST_ATTEMPTS must be a positive integer"
+	is_positive_integer "${min_successful_endpoints}" || log_crit "ROTATE_MIN_SUCCESSFUL_ENDPOINTS must be a positive integer"
 	is_positive_integer "${fail_streak_required}" || log_crit "ROTATE_FAIL_STREAK must be a positive integer"
 	is_positive_integer "${cooldown_seconds}" || log_crit "ROTATE_COOLDOWN_SECONDS must be a positive integer"
 	[[ "${min_mbps}" =~ ^[0-9]+([.][0-9]+)?$ ]] || log_crit "ROTATE_MIN_DOWNLOAD_MBPS must be numeric"
@@ -182,14 +215,82 @@ main() {
 			;;
 	esac
 
-	if ! read -r speed_mbps latency_ms < <(run_speed_test "${speedtest_url}" "${timeout_secs}"); then
-		log_warn "Speed test failed for '${speedtest_url}'"
-		poor_reason="speedtest_failed"
-		speed_mbps="0"
-		latency_ms="${max_latency_ms}"
+	if [[ -z "${speedtest_urls_raw}" ]]; then
+		if [[ -n "${speedtest_url_fallback}" ]]; then
+			speedtest_urls_raw="${speedtest_url_fallback}"
+		else
+			speedtest_urls_raw="${speedtest_default_urls}"
+			speedtest_weights_raw="${speedtest_default_weights}"
+		fi
 	fi
 
-	log_info "Measured speed=${speed_mbps}Mbps latency=${latency_ms}ms (thresholds: min=${min_mbps}Mbps max=${max_latency_ms}ms)"
+	IFS=',' read -r -a speedtest_urls <<< "${speedtest_urls_raw}"
+	[[ "${#speedtest_urls[@]}" -gt 0 ]] || log_crit "No speedtest endpoints configured"
+	if [[ -n "${speedtest_weights_raw}" ]]; then
+		IFS=',' read -r -a speedtest_weights <<< "${speedtest_weights_raw}"
+		use_custom_weights="yes"
+	fi
+
+	for endpoint in "${speedtest_urls[@]}"; do
+		endpoint="$(trim "${endpoint}")"
+		[[ -n "${endpoint}" ]] || continue
+		all_endpoint_count=$((all_endpoint_count + 1))
+		endpoint_weight="1"
+		if [[ "${use_custom_weights}" == "yes" ]]; then
+			[[ "${#speedtest_weights[@]}" -gt "${endpoint_index}" ]] || \
+				log_crit "ROTATE_SPEEDTEST_WEIGHTS count must match ROTATE_SPEEDTEST_URLS count"
+			endpoint_weight="$(trim "${speedtest_weights[endpoint_index]}")"
+			is_positive_number "${endpoint_weight}" || \
+				log_crit "ROTATE_SPEEDTEST_WEIGHTS must contain positive numeric values"
+		fi
+		endpoint_index=$((endpoint_index + 1))
+		endpoint_success_count=0
+		endpoint_speed_sum=0
+		endpoint_latency_sum=0
+
+		for ((attempt = 1; attempt <= attempts; attempt++)); do
+			if read -r endpoint_speed endpoint_latency < <(run_speed_test "${endpoint}" "${timeout_secs}"); then
+				endpoint_success_count=$((endpoint_success_count + 1))
+				endpoint_speed_sum="$(awk -v total="${endpoint_speed_sum}" -v value="${endpoint_speed}" 'BEGIN {printf "%.6f", total+value}')"
+				endpoint_latency_sum="$(awk -v total="${endpoint_latency_sum}" -v value="${endpoint_latency}" 'BEGIN {printf "%.6f", total+value}')"
+			fi
+		done
+
+		if [[ "${endpoint_success_count}" -eq 0 ]]; then
+			log_warn "Speed test failed for '${endpoint}' (${attempts}/${attempts} failed)"
+			continue
+		fi
+
+		endpoint_avg_speed="$(awk -v total="${endpoint_speed_sum}" -v n="${endpoint_success_count}" 'BEGIN {printf "%.2f", total/n}')"
+		endpoint_avg_latency="$(awk -v total="${endpoint_latency_sum}" -v n="${endpoint_success_count}" 'BEGIN {printf "%.0f", total/n}')"
+		successful_endpoints=$((successful_endpoints + 1))
+		successful_weight_sum="$(awk -v total="${successful_weight_sum}" -v value="${endpoint_weight}" 'BEGIN {printf "%.6f", total+value}')"
+		weighted_speed_sum="$(awk -v total="${weighted_speed_sum}" -v speed="${endpoint_avg_speed}" -v weight="${endpoint_weight}" 'BEGIN {printf "%.6f", total+(speed*weight)}')"
+		weighted_latency_sum="$(awk -v total="${weighted_latency_sum}" -v latency="${endpoint_avg_latency}" -v weight="${endpoint_weight}" 'BEGIN {printf "%.6f", total+(latency*weight)}')"
+		log_info "Endpoint '${endpoint}' average speed=${endpoint_avg_speed}Mbps latency=${endpoint_avg_latency}ms weight=${endpoint_weight} (${endpoint_success_count}/${attempts} successful)"
+	done
+
+	[[ "${all_endpoint_count}" -gt 0 ]] || log_crit "ROTATE_SPEEDTEST_URLS did not contain valid endpoints"
+	if [[ "${use_custom_weights}" == "yes" && "${#speedtest_weights[@]}" -ne "${all_endpoint_count}" ]]; then
+		log_crit "ROTATE_SPEEDTEST_WEIGHTS count must match ROTATE_SPEEDTEST_URLS count"
+	fi
+
+	if [[ "${successful_endpoints}" -lt "${min_successful_endpoints}" ]]; then
+		poor_reason="speedtest_insufficient_successes"
+		speed_mbps="0"
+		latency_ms="${max_latency_ms}"
+		log_warn "Only ${successful_endpoints}/${all_endpoint_count} endpoint(s) succeeded; require at least ${min_successful_endpoints}"
+	else
+		speed_mbps="$(awk -v total="${weighted_speed_sum}" -v weight="${successful_weight_sum}" 'BEGIN {if (weight <= 0) exit 1; printf "%.2f", total/weight}')"
+		latency_ms="$(awk -v total="${weighted_latency_sum}" -v weight="${successful_weight_sum}" 'BEGIN {if (weight <= 0) exit 1; printf "%.0f", total/weight}')"
+		if [[ -z "${speed_mbps}" || -z "${latency_ms}" ]]; then
+			poor_reason="speedtest_failed"
+			speed_mbps="0"
+			latency_ms="${max_latency_ms}"
+		fi
+	fi
+
+	log_info "Aggregated weighted speed=${speed_mbps}Mbps latency=${latency_ms}ms from ${successful_endpoints}/${all_endpoint_count} successful endpoint(s) (thresholds: min=${min_mbps}Mbps max=${max_latency_ms}ms)"
 
 	if [[ -z "${poor_reason}" ]]; then
 		if awk -v measured="${speed_mbps}" -v min="${min_mbps}" 'BEGIN {exit (measured < min) ? 0 : 1}'; then

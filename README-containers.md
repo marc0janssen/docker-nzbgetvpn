@@ -8,7 +8,7 @@ Full documentation is available in the GitHub repository README.
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.21.2
+* NZBGetVPN image/codebase version: 4.24.6
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -19,7 +19,7 @@ Full documentation is available in the GitHub repository README.
 | `stable` | Stable NZBGet release. |
 | `testing` | Testing NZBGet release. |
 | `<version>` | Versioned image, for example `26.1`. |
-| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.21.2`. |
+| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.24.6`. |
 
 ## Included
 
@@ -281,18 +281,21 @@ Use the dedicated rotation scheduler (enabled by default) to rotate WireGuard/Op
 ```yaml
 environment:
   ROTATE_ON_POOR_SPEED_ENABLED: "yes"
-  ROTATE_ON_POOR_SPEED_SCHEDULE: "*/10 * * * *"
+  ROTATE_ON_POOR_SPEED_SCHEDULE: "*/20 * * * *"
   ROTATE_ON_POOR_SPEED_SCRIPT: "/data/scripts/rotate_on_poor_speed.sh"
   ROTATE_ON_POOR_SPEED_TIMEOUT: "90"
   ROTATE_MODE: "auto"
+  ROTATE_SPEEDTEST_URLS: "https://speed.cloudflare.com/__down?bytes=4000000,https://proof.ovh.net/files/10Mb.dat"
+  ROTATE_SPEEDTEST_WEIGHTS: "0.60,0.40"
+  ROTATE_SPEEDTEST_ATTEMPTS: "1"
   ROTATE_FAIL_STREAK: "3"
   ROTATE_COOLDOWN_SECONDS: "1800"
   ROTATE_POST_ROTATION_ACTION: "watchdog-exit"
   ROTATE_RESTART_EXIT_DELAY: "5"
 ```
 
-Set `ROTATE_ON_POOR_SPEED_ENABLED=no` to disable this scheduler without affecting `VPN_CRON_*`.
-Use Compose `restart: unless-stopped` with `ROTATE_POST_ROTATION_ACTION=watchdog-exit`; without a restart policy the container exits and stays down.
+Set `ROTATE_ON_POOR_SPEED_ENABLED=no` to disable this scheduler
+Use `restart: unless-stopped` with `ROTATE_POST_ROTATION_ACTION=watchdog-exit`, or the container stays down.
 
 ## VPN Unhealthy Actions
 
@@ -356,7 +359,7 @@ Use Compose mapping form for cron schedules because the value contains spaces.
 | Variable | Description |
 | --- | --- |
 | `ROTATE_ON_POOR_SPEED_ENABLED` | Enable/disable adaptive rotation scheduler (`yes` default). |
-| `ROTATE_ON_POOR_SPEED_SCHEDULE` | Five-field cron expression for adaptive checks (default `*/10 * * * *`). |
+| `ROTATE_ON_POOR_SPEED_SCHEDULE` | Five-field cron expression for adaptive checks (default `*/20 * * * *`). |
 | `ROTATE_ON_POOR_SPEED_SCRIPT` | Script path, default `/data/scripts/rotate_on_poor_speed.sh`. |
 | `ROTATE_ON_POOR_SPEED_TIMEOUT` | Max runtime for adaptive rotation script, default `90`. |
 

@@ -17,12 +17,45 @@ Bundled scripts are managed by the image. On container start, they are installed
 | `select_random_wireguard_config.sh` | Pick a random `*.conf` from `/data/wireguard-configs` and install it in `/config/wireguard`. |
 | `select_random_openvpn_config.sh` | Pick a random `*.ovpn` from `/data/openvpn-configs` and install it in `/config/openvpn`. |
 | `rotate_on_poor_speed.sh` | Trigger profile rotation when measured speed/latency stays below thresholds for a configurable streak. |
+| `benchmark_endpoints.sh` | Benchmark multiple endpoints (latency + throughput), rank them, and report the best endpoint. |
 | `backup_config.sh` | Create timestamped archives of `/config` to `/data/backups` (or custom target). |
 | `log_sanitizer.sh` | Redact tokens/secrets, IP addresses, and absolute paths from logs before sharing. |
 | `upgrade_check.sh` | Show whether a newer image/codebase version is available and print relevant changelog impact before updating. |
 | `notify_discord.sh` | Send a state/unhealthy notification to a Discord webhook. |
 | `notify_telegram.sh` | Send a state/unhealthy notification through the Telegram Bot API. |
 | `notify_pushover.sh` | Send a state/unhealthy notification through Pushover. |
+
+## Customization And Support Policy
+
+Use bundled script files as managed templates. In most setups you should configure behavior via environment variables, not by editing the script files directly.
+
+Recommended approach:
+
+1. Start with bundled defaults.
+2. Tune via documented environment variables.
+3. If you need custom logic, copy to a new filename (for example `/data/scripts/my-rotate.sh`) and point scheduler/hooks to that file.
+
+Support expectation:
+
+- Supported and stable: changing documented env vars.
+- Advanced/user-owned: editing bundled script contents directly.
+- Safe customization path: clone to a different filename so image updates can still refresh bundled templates.
+
+Quick guidance per script:
+
+| Script | Typical customization need | Recommendation |
+| --- | --- | --- |
+| `get_wireguard_configs_nordvpn.sh` | Sometimes | Usually env vars; copy script only for provider-specific logic changes. |
+| `select_random_wireguard_config.sh` | Sometimes | Usually env vars; copy script for custom selection policies. |
+| `select_random_openvpn_config.sh` | Sometimes | Usually env vars; copy script for custom selection policies. |
+| `rotate_on_poor_speed.sh` | Rare | Tune thresholds/endpoints/weights via env vars; copy only for custom scoring logic. |
+| `benchmark_endpoints.sh` | Rare | Tune endpoints/attempts/timeouts via env vars; copy only for custom report logic. |
+| `backup_config.sh` | Rare | Tune source/target/retention env vars. |
+| `log_sanitizer.sh` | Rare | Usually run as-is. Copy only if custom redaction rules are required. |
+| `upgrade_check.sh` | Rare | Tune repo/branch/channel env vars. |
+| `notify_discord.sh` | Rare | Configure webhook/env vars. Copy only for custom payload formatting. |
+| `notify_telegram.sh` | Rare | Configure bot token/chat env vars. Copy only for custom payload formatting. |
+| `notify_pushover.sh` | Rare | Configure app/user env vars. Copy only for custom payload formatting. |
 
 ## General Usage Patterns
 
@@ -158,8 +191,9 @@ Measures connection quality and rotates profiles when poor performance persists.
 
 Behavior:
 
-- Runs a lightweight `curl` speed/latency test (`ROTATE_SPEEDTEST_URL`).
-- Increments a persistent failure streak when speed is too low, latency too high, or the test fails.
+- Runs lightweight `curl` speed/latency tests across one or more endpoints.
+- Supports multi-endpoint checks with per-endpoint retries and weighted aggregation.
+- Increments a persistent failure streak when aggregated speed is too low, latency too high, or too few endpoints succeed.
 - Rotates only after `ROTATE_FAIL_STREAK` consecutive poor runs.
 - Applies cooldown (`ROTATE_COOLDOWN_SECONDS`) to avoid rapid flip-flopping.
 - Uses your existing profile scripts:
@@ -170,8 +204,12 @@ Important variables:
 
 ```text
 ROTATE_MODE=auto
+ROTATE_SPEEDTEST_URLS=https://speed.cloudflare.com/__down?bytes=4000000,https://proof.ovh.net/files/10Mb.dat
+ROTATE_SPEEDTEST_WEIGHTS=0.60,0.40
 ROTATE_SPEEDTEST_URL=https://speed.cloudflare.com/__down?bytes=4000000
 ROTATE_SPEEDTEST_TIMEOUT=20
+ROTATE_SPEEDTEST_ATTEMPTS=1
+ROTATE_MIN_SUCCESSFUL_ENDPOINTS=1
 ROTATE_MIN_DOWNLOAD_MBPS=10
 ROTATE_MAX_LATENCY_MS=700
 ROTATE_FAIL_STREAK=3
@@ -184,6 +222,14 @@ ROTATE_WIREGUARD_REFRESH_SCRIPT=/data/scripts/get_wireguard_configs_nordvpn.sh
 ROTATE_POST_ROTATION_ACTION=none
 ROTATE_RESTART_REQUEST_FILE=/tmp/rotate-on-poor-speed-exit-watchdog
 ```
+
+Notes:
+
+- `ROTATE_SPEEDTEST_URLS` is the preferred multi-endpoint setting (comma-separated URLs).
+- `ROTATE_SPEEDTEST_WEIGHTS` is optional (comma-separated positive numbers) and must match endpoint count when set.
+- `ROTATE_SPEEDTEST_URL` remains supported for backward compatibility and is used as fallback when `ROTATE_SPEEDTEST_URLS` is unset.
+- Aggregated decision uses weighted speed/latency from endpoints with at least one successful probe.
+- `ROTATE_MIN_SUCCESSFUL_ENDPOINTS` controls how many endpoints must succeed before thresholds are evaluated.
 
 `ROTATE_MODE` values:
 
@@ -210,7 +256,7 @@ Scheduled run example (dedicated scheduler, enabled by default):
 
 ```text
 ROTATE_ON_POOR_SPEED_ENABLED=yes
-ROTATE_ON_POOR_SPEED_SCHEDULE=*/10 * * * *
+ROTATE_ON_POOR_SPEED_SCHEDULE=*/20 * * * *
 ROTATE_ON_POOR_SPEED_SCRIPT=/data/scripts/rotate_on_poor_speed.sh
 ROTATE_ON_POOR_SPEED_TIMEOUT=90
 ROTATE_MODE=auto
@@ -219,6 +265,46 @@ ROTATE_COOLDOWN_SECONDS=1800
 ```
 
 Set `ROTATE_ON_POOR_SPEED_ENABLED=no` to disable this scheduler without touching `VPN_CRON_*`.
+
+## `benchmark_endpoints.sh`
+
+Benchmarks multiple endpoints and chooses the best candidate based on combined speed/latency score.
+
+Behavior:
+
+- Runs `curl` probes per endpoint.
+- Measures:
+  - `time_starttransfer` (latency proxy, ms)
+  - `speed_download` (Mbps)
+- Computes score: higher speed + lower latency wins.
+- Prints per-endpoint results and best endpoint to stdout.
+- Optionally writes:
+  - best endpoint to `BENCHMARK_BEST_FILE`
+  - full JSON report to `BENCHMARK_OUTPUT_FILE`
+
+Important variables:
+
+```text
+BENCHMARK_ENDPOINTS=https://speed.cloudflare.com/__down?bytes=4000000,https://proof.ovh.net/files/10Mb.dat
+BENCHMARK_ATTEMPTS=2
+BENCHMARK_TIMEOUT=20
+BENCHMARK_BEST_FILE=/data/benchmark-best-endpoint.txt
+BENCHMARK_OUTPUT_FILE=/data/benchmark-endpoints.json
+```
+
+Manual run:
+
+```text
+/data/scripts/benchmark_endpoints.sh
+```
+
+Scheduled run example:
+
+```text
+VPN_CRON_SCHEDULE=*/30 * * * *
+VPN_CRON_SCRIPT=/data/scripts/benchmark_endpoints.sh
+VPN_CRON_SCRIPT_TIMEOUT=90
+```
 
 ## `backup_config.sh`
 

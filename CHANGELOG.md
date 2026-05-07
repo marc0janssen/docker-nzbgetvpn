@@ -4,6 +4,80 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.24.6] - 2026-05-07
+
+### Changed
+
+- Reduced the default adaptive-rotation schedule from `*/10 * * * *` to `*/20 * * * *` in `run/nobody/watchdog.sh` to lower routine probe overhead.
+- Updated adaptive-rotation schedule defaults/examples in `README.md`, `README-containers.md`, and `data/scripts/README.md`.
+- Added a build-time compatibility patch in `build/root/install.sh` that rewrites legacy inherited `iptable_mangle` `modprobe`/`insmod` checks to an `iptables -t mangle` capability probe, removing false startup errors on modern kernels.
+
+## [4.24.5] - 2026-05-07
+
+### Changed
+
+- Updated `run/root/iptable.sh` to use numeric policy-routing table `6789` for Web UI fwmark routing so startup no longer depends on `/etc/iproute2/rt_tables` being present.
+- Made fwmark routing setup idempotent by checking existing `ip rule` state and using `ip route replace` to avoid duplicate or invalid-table startup errors.
+
+## [4.24.4] - 2026-05-07
+
+### Changed
+
+- Expanded helper-script documentation in `data/scripts/README.md` with a clear customization/support policy and per-script guidance on when environment-variable tuning is sufficient versus when copying a script is recommended.
+- Added guidance in `README.md` to prefer env-var configuration for bundled `/data/scripts` templates and use copied script filenames for custom logic.
+
+## [4.24.3] - 2026-05-07
+
+### Changed
+
+- Updated `run/root/iptable.sh` mangle-table detection to probe `iptables -t mangle` directly instead of relying on the `iptable_mangle` kernel module being listed in `lsmod`.
+- Added a clearer warning when mangle support is genuinely unavailable so kernels with built-in/nft-backed support no longer report a false negative.
+
+## [4.24.2] - 2026-05-07
+
+### Changed
+
+- Removed `https://raw.githubusercontent.com/marc0janssen/nzbgetvpn/develop/VERSION` from default endpoint sets in `data/scripts/rotate_on_poor_speed.sh` and `data/scripts/benchmark_endpoints.sh`.
+- Updated default adaptive-rotation endpoint weights to match the new two-endpoint default set.
+- Updated endpoint examples in `README.md`, `README-containers.md`, and `data/scripts/README.md`.
+
+## [4.24.1] - 2026-05-07
+
+### Changed
+
+- Removed Hetzner from the default adaptive-rotation speed endpoint list in `data/scripts/rotate_on_poor_speed.sh`.
+- Updated default adaptive-rotation endpoint weights to match the new three-endpoint default set.
+- Updated adaptive-rotation endpoint examples in `README.md`, `README-containers.md`, and `data/scripts/README.md`.
+
+## [4.24.0] - 2026-05-07
+
+### Changed
+
+- Updated `data/scripts/rotate_on_poor_speed.sh` to use default multi-provider speed endpoints (Cloudflare, Hetzner, OVH, GitHub raw) when no explicit endpoint override is set.
+- Added optional weighted endpoint aggregation via `ROTATE_SPEEDTEST_WEIGHTS` and switched adaptive-rotation quality scoring from median to weighted speed/latency averages.
+- Updated adaptive-rotation docs in `README.md`, `README-containers.md`, and `data/scripts/README.md` with default endpoint list and weight configuration examples.
+
+## [4.23.0] - 2026-05-07
+
+### Added
+
+- Added multi-endpoint quality checks to `data/scripts/rotate_on_poor_speed.sh` with `ROTATE_SPEEDTEST_URLS`, `ROTATE_SPEEDTEST_ATTEMPTS`, and `ROTATE_MIN_SUCCESSFUL_ENDPOINTS`.
+
+### Changed
+
+- `rotate_on_poor_speed.sh` now aggregates endpoint results with median speed/latency before applying thresholds, reducing false rotations caused by one flaky endpoint.
+- Updated adaptive-rotation documentation in `README.md`, `README-containers.md`, and `data/scripts/README.md` to document multi-source decision behavior and fallback compatibility with `ROTATE_SPEEDTEST_URL`.
+
+## [4.22.0] - 2026-05-07
+
+### Added
+
+- Added bundled helper `data/scripts/benchmark_endpoints.sh` to run fast latency/download benchmarks across multiple endpoints, rank candidates, and report the best endpoint.
+
+### Changed
+
+- Documented endpoint benchmarking usage and scheduler examples in `README.md`, `README-containers.md`, and `data/scripts/README.md`.
+
 ## [4.21.2] - 2026-05-07
 
 ### Changed

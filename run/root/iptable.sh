@@ -169,19 +169,30 @@ if is_enabled "${DEBUG:-}"; then
 	echo "[debug] Modules currently loaded for kernel" ; lsmod
 fi
 
-# check we have iptable_mangle, if so setup fwmark
-lsmod | grep iptable_mangle
-iptable_mangle_exit_code="${?}"
+# Detect mangle table support by probing iptables directly. Some kernels
+# provide this support built-in and won't expose an iptable_mangle module.
+iptable_mangle_supported=0
+webui_http_table_id=6789
+if iptables -t mangle -S >/dev/null 2>&1; then
+	iptable_mangle_supported=1
+	echo "[info] iptables mangle support detected, adding fwmark for tables"
 
-if [[ "${iptable_mangle_exit_code}" == 0 ]]; then
+	# setup route for nzbget webui http using set-mark to route traffic for
+	# port 6789 to lan interface. Always use numeric table id for compatibility.
+	if [[ -f /etc/iproute2/rt_tables ]]; then
+		if ! grep -Eq "^[[:space:]]*${webui_http_table_id}[[:space:]]+webui_http([[:space:]]|$)" /etc/iproute2/rt_tables; then
+			echo "${webui_http_table_id}    webui_http" >> /etc/iproute2/rt_tables
+		fi
+	else
+		echo "[warn] /etc/iproute2/rt_tables not found; using numeric routing table ${webui_http_table_id}"
+	fi
 
-	echo "[info] iptable_mangle support detected, adding fwmark for tables"
-
-	# setup route for nzbget webui http using set-mark to route traffic for port 6789 to lan interface
-	echo "6789    webui_http" >> /etc/iproute2/rt_tables
-	ip rule add fwmark 1 table webui_http
-	ip route add default via "${default_gateway}" table webui_http
-
+	if ! ip rule show | grep -Eq "[[:space:]]fwmark[[:space:]]0x1[[:space:]].*[[:space:]]lookup[[:space:]]${webui_http_table_id}([[:space:]]|$)"; then
+		ip rule add fwmark 1 table "${webui_http_table_id}"
+	fi
+	ip route replace default via "${default_gateway}" table "${webui_http_table_id}"
+else
+	echo "[warn] iptables mangle support unavailable, Web UI/Privoxy outside LAN may not work"
 fi
 
 # input iptable rules
@@ -298,8 +309,8 @@ for vpn_remote_port_item in "${vpn_remote_port_list[@]}"; do
 
 done
 
-# if iptable mangle is available (kernel module) then use mark
-if [[ "${iptable_mangle_exit_code}" == 0 ]]; then
+# if iptables mangle support is available then use mark
+if [[ "${iptable_mangle_supported}" == 1 ]]; then
 
 	# accept output from nzbget webui port 6789 - used for external access
 	iptables -t mangle -A OUTPUT -p tcp --dport 6789 -j MARK --set-mark 1

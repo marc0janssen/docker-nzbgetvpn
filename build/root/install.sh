@@ -177,5 +177,23 @@ sed -i '/# ENVVARS_PLACEHOLDER/{
 }' /usr/bin/init.sh
 rm /tmp/envvars_heredoc
 
+# compatibility patching for inherited scripts
+####
+
+# Some base-image scripts still try to load the iptable_mangle kernel module
+# directly with modprobe/insmod. On modern kernels this module may not exist
+# as a loadable file while mangle support is still available, causing noisy
+# startup errors. Replace legacy module load calls with a direct capability
+# probe against the mangle table.
+echo "[info] Applying iptable_mangle compatibility patch to inherited scripts..."
+for script_path in /root/*.sh /usr/bin/*.sh /home/nobody/*.sh; do
+	if [[ -f "${script_path}" ]] && grep -q "iptable_mangle" "${script_path}" 2>/dev/null; then
+		sed -i \
+			-e 's~modprobe[[:space:]]\+iptable_mangle~iptables -t mangle -S >\/dev\/null 2>\&1~g' \
+			-e 's~insmod[[:space:]]\+\/lib\/modules\/iptable_mangle\.ko~iptables -t mangle -S >\/dev\/null 2>\&1~g' \
+			"${script_path}"
+	fi
+done
+
 # cleanup
 cleanup.sh

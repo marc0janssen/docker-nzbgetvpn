@@ -540,7 +540,7 @@ handle_backup_cron_script() {
 
 handle_rotate_cron_script() {
 	local enabled="${ROTATE_ON_POOR_SPEED_ENABLED:-yes}"
-	local schedule="${ROTATE_ON_POOR_SPEED_SCHEDULE:-*/10 * * * *}"
+	local schedule="${ROTATE_ON_POOR_SPEED_SCHEDULE:-*/20 * * * *}"
 	local script="${ROTATE_ON_POOR_SPEED_SCRIPT:-/data/scripts/rotate_on_poor_speed.sh}"
 	local timeout_secs="${ROTATE_ON_POOR_SPEED_TIMEOUT:-90}"
 	local current_run_minute
