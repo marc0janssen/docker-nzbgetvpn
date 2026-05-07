@@ -6,6 +6,8 @@ VPN_SELFTEST_STARTUP_DELAY_MAX=300
 vpn_unhealthy_count=0
 vpn_unhealthy_last_action=0
 vpn_cron_last_run_minute=""
+rotate_cron_last_run_minute=""
+rotate_cron_config_logged="no"
 backup_cron_last_run_minute=""
 backup_cron_config_logged="no"
 vpn_selftest_has_run="no"
@@ -536,11 +538,73 @@ handle_backup_cron_script() {
 	fi
 }
 
+handle_rotate_cron_script() {
+	local enabled="${ROTATE_ON_POOR_SPEED_ENABLED:-yes}"
+	local schedule="${ROTATE_ON_POOR_SPEED_SCHEDULE:-*/10 * * * *}"
+	local script="${ROTATE_ON_POOR_SPEED_SCRIPT:-/data/scripts/rotate_on_poor_speed.sh}"
+	local timeout_secs="${ROTATE_ON_POOR_SPEED_TIMEOUT:-90}"
+	local current_run_minute
+
+	enabled="$(strip_wrapping_quotes "${enabled}")"
+	schedule="$(strip_wrapping_quotes "${schedule}")"
+	script="$(strip_wrapping_quotes "${script}")"
+	timeout_secs="$(strip_wrapping_quotes "${timeout_secs}")"
+
+	if ! is_enabled "${enabled}"; then
+		return
+	fi
+
+	if [[ ! -x "${script}" ]]; then
+		echo "[warn] ROTATE_ON_POOR_SPEED_SCRIPT '${script}' is not executable"
+		return
+	fi
+	if [[ "${rotate_cron_config_logged}" == "no" ]]; then
+		echo "[info] Adaptive profile rotation is enabled (ROTATE_ON_POOR_SPEED_SCHEDULE='${schedule}', ROTATE_ON_POOR_SPEED_SCRIPT='${script}', ROTATE_ON_POOR_SPEED_TIMEOUT='${timeout_secs}')"
+		rotate_cron_config_logged="yes"
+	fi
+
+	current_run_minute="$(date +%Y%m%d%H%M)"
+	if [[ "${rotate_cron_last_run_minute}" == "${current_run_minute}" ]]; then
+		return
+	fi
+
+	if cron_schedule_matches_now "${schedule}" "ROTATE_ON_POOR_SPEED_SCHEDULE"; then
+		echo "[info] ROTATE_ON_POOR_SPEED_SCHEDULE '${schedule}' matched, running '${script}'"
+		if ROTATE_ON_POOR_SPEED_SCHEDULE="${schedule}" run_script_with_timeout "${timeout_secs}" "${script}"; then
+			echo "[info] ROTATE_ON_POOR_SPEED_SCRIPT '${script}' completed"
+		else
+			echo "[warn] ROTATE_ON_POOR_SPEED_SCRIPT '${script}' failed or timed out"
+		fi
+		rotate_cron_last_run_minute="${current_run_minute}"
+	fi
+}
+
+handle_rotate_restart_request() {
+	local request_file="${ROTATE_RESTART_REQUEST_FILE:-/tmp/rotate-on-poor-speed-exit-watchdog}"
+	local exit_delay="${ROTATE_RESTART_EXIT_DELAY:-5}"
+
+	if [[ ! -f "${request_file}" ]]; then
+		return
+	fi
+
+	if ! [[ "${exit_delay}" =~ ^[0-9]+$ ]]; then
+		echo "[warn] ROTATE_RESTART_EXIT_DELAY value '${exit_delay}' is invalid, using default '5' seconds"
+		exit_delay=5
+	fi
+
+	rm -f -- "${request_file}" || true
+	echo "[crit] Received rotation restart request, exiting watchdog in ${exit_delay} seconds"
+	sleep "${exit_delay}s"
+	exit 1
+}
+
 # while loop to check ip and port
 while true; do
 
+	handle_rotate_cron_script
 	handle_vpn_cron_script
 	handle_backup_cron_script
+	handle_rotate_restart_request
 
 	# reset triggers to negative values
 	nzbget_running="false"

@@ -4,6 +4,65 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.21.2] - 2026-05-07
+
+### Changed
+
+- Expanded central `README.md` with a dedicated section that consolidates key decentralized README content (`data/wireguard-configs`, `data/openvpn-configs`, and `examples`) and points to the mirrored helper-script sections.
+
+## [4.21.1] - 2026-05-07
+
+### Changed
+
+- Clarified adaptive-rotation documentation: `ROTATE_POST_ROTATION_ACTION=watchdog-exit` should be paired with `restart: unless-stopped`; otherwise the container exits and remains stopped.
+
+## [4.21.0] - 2026-05-07
+
+### Added
+
+- Added dedicated adaptive-rotation scheduler variables in `watchdog.sh`: `ROTATE_ON_POOR_SPEED_ENABLED` (default `yes`), `ROTATE_ON_POOR_SPEED_SCHEDULE` (default `*/10 * * * *`), `ROTATE_ON_POOR_SPEED_SCRIPT` (default `/data/scripts/rotate_on_poor_speed.sh`), and `ROTATE_ON_POOR_SPEED_TIMEOUT` (default `90`).
+
+### Changed
+
+- Adaptive profile rotation docs now use `ROTATE_ON_POOR_SPEED_*` instead of `VPN_CRON_*`, and include explicit enable/disable behavior.
+
+## [4.20.0] - 2026-05-07
+
+### Added
+
+- Restored optional DNS leak path checks in `run/nobody/vpn-selftest.sh` with `VPN_SELFTEST_DNS_LEAK_TEST`, `VPN_SELFTEST_DNS_LEAK_STRICT`, `VPN_SELFTEST_DNS_LEAK_TIMEOUT`, and optional `VPN_SELFTEST_DNS_LEAK_HOST`.
+
+### Changed
+
+- Updated self-test documentation in `README.md` and `README-containers.md` to describe DNS leak check behavior and controls.
+
+## [4.19.0] - 2026-05-07
+
+### Added
+
+- Added persistent container script logging to `/data/nzbgetvpn-container.log` with automatic rotation (`10MB`, `5` backups) while keeping `docker logs` output through a supervisor log-forwarder.
+
+### Changed
+
+- Supervisor program output for `start.sh`, `watchdog.sh`, and `shutdown.sh` is now captured into the rotating `/data` log file and mirrored back to container stdout/stderr.
+
+## [4.18.0] - 2026-05-07
+
+### Added
+
+- Added post-rotation restart controls for `rotate_on_poor_speed.sh`: `ROTATE_POST_ROTATION_ACTION=watchdog-exit` and `ROTATE_RESTART_REQUEST_FILE` to request a controlled watchdog exit after successful profile rotation.
+- Added watchdog handling for rotation restart requests with `ROTATE_RESTART_EXIT_DELAY` before exit.
+
+## [4.17.0] - 2026-05-07
+
+### Added
+
+- Added bundled helper `data/scripts/rotate_on_poor_speed.sh` for adaptive profile rotation based on poor speed/latency streaks with cooldown control, supporting WireGuard/OpenVPN modes and optional NordVPN refresh before WireGuard rotation.
+
+### Changed
+
+- Documented adaptive profile rotation workflow and variables in `README.md`, `README-containers.md`, and `data/scripts/README.md`.
+
 ## [4.16.2] - 2026-05-07
 
 ### Fixed

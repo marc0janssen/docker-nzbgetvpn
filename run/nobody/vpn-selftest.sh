@@ -457,6 +457,86 @@ check_dns_nameserver() {
 	fi
 }
 
+dns_leak_result() {
+	local message="$1"
+
+	if is_enabled "${VPN_SELFTEST_DNS_LEAK_STRICT:-no}"; then
+		log_crit "${message}"
+	else
+		log_warn "${message}"
+	fi
+}
+
+resolve_probe_ip() {
+	local host="$1"
+	local timeout_secs="$2"
+	local resolved_ip=""
+
+	if command -v timeout >/dev/null 2>&1; then
+		resolved_ip="$(timeout --kill-after=1s "${timeout_secs}s" getent ahostsv4 "${host}" 2>/dev/null | awk 'NR==1{print $1}' || true)"
+		if [[ -z "${resolved_ip}" ]]; then
+			resolved_ip="$(timeout --kill-after=1s "${timeout_secs}s" getent ahosts "${host}" 2>/dev/null | awk 'NR==1{print $1}' || true)"
+		fi
+	else
+		resolved_ip="$(getent ahostsv4 "${host}" 2>/dev/null | awk 'NR==1{print $1}' || true)"
+		if [[ -z "${resolved_ip}" ]]; then
+			resolved_ip="$(getent ahosts "${host}" 2>/dev/null | awk 'NR==1{print $1}' || true)"
+		fi
+	fi
+
+	echo "${resolved_ip}"
+}
+
+check_dns_leak_path() {
+	local enabled="${VPN_SELFTEST_DNS_LEAK_TEST:-no}"
+	local strict="${VPN_SELFTEST_DNS_LEAK_STRICT:-no}"
+	local timeout_secs
+	local probe_host="${VPN_SELFTEST_DNS_LEAK_HOST:-one.one.one.one}"
+	local nameserver=""
+	local resolved_ip=""
+	local route_device=""
+	local vpn_device="${VPN_DEVICE_TYPE:-}"
+
+	if ! is_enabled "${enabled}"; then
+		return
+	fi
+	if ! is_enabled "${VPN_ENABLED:-yes}"; then
+		log_info "DNS leak path check enabled but VPN is disabled; skipping check"
+		return
+	fi
+
+	timeout_secs="$(get_positive_int_default "${VPN_SELFTEST_DNS_LEAK_TIMEOUT:-3}" 3)"
+	if [[ -z "${vpn_device}" ]]; then
+		dns_leak_result "DNS leak path check enabled but VPN_DEVICE_TYPE is unset"
+		return
+	fi
+
+	nameserver="$(awk '/^nameserver[[:space:]]+[0-9a-fA-F:.]+$/ {print $2; exit}' /etc/resolv.conf)"
+	if [[ -z "${nameserver}" ]]; then
+		dns_leak_result "DNS leak path check could not find a resolver nameserver in /etc/resolv.conf"
+		return
+	fi
+
+	resolved_ip="$(resolve_probe_ip "${probe_host}" "${timeout_secs}")"
+	if [[ -z "${resolved_ip}" ]]; then
+		dns_leak_result "DNS leak path check failed to resolve '${probe_host}' within ${timeout_secs}s"
+		return
+	fi
+
+	route_device="$(ip route get "${resolved_ip}" 2>/dev/null | awk '{for (i=1; i<=NF; i++) if ($i=="dev") {print $(i+1); exit}}')"
+	if [[ -z "${route_device}" ]]; then
+		dns_leak_result "DNS leak path check could not determine route device for '${resolved_ip}'"
+		return
+	fi
+
+	if [[ "${route_device}" != "${vpn_device}" ]]; then
+		dns_leak_result "DNS leak path check route mismatch: resolver ${nameserver}, probe ${probe_host}->${resolved_ip}, route dev '${route_device}', expected '${vpn_device}'"
+		return
+	fi
+
+	log_info "DNS leak path check passed (resolver ${nameserver}, probe ${probe_host}->${resolved_ip}, route dev '${route_device}', strict='${strict}')"
+}
+
 check_vpn_device() {
 	local device="${VPN_DEVICE_TYPE:-}"
 	if [[ -z "${device}" ]]; then
@@ -539,6 +619,7 @@ main() {
 	if is_enabled "${VPN_ENABLED:-yes}"; then
 		check_vpn_device
 		check_vpn_ip_signal
+		check_dns_leak_path
 	else
 		log_info "VPN is disabled; skipping VPN-specific checks"
 	fi

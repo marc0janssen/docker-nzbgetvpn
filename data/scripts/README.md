@@ -16,6 +16,7 @@ Bundled scripts are managed by the image. On container start, they are installed
 | `get_wireguard_configs_nordvpn.sh` | Fetch NordVPN WireGuard recommendations and install one active WireGuard config. |
 | `select_random_wireguard_config.sh` | Pick a random `*.conf` from `/data/wireguard-configs` and install it in `/config/wireguard`. |
 | `select_random_openvpn_config.sh` | Pick a random `*.ovpn` from `/data/openvpn-configs` and install it in `/config/openvpn`. |
+| `rotate_on_poor_speed.sh` | Trigger profile rotation when measured speed/latency stays below thresholds for a configurable streak. |
 | `backup_config.sh` | Create timestamped archives of `/config` to `/data/backups` (or custom target). |
 | `log_sanitizer.sh` | Redact tokens/secrets, IP addresses, and absolute paths from logs before sharing. |
 | `upgrade_check.sh` | Show whether a newer image/codebase version is available and print relevant changelog impact before updating. |
@@ -150,6 +151,74 @@ VPN_CRON_SCHEDULE=30 */12 * * *
 VPN_CRON_SCRIPT=/data/scripts/select_random_openvpn_config.sh
 VPN_CRON_SCRIPT_TIMEOUT=300
 ```
+
+## `rotate_on_poor_speed.sh`
+
+Measures connection quality and rotates profiles when poor performance persists.
+
+Behavior:
+
+- Runs a lightweight `curl` speed/latency test (`ROTATE_SPEEDTEST_URL`).
+- Increments a persistent failure streak when speed is too low, latency too high, or the test fails.
+- Rotates only after `ROTATE_FAIL_STREAK` consecutive poor runs.
+- Applies cooldown (`ROTATE_COOLDOWN_SECONDS`) to avoid rapid flip-flopping.
+- Uses your existing profile scripts:
+  - WireGuard: `select_random_wireguard_config.sh` (and optional `get_wireguard_configs_nordvpn.sh` refresh)
+  - OpenVPN: `select_random_openvpn_config.sh`
+
+Important variables:
+
+```text
+ROTATE_MODE=auto
+ROTATE_SPEEDTEST_URL=https://speed.cloudflare.com/__down?bytes=4000000
+ROTATE_SPEEDTEST_TIMEOUT=20
+ROTATE_MIN_DOWNLOAD_MBPS=10
+ROTATE_MAX_LATENCY_MS=700
+ROTATE_FAIL_STREAK=3
+ROTATE_COOLDOWN_SECONDS=1800
+ROTATE_STATE_FILE=/data/rotate-on-poor-speed-state
+ROTATE_WIREGUARD_SCRIPT=/data/scripts/select_random_wireguard_config.sh
+ROTATE_OPENVPN_SCRIPT=/data/scripts/select_random_openvpn_config.sh
+ROTATE_WIREGUARD_REFRESH_ENABLED=no
+ROTATE_WIREGUARD_REFRESH_SCRIPT=/data/scripts/get_wireguard_configs_nordvpn.sh
+ROTATE_POST_ROTATION_ACTION=none
+ROTATE_RESTART_REQUEST_FILE=/tmp/rotate-on-poor-speed-exit-watchdog
+```
+
+`ROTATE_MODE` values:
+
+- `auto`: infer mode from `VPN_CLIENT`
+- `wireguard`: force WireGuard rotation
+- `openvpn`: force OpenVPN rotation
+
+Post-rotation action:
+
+- `ROTATE_POST_ROTATION_ACTION=none` (default): rotate config only.
+- `ROTATE_POST_ROTATION_ACTION=watchdog-exit`: write restart request file so `watchdog.sh` exits and Docker restart policy can recreate the container.
+
+Important:
+
+- For `ROTATE_POST_ROTATION_ACTION=watchdog-exit`, configure Docker/Compose restart policy (recommended: `restart: unless-stopped`), otherwise the container exits and stays down.
+
+Manual run:
+
+```text
+/data/scripts/rotate_on_poor_speed.sh
+```
+
+Scheduled run example (dedicated scheduler, enabled by default):
+
+```text
+ROTATE_ON_POOR_SPEED_ENABLED=yes
+ROTATE_ON_POOR_SPEED_SCHEDULE=*/10 * * * *
+ROTATE_ON_POOR_SPEED_SCRIPT=/data/scripts/rotate_on_poor_speed.sh
+ROTATE_ON_POOR_SPEED_TIMEOUT=90
+ROTATE_MODE=auto
+ROTATE_FAIL_STREAK=3
+ROTATE_COOLDOWN_SECONDS=1800
+```
+
+Set `ROTATE_ON_POOR_SPEED_ENABLED=no` to disable this scheduler without touching `VPN_CRON_*`.
 
 ## `backup_config.sh`
 

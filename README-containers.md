@@ -8,7 +8,7 @@ Full documentation is available in the GitHub repository README.
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.16.2
+* NZBGetVPN image/codebase version: 4.21.2
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -19,7 +19,7 @@ Full documentation is available in the GitHub repository README.
 | `stable` | Stable NZBGet release. |
 | `testing` | Testing NZBGet release. |
 | `<version>` | Versioned image, for example `26.1`. |
-| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.16.2`. |
+| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.21.2`. |
 
 ## Included
 
@@ -182,6 +182,21 @@ tar -xzf nzbgetvpn-backup.tgz -C /
 
 Stop the container first if you need a point-in-time copy. Keep backups private because they may contain VPN profiles, keys, NZBGet credentials or provider tokens.
 
+## Logging
+
+Script output remains visible in `docker logs`, and is also persisted inside `/data`:
+
+```text
+/data/nzbgetvpn-container.log
+/data/nzbgetvpn-container.log.1
+/data/nzbgetvpn-container.log.2
+/data/nzbgetvpn-container.log.3
+/data/nzbgetvpn-container.log.4
+/data/nzbgetvpn-container.log.5
+```
+
+Rotation policy is `10MB` per file with `5` backups.
+
 ## Security
 
 Report vulnerabilities privately through the maintainer contact page linked in the repository. Do not put secrets, VPN profiles, keys, tokens or `.env` contents in public issues.
@@ -209,6 +224,10 @@ Report vulnerabilities privately through the maintainer contact page linked in t
 | `VPN_SELFTEST_ENABLED` | `no`, `yes`, cron expression | Control internal read-only self-test scheduling (`false`/`0` = `no`, `true`/`1` = `yes`). |
 | `VPN_SELFTEST_STARTUP_DELAY` | non-negative integer seconds | Delay one-shot self-test when `VPN_SELFTEST_ENABLED=yes` (default `20`, max `300`). |
 | `VPN_SELFTEST_NZBGET_PORT` | TCP port `1-65535` | NZBGet listen port used by self-test checks (`6789` by default). |
+| `VPN_SELFTEST_DNS_LEAK_TEST` | `yes`/`no`/boolean | Enable optional DNS leak path checks in self-test (route device for DNS probe must match `VPN_DEVICE_TYPE`). |
+| `VPN_SELFTEST_DNS_LEAK_STRICT` | `yes`/`no`/boolean | Make DNS leak path check failures critical instead of warning-only. |
+| `VPN_SELFTEST_DNS_LEAK_TIMEOUT` | positive integer seconds | Timeout per DNS probe lookup when DNS leak path checks are enabled (`3` default). |
+| `VPN_SELFTEST_DNS_LEAK_HOST` | DNS hostname | Hostname used for DNS leak path probe resolution (`one.one.one.one` default). |
 | `NOTIFY_SELFTEST_STATE_SCRIPT` | executable absolute path | Dedicated notify script called on readiness transitions (`ready`/`not_ready`). |
 | `VPN_SELFTEST_STATE_FILE` | absolute path | File storing previous self-test state (default `/data/nzbgetvpn-selftest-state`). If this default file exists but is not writable by the current runtime user, self-test falls back to `/data/nzbgetvpn-selftest-state-uid<uid>`. |
 | `NOTIFY_SELFTEST_STATE_TIMEOUT` | positive integer seconds | Self-test notify timeout (default `30`). |
@@ -248,6 +267,32 @@ Normal VPN recovery comes from `binhex/arch-int-vpn`:
 | WireGuard | The peer/interface is monitored and cycled when needed. |
 
 This image adds app-level fallback actions through `VPN_UNHEALTHY_*`.
+
+## Adaptive Profile Rotation
+
+Bundled helper:
+
+```text
+/data/scripts/rotate_on_poor_speed.sh
+```
+
+Use the dedicated rotation scheduler (enabled by default) to rotate WireGuard/OpenVPN profiles only after repeated poor speed/latency checks:
+
+```yaml
+environment:
+  ROTATE_ON_POOR_SPEED_ENABLED: "yes"
+  ROTATE_ON_POOR_SPEED_SCHEDULE: "*/10 * * * *"
+  ROTATE_ON_POOR_SPEED_SCRIPT: "/data/scripts/rotate_on_poor_speed.sh"
+  ROTATE_ON_POOR_SPEED_TIMEOUT: "90"
+  ROTATE_MODE: "auto"
+  ROTATE_FAIL_STREAK: "3"
+  ROTATE_COOLDOWN_SECONDS: "1800"
+  ROTATE_POST_ROTATION_ACTION: "watchdog-exit"
+  ROTATE_RESTART_EXIT_DELAY: "5"
+```
+
+Set `ROTATE_ON_POOR_SPEED_ENABLED=no` to disable this scheduler without affecting `VPN_CRON_*`.
+Use Compose `restart: unless-stopped` with `ROTATE_POST_ROTATION_ACTION=watchdog-exit`; without a restart policy the container exits and stays down.
 
 ## VPN Unhealthy Actions
 
@@ -304,6 +349,17 @@ environment:
 
 Use Compose mapping form for cron schedules because the value contains spaces.
 
+### Scheduled Adaptive Profile Rotation
+
+`ROTATE_ON_POOR_SPEED_*` schedules `rotate_on_poor_speed.sh` independently from `VPN_CRON_*`.
+
+| Variable | Description |
+| --- | --- |
+| `ROTATE_ON_POOR_SPEED_ENABLED` | Enable/disable adaptive rotation scheduler (`yes` default). |
+| `ROTATE_ON_POOR_SPEED_SCHEDULE` | Five-field cron expression for adaptive checks (default `*/10 * * * *`). |
+| `ROTATE_ON_POOR_SPEED_SCRIPT` | Script path, default `/data/scripts/rotate_on_poor_speed.sh`. |
+| `ROTATE_ON_POOR_SPEED_TIMEOUT` | Max runtime for adaptive rotation script, default `90`. |
+
 ### Scheduled Config Backups
 
 Use a dedicated backup scheduler independent from `VPN_CRON_*`:
@@ -353,7 +409,7 @@ environment:
   VPN_SELFTEST_ENABLED: "*/5 * * * *"
 ```
 
-The script runs from the watchdog loop, logs to normal container stdout, and does not modify VPN or app state. With `VPN_SELFTEST_ENABLED=yes`, results are a one-shot startup snapshot. With a cron expression, readiness is continuously re-evaluated and the optional ready marker can be updated or removed over time. On container restart, watchdog clears any stale ready marker once before the next self-test cycle. Listen checks target `VPN_SELFTEST_NZBGET_PORT` (default `6789`). Optional `NOTIFY_SELFTEST_STATE_SCRIPT` runs only when readiness transitions.
+The script runs from the watchdog loop, logs to normal container stdout, and does not modify VPN or app state. With `VPN_SELFTEST_ENABLED=yes`, results are a one-shot startup snapshot. With a cron expression, readiness is continuously re-evaluated and the optional ready marker can be updated or removed over time. On container restart, watchdog clears any stale ready marker once before the next self-test cycle. Listen checks target `VPN_SELFTEST_NZBGET_PORT` (default `6789`). Optional DNS leak path checks can be enabled with `VPN_SELFTEST_DNS_LEAK_TEST=yes`; failures are warning-only by default and become critical when `VPN_SELFTEST_DNS_LEAK_STRICT=yes`. Optional `NOTIFY_SELFTEST_STATE_SCRIPT` runs only when readiness transitions.
 
 ## Docker Healthcheck
 
