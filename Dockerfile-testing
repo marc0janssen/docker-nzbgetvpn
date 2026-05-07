@@ -36,6 +36,7 @@ ADD run/nobody/*.sh /home/nobody/
 ADD VERSION /usr/local/share/nzbgetvpn/VERSION
 ADD data/scripts/*.sh /usr/local/share/nzbgetvpn/scripts/
 ADD data/scripts/README.md /usr/local/share/nzbgetvpn/scripts/README.md
+ADD data/scripts/docs/*.md /usr/local/share/nzbgetvpn/scripts/docs/
 ADD data/wireguard-configs/README.md /usr/local/share/nzbgetvpn/wireguard-configs/README.md
 ADD data/openvpn-configs/README.md /usr/local/share/nzbgetvpn/openvpn-configs/README.md
 ADD data/backups/README.md /usr/local/share/nzbgetvpn/backups/README.md

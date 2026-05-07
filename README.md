@@ -30,7 +30,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 4.24.24
+* NZBGetVPN image/codebase version: 4.24.25
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260507
 
@@ -120,6 +120,7 @@ Script details are split into smaller files to reduce maintenance overhead and m
 
 - Index: [`data/scripts/README.md`](data/scripts/README.md)
 - Per-script docs under [`data/scripts/docs/`](data/scripts/docs/)
+- Bundled script docs are also synced into the container at `/data/scripts/docs/`.
 
 ## Provider Setup
 
