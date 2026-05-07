@@ -4,6 +4,17 @@ trim_value() {
 	echo "$1" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~'
 }
 
+is_enabled() {
+	case "${1:-}" in
+		yes|true|1)
+			return 0
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
 is_valid_port() {
 	[[ "$1" =~ ^[0-9]+$ ]] && [[ "$1" -ge 1 && "$1" -le 65535 ]]
 }
@@ -51,7 +62,7 @@ harden_wireguard_config_permissions() {
 
 	shopt -s nullglob
 	for conf_file in "${wireguard_config_dir}"/*.conf; do
-		if [[ "${DEBUG}" == "true" ]]; then
+		if is_enabled "${DEBUG:-}"; then
 			echo "[debug] Setting secure permissions on '${conf_file}'"
 		fi
 		if ! chmod 600 "${conf_file}"; then
@@ -68,7 +79,7 @@ docker_interface=$(ip -4 route ls | grep default | xargs | grep -o -P '[^\s]+$')
 if [[ -z "${docker_interface}" ]] || ! is_valid_interface_name "${docker_interface}"; then
 	echo "[crit] Unable to identify a valid docker interface, exiting..." ; exit 1
 fi
-if [[ "${DEBUG}" == "true" ]]; then
+if is_enabled "${DEBUG:-}"; then
 	echo "[debug] Docker interface defined as ${docker_interface}"
 fi
 
@@ -84,7 +95,7 @@ docker_ip=$(ifconfig "${docker_interface}" | grep -P -o -m 1 '(?<=inet\s)[^\s]+'
 if [[ -z "${docker_ip}" ]]; then
 	echo "[crit] Unable to identify docker IP for ${docker_interface}, exiting..." ; exit 1
 fi
-if [[ "${DEBUG}" == "true" ]]; then
+if is_enabled "${DEBUG:-}"; then
 	echo "[debug] Docker IP defined as ${docker_ip}"
 fi
 
@@ -93,7 +104,7 @@ docker_mask=$(ifconfig "${docker_interface}" | grep -P -o -m 1 '(?<=netmask\s)[^
 if [[ -z "${docker_mask}" ]]; then
 	echo "[crit] Unable to identify docker netmask for ${docker_interface}, exiting..." ; exit 1
 fi
-if [[ "${DEBUG}" == "true" ]]; then
+if is_enabled "${DEBUG:-}"; then
 	echo "[debug] Docker netmask defined as ${docker_mask}"
 fi
 
@@ -149,30 +160,39 @@ for lan_network_item in "${lan_network_list[@]}"; do
 done
 
 echo "[info] ip route defined as follows..."
-echo "--------------------"
-ip route
-echo "--------------------"
+ip route | sed '/^[[:space:]]*$/d'
 
 # setup iptables marks to allow routing of defined ports via lan
 ###
 
-if [[ "${DEBUG}" == "true" ]]; then
+if is_enabled "${DEBUG:-}"; then
 	echo "[debug] Modules currently loaded for kernel" ; lsmod
 fi
 
-# check we have iptable_mangle, if so setup fwmark
-lsmod | grep iptable_mangle
-iptable_mangle_exit_code="${?}"
+# Detect mangle table support by probing iptables directly. Some kernels
+# provide this support built-in and won't expose an iptable_mangle module.
+iptable_mangle_supported=0
+webui_http_table_id=6789
+if iptables -t mangle -S >/dev/null 2>&1; then
+	iptable_mangle_supported=1
+	echo "[info] iptables mangle support detected, adding fwmark for tables"
 
-if [[ "${iptable_mangle_exit_code}" == 0 ]]; then
+	# setup route for nzbget webui http using set-mark to route traffic for
+	# port 6789 to lan interface. Always use numeric table id for compatibility.
+	if [[ -f /etc/iproute2/rt_tables ]]; then
+		if ! grep -Eq "^[[:space:]]*${webui_http_table_id}[[:space:]]+webui_http([[:space:]]|$)" /etc/iproute2/rt_tables; then
+			echo "${webui_http_table_id}    webui_http" >> /etc/iproute2/rt_tables
+		fi
+	else
+		echo "[warn] /etc/iproute2/rt_tables not found; using numeric routing table ${webui_http_table_id}"
+	fi
 
-	echo "[info] iptable_mangle support detected, adding fwmark for tables"
-
-	# setup route for nzbget webui http using set-mark to route traffic for port 6789 to lan interface
-	echo "6789    webui_http" >> /etc/iproute2/rt_tables
-	ip rule add fwmark 1 table webui_http
-	ip route add default via "${default_gateway}" table webui_http
-
+	if ! ip rule show | grep -Eq "[[:space:]]fwmark[[:space:]]0x1[[:space:]].*[[:space:]]lookup[[:space:]]${webui_http_table_id}([[:space:]]|$)"; then
+		ip rule add fwmark 1 table "${webui_http_table_id}"
+	fi
+	ip route replace default via "${default_gateway}" table "${webui_http_table_id}"
+else
+	echo "[warn] iptables mangle support unavailable, Web UI/Privoxy outside LAN may not work"
 fi
 
 # input iptable rules
@@ -237,7 +257,7 @@ for lan_network_item in "${lan_network_list[@]}"; do
 	lan_network_item=$(echo "${lan_network_item}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 
 	# accept input to privoxy if enabled
-	if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
+	if is_enabled "${ENABLE_PRIVOXY:-}"; then
 		iptables -A INPUT -i "${docker_interface}" -p tcp -s "${lan_network_item}" -d "${docker_network_cidr}" -j ACCEPT
 	fi
 
@@ -289,8 +309,8 @@ for vpn_remote_port_item in "${vpn_remote_port_list[@]}"; do
 
 done
 
-# if iptable mangle is available (kernel module) then use mark
-if [[ "${iptable_mangle_exit_code}" == 0 ]]; then
+# if iptables mangle support is available then use mark
+if [[ "${iptable_mangle_supported}" == 1 ]]; then
 
 	# accept output from nzbget webui port 6789 - used for external access
 	iptables -t mangle -A OUTPUT -p tcp --dport 6789 -j MARK --set-mark 1
@@ -333,7 +353,7 @@ for lan_network_item in "${lan_network_list[@]}"; do
 	lan_network_item=$(echo "${lan_network_item}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 
 	# accept output from privoxy if enabled - used for lan access
-	if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
+	if is_enabled "${ENABLE_PRIVOXY:-}"; then
 		iptables -A OUTPUT -o "${docker_interface}" -p tcp -s "${docker_network_cidr}" -d "${lan_network_item}" -j ACCEPT
 	fi
 
@@ -349,7 +369,5 @@ iptables -A OUTPUT -o lo -j ACCEPT
 iptables -A OUTPUT -o "${VPN_DEVICE_TYPE}" -j ACCEPT
 
 echo "[info] iptables defined as follows..."
-echo "--------------------"
-iptables -S 2>&1 | tee /tmp/getiptables
+iptables -S 2>&1 | sed '/^[[:space:]]*$/d' | tee /tmp/getiptables
 chmod +r /tmp/getiptables
-echo "--------------------"

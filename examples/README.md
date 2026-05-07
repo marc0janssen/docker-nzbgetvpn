@@ -20,8 +20,10 @@ Edit `LAN_NETWORK`, `PUID` and `PGID` before first start. For OpenVPN, place one
 ## Testing Image
 
 ```sh
-docker compose -f examples/docker-compose.yml -f examples/docker-compose.testing.yml up -d
+docker compose -f examples/docker-compose.testing.yml up -d
 ```
+
+The testing example is now a complete standalone compose file (same defaults as the stable example, but with `marc0janssen/nzbgetvpn:testing`).
 
 ## Secrets
 

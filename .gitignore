@@ -33,6 +33,9 @@ data/wireguard-configs/*
 !data/openvpn-configs/
 data/openvpn-configs/*
 !data/openvpn-configs/README.md
+!data/backups/
+data/backups/*
+!data/backups/README.md
 
 # Logs and temporary files
 *.log

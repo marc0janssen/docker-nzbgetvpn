@@ -27,12 +27,27 @@ absolute_dir() {
 	)
 }
 
+normalize_yes_no() {
+	case "${1:-}" in
+		yes|true|1)
+			echo "yes"
+			;;
+		no|false|0)
+			echo "no"
+			;;
+		*)
+			echo ""
+			;;
+	esac
+}
+
 trap cleanup EXIT
 
 OPENVPN_RANDOM_SOURCE_DIR="${OPENVPN_RANDOM_SOURCE_DIR:-/data/openvpn-configs}"
 OPENVPN_CONFIG_DIR="${OPENVPN_CONFIG_DIR:-/config/openvpn}"
 OPENVPN_CONFIG_FILENAME="${OPENVPN_CONFIG_FILENAME:-openvpn.ovpn}"
 OPENVPN_CONFIG_USE_SOURCE_FILENAME="${OPENVPN_CONFIG_USE_SOURCE_FILENAME:-no}"
+OPENVPN_CONFIG_USE_SOURCE_FILENAME_NORMALIZED="$(normalize_yes_no "${OPENVPN_CONFIG_USE_SOURCE_FILENAME}")"
 
 [[ -d "${OPENVPN_RANDOM_SOURCE_DIR}" ]] || log_crit "OPENVPN_RANDOM_SOURCE_DIR '${OPENVPN_RANDOM_SOURCE_DIR}' does not exist"
 [[ -r "${OPENVPN_RANDOM_SOURCE_DIR}" ]] || log_crit "OPENVPN_RANDOM_SOURCE_DIR '${OPENVPN_RANDOM_SOURCE_DIR}' is not readable"
@@ -40,7 +55,7 @@ OPENVPN_CONFIG_USE_SOURCE_FILENAME="${OPENVPN_CONFIG_USE_SOURCE_FILENAME:-no}"
 [[ -w "${OPENVPN_CONFIG_DIR}" ]] || log_crit "OPENVPN_CONFIG_DIR '${OPENVPN_CONFIG_DIR}' is not writable"
 [[ "${OPENVPN_CONFIG_FILENAME}" == *.ovpn ]] || log_crit "OPENVPN_CONFIG_FILENAME must end with '.ovpn'"
 [[ "${OPENVPN_CONFIG_FILENAME}" != */* ]] || log_crit "OPENVPN_CONFIG_FILENAME must be a filename, not a path"
-[[ "${OPENVPN_CONFIG_USE_SOURCE_FILENAME}" == "yes" || "${OPENVPN_CONFIG_USE_SOURCE_FILENAME}" == "no" ]] || log_crit "OPENVPN_CONFIG_USE_SOURCE_FILENAME must be 'yes' or 'no'"
+[[ -n "${OPENVPN_CONFIG_USE_SOURCE_FILENAME_NORMALIZED}" ]] || log_crit "OPENVPN_CONFIG_USE_SOURCE_FILENAME must be one of: 'yes', 'no', 'true', 'false', '1', or '0'"
 
 source_abs="$(absolute_dir "${OPENVPN_RANDOM_SOURCE_DIR}")" || log_crit "Unable to resolve OPENVPN_RANDOM_SOURCE_DIR '${OPENVPN_RANDOM_SOURCE_DIR}'"
 target_abs="$(absolute_dir "${OPENVPN_CONFIG_DIR}")" || log_crit "Unable to resolve OPENVPN_CONFIG_DIR '${OPENVPN_CONFIG_DIR}'"
@@ -59,7 +74,7 @@ config_count="${#configs[@]}"
 
 selected_index=$((RANDOM % config_count))
 selected_config="${configs[${selected_index}]}"
-if [[ "${OPENVPN_CONFIG_USE_SOURCE_FILENAME}" == "yes" ]]; then
+if [[ "${OPENVPN_CONFIG_USE_SOURCE_FILENAME_NORMALIZED}" == "yes" ]]; then
 	target_filename="$(basename "${selected_config}")"
 else
 	target_filename="${OPENVPN_CONFIG_FILENAME}"

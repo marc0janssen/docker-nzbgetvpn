@@ -1,3 +1,36 @@
 services:
   nzbgetvpn:
     image: marc0janssen/nzbgetvpn:testing
+    container_name: nzbgetvpn-testing
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "6789:6789/tcp"
+      - "8118:8118/tcp"
+    volumes:
+      - ./config:/config
+      - ./data:/data
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      VPN_ENABLED: "yes"
+      VPN_CLIENT: "openvpn"
+      VPN_PROV: "custom"
+      LAN_NETWORK: "192.168.1.0/24"
+      NAME_SERVERS: "1.1.1.1,1.0.0.1"
+      ENABLE_PRIVOXY: "yes"
+      STRICT_PORT_FORWARD: "no"
+      PUID: "1000"
+      PGID: "1000"
+      UMASK: "000"
+      # Put provider credentials in an untracked .env file or Docker secrets.
+      # VPN_USER: "${VPN_USER}"
+      # VPN_PASS: "${VPN_PASS}"
+      # NORDVPN_ACCESS_TOKEN: "${NORDVPN_ACCESS_TOKEN}"
+    restart: unless-stopped
+
+    # For WireGuard custom configs, change VPN_CLIENT to "wireguard" above and
+    # replace cap_add with the following settings:
+    #
+    # privileged: true
+    # sysctls:
+    #   net.ipv4.conf.all.src_valid_mark: "1"

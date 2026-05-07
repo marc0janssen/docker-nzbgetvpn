@@ -7,6 +7,39 @@ NZBGETVPN_VERSION_LOG_MARKER=/tmp/nzbgetvpn-version-logged
 NZBGETVPN_CHANGELOG_URL=https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md
 NZBGETVPN_CONTACT_URL=https://bio.mjanssen.nl/@Marco
 
+is_enabled() {
+	case "${1:-}" in
+		yes|true|1)
+			return 0
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
+resolve_vpn_selftest_mode() {
+	local configured="${VPN_SELFTEST_ENABLED:-no}"
+
+	case "${configured}" in
+		no|false|0|"")
+			echo "no"
+			;;
+		yes|true|1)
+			echo "yes"
+			;;
+		*)
+			echo "${configured}"
+			;;
+	esac
+}
+
+log_vpn_selftest_setting() {
+	local resolved_mode
+	resolved_mode="$(resolve_vpn_selftest_mode)"
+	echo "[info] VPN self-test mode '${resolved_mode}' (VPN_SELFTEST_ENABLED='${VPN_SELFTEST_ENABLED:-no}')"
+}
+
 log_nzbgetvpn_version() {
 	local nzbget_version="${NZBGET_VERSION:-unknown}"
 	local nzbgetvpn_version="unknown"
@@ -73,7 +106,7 @@ if [[ "${nzbget_running}" == "false" ]]; then
 
 			else
 
-				if [[ "${DEBUG}" == "true" ]]; then
+				if is_enabled "${DEBUG:-}"; then
 					echo "[debug] Waiting for nzbget process to start"
 					echo "[debug] Re-check in ${retry_wait} secs..."
 					echo "[debug] ${retry_count} retries left"
@@ -107,6 +140,7 @@ if [[ "${nzbget_running}" == "false" ]]; then
 	if [[ $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".6789\"") != "" ]]; then
 		echo "[info] Nzbget process is listening on port 6789"
 		log_nzbgetvpn_version
+		log_vpn_selftest_setting
 	fi
 
 fi

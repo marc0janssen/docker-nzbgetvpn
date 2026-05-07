@@ -1,5 +1,17 @@
 #FROM binhex/arch-int-vpn:2025100101
-FROM binhex/arch-int-vpn:2026032801
+ARG BASE_IMAGE_TAG=2026032801
+FROM binhex/arch-int-vpn:${BASE_IMAGE_TAG}
+
+ARG BASE_IMAGE_TAG
+ARG NZBGETVPN_VERSION=unknown
+
+LABEL org.opencontainers.image.title="NZBGetVPN" \
+      org.opencontainers.image.description="NZBGet with VPN support based on binhex/arch-int-vpn" \
+      org.opencontainers.image.source="https://github.com/marc0janssen/nzbgetvpn" \
+      org.opencontainers.image.documentation="https://github.com/marc0janssen/nzbgetvpn/blob/develop/README.md" \
+      org.opencontainers.image.url="https://hub.docker.com/r/marc0janssen/nzbgetvpn" \
+      org.opencontainers.image.version="${NZBGETVPN_VERSION}" \
+      org.opencontainers.image.base.name="binhex/arch-int-vpn:${BASE_IMAGE_TAG}"
 
 ENV NZBGET_VERSION=26.1
 ENV NZBGET_VERSION_DIR=v26.1
@@ -26,6 +38,7 @@ ADD data/scripts/*.sh /usr/local/share/nzbgetvpn/scripts/
 ADD data/scripts/README.md /usr/local/share/nzbgetvpn/scripts/README.md
 ADD data/wireguard-configs/README.md /usr/local/share/nzbgetvpn/wireguard-configs/README.md
 ADD data/openvpn-configs/README.md /usr/local/share/nzbgetvpn/openvpn-configs/README.md
+ADD data/backups/README.md /usr/local/share/nzbgetvpn/backups/README.md
 
 # install app
 #############
@@ -44,6 +57,10 @@ VOLUME /data
 
 # expose port for http
 EXPOSE 6789
+
+# docker healthcheck based on internal self-test
+HEALTHCHECK --interval=60s --timeout=30s --start-period=120s --retries=3 \
+	CMD ["/bin/bash", "/root/healthcheck.sh"]
 
 # set permissions
 #################
