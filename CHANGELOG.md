@@ -4,6 +4,25 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.24.22] - 2026-05-07
+
+### Fixed
+
+- Hardened `scripts/latest-nzbget-version.sh` testing-channel lookup against GitHub API `403` rate-limit/abuse responses by adding token-aware API auth (`GITHUB_TOKEN`/`GH_TOKEN`) and an HTML fallback that reads `releases/expanded_assets/testing` to resolve the current `nzbget-*-bin-linux.run` asset.
+
+## [4.24.21] - 2026-05-07
+
+### Fixed
+
+- Updated testing release pinning to `26.2-testing-20260507` in `Dockerfile-testing`, `README.md`, and `README-containers.md` so testing builds no longer point at a removed release asset.
+- Hardened `build.sh` and `build-testing.sh` argument handling by trimming accidental leading/trailing whitespace on version/base/SHA arguments to prevent malformed download URLs during retries or copy/paste usage.
+
+## [4.24.20] - 2026-05-07
+
+### Fixed
+
+- Tightened fail-safe idempotency in `run/root/iptable.sh` by switching LAN route programming to `ip route replace` and by enforcing consistent check-before-add behavior for iptables rules (including mangle marks) to avoid duplicate entries on restarts/retries.
+
 ## [4.24.19] - 2026-05-07
 
 ### Changed

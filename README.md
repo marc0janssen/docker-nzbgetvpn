@@ -30,9 +30,9 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 4.24.19
+* NZBGetVPN image/codebase version: 4.24.22
 * NZBGET Current stable version: 26.1
-* NZBGET Current testing version: 26.2-testing-20260506
+* NZBGET Current testing version: 26.2-testing-20260507
 
 The NZBGetVPN image/codebase version is stored in `VERSION`.
 

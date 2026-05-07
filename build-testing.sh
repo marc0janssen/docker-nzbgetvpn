@@ -71,6 +71,10 @@ is_docker_tag() {
 	printf '%s\n' "${tag}" | grep -Eq '^[A-Za-z0-9_][A-Za-z0-9_.-]*$'
 }
 
+trim_value() {
+	printf '%s' "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+}
+
 case "${1:-}" in
 -h | --help)
 	show_help
@@ -84,17 +88,18 @@ EXPECTED_SHA256_ARG=""
 ACCEPT_DOWNLOADED_SHA256="no"
 
 while [ "$#" -gt 0 ]; do
+	arg="$(trim_value "$1")"
 	case "$1" in
 	--base)
 		if [ "$#" -lt 2 ]; then
 			echo "--base requires a value" >&2
 			exit 1
 		fi
-		BASE_IMAGE_ARG="$2"
+		BASE_IMAGE_ARG="$(trim_value "$2")"
 		shift 2
 		;;
 	--base=*)
-		BASE_IMAGE_ARG="${1#--base=}"
+		BASE_IMAGE_ARG="$(trim_value "${arg#--base=}")"
 		shift
 		;;
 	--sha256)
@@ -102,11 +107,11 @@ while [ "$#" -gt 0 ]; do
 			echo "--sha256 requires a value" >&2
 			exit 1
 		fi
-		EXPECTED_SHA256_ARG="$2"
+		EXPECTED_SHA256_ARG="$(trim_value "$2")"
 		shift 2
 		;;
 	--sha256=*)
-		EXPECTED_SHA256_ARG="${1#--sha256=}"
+		EXPECTED_SHA256_ARG="$(trim_value "${arg#--sha256=}")"
 		shift
 		;;
 	--accept-downloaded-sha256)
@@ -122,7 +127,7 @@ while [ "$#" -gt 0 ]; do
 			show_help >&2
 			exit 1
 		fi
-		NZBGET_VERSION_ARG="$1"
+		NZBGET_VERSION_ARG="$(trim_value "${arg}")"
 		shift
 		;;
 	esac
