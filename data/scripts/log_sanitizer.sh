@@ -55,7 +55,7 @@ main() {
 			echo "[crit] [log-sanitizer] Refusing to overwrite input file in place; use a different output path" >&2
 			exit 1
 		fi
-		sanitize_stream < "${input_file}" > "${output_file}"
+		sanitize_stream <"${input_file}" >"${output_file}"
 		echo "[info] [log-sanitizer] Wrote sanitized output to '${output_file}'"
 		return
 	fi
@@ -67,7 +67,7 @@ main() {
 	fi
 
 	if [[ -n "${input_file}" ]]; then
-		sanitize_stream < "${input_file}"
+		sanitize_stream <"${input_file}"
 		return
 	fi
 

@@ -29,15 +29,15 @@ absolute_dir() {
 
 normalize_yes_no() {
 	case "${1:-}" in
-		yes|true|1)
-			echo "yes"
-			;;
-		no|false|0)
-			echo "no"
-			;;
-		*)
-			echo ""
-			;;
+	yes | true | 1)
+		echo "yes"
+		;;
+	no | false | 0)
+		echo "no"
+		;;
+	*)
+		echo ""
+		;;
 	esac
 }
 

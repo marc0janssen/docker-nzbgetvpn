@@ -73,7 +73,7 @@ main() {
 	is_positive_integer "${attempts}" || log_crit "BENCHMARK_ATTEMPTS must be a positive integer"
 	is_positive_integer "${timeout_secs}" || log_crit "BENCHMARK_TIMEOUT must be a positive integer"
 
-	IFS=',' read -r -a endpoints <<< "${endpoints_raw}"
+	IFS=',' read -r -a endpoints <<<"${endpoints_raw}"
 	[[ "${#endpoints[@]}" -gt 0 ]] || log_crit "BENCHMARK_ENDPOINTS is empty"
 
 	for endpoint in "${endpoints[@]}"; do
@@ -93,7 +93,7 @@ main() {
 				continue
 			fi
 
-			read -r ttfb speed_bps status_code <<< "${metrics}"
+			read -r ttfb speed_bps status_code <<<"${metrics}"
 			if [[ "${status_code}" -lt 200 || "${status_code}" -ge 400 ]]; then
 				continue
 			fi
@@ -135,7 +135,7 @@ main() {
 	if [[ -n "${best_file}" ]]; then
 		[[ "${best_file}" == /* ]] || log_crit "BENCHMARK_BEST_FILE must be an absolute path"
 		[[ "${best_file}" != *..* ]] || log_crit "BENCHMARK_BEST_FILE must not contain '..'"
-		printf '%s\n' "${best_endpoint}" > "${best_file}"
+		printf '%s\n' "${best_endpoint}" >"${best_file}"
 		log_info "Wrote best endpoint to '${best_file}'"
 	fi
 
@@ -154,7 +154,7 @@ main() {
 			local first=1
 			local line url status latency speed result_score
 			for line in "${result_lines[@]}"; do
-				IFS='|' read -r url status latency speed result_score <<< "${line}"
+				IFS='|' read -r url status latency speed result_score <<<"${line}"
 				if [[ "${first}" -eq 0 ]]; then
 					printf ','
 				fi
@@ -163,7 +163,7 @@ main() {
 					"$(json_escape "${url}")" "$(json_escape "${status}")" "${latency}" "${speed}" "${result_score}"
 			done
 			printf ']}\n'
-		} > "${tmp}"
+		} >"${tmp}"
 
 		chmod 600 "${tmp}" || true
 		mv -f -- "${tmp}" "${output_file}"

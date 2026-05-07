@@ -1,29 +1,30 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+shared_lib="${script_dir}/lib.sh"
+if [[ ! -r "${shared_lib}" ]]; then
+	shared_lib="/usr/local/share/nzbgetvpn/scripts/lib.sh"
+fi
+if [[ ! -r "${shared_lib}" ]]; then
+	printf '[crit] [rotate-on-poor-speed] Shared helper library not found at %s or /usr/local/share/nzbgetvpn/scripts/lib.sh\n' "${script_dir}/lib.sh" >&2
+	exit 1
+fi
+# shellcheck source=/dev/null
+. "${shared_lib}"
+NZBGETVPN_LOG_TAG="rotate-on-poor-speed"
+
 log_info() {
-	printf '[info] [rotate-on-poor-speed] %s\n' "$*"
+	nzbgetvpn_log_info "$*"
 }
 
 log_warn() {
-	printf '[warn] [rotate-on-poor-speed] %s\n' "$*" >&2
+	nzbgetvpn_log_warn "$*" >&2
 }
 
 log_crit() {
-	printf '[crit] [rotate-on-poor-speed] %s\n' "$*" >&2
+	nzbgetvpn_log_crit "$*" >&2
 	exit 1
-}
-
-normalize_yes_no() {
-	case "${1:-}" in
-		yes|true|1) echo "yes" ;;
-		no|false|0) echo "no" ;;
-		*) echo "" ;;
-	esac
-}
-
-is_positive_integer() {
-	[[ "${1:-}" =~ ^[0-9]+$ ]] && [[ "${1}" -gt 0 ]]
 }
 
 is_positive_number() {
@@ -31,17 +32,11 @@ is_positive_number() {
 	awk -v n="${1}" 'BEGIN {exit (n > 0) ? 0 : 1}'
 }
 
-trim() {
-	printf '%s' "${1:-}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
-}
-
-validate_absolute_path() {
+require_absolute_path() {
 	local value="$1"
 	local name="$2"
 
-	[[ -n "${value}" ]] || log_crit "${name} is empty"
-	[[ "${value}" == /* ]] || log_crit "${name} must be an absolute path"
-	[[ "${value}" != *..* ]] || log_crit "${name} must not contain '..'"
+	validate_absolute_path "${value}" || log_crit "${name} is empty, not absolute, or contains '..'"
 }
 
 require_command() {
@@ -72,7 +67,7 @@ write_state() {
 
 	tmp="$(mktemp "${dir}/.rotate-on-poor-speed.XXXXXX")"
 	trap 'rm -f -- "${tmp}"' EXIT
-	cat > "${tmp}" <<EOF
+	cat >"${tmp}" <<EOF
 fail_streak=${fail_streak}
 last_rotate_epoch=${last_rotate_epoch}
 last_reason=${last_reason}
@@ -114,46 +109,46 @@ execute_rotation() {
 	log_warn "Rotation triggered (${reason}) using mode '${mode}'"
 
 	case "${mode}" in
-		wireguard)
-			if [[ "${refresh_enabled}" == "yes" ]]; then
-				[[ -x "${refresh_script}" ]] || log_crit "ROTATE_WIREGUARD_REFRESH_SCRIPT '${refresh_script}' is not executable"
-				log_info "Refreshing WireGuard profiles before rotation"
-				"${refresh_script}"
-			fi
-			[[ -x "${rotate_wg_script}" ]] || log_crit "ROTATE_WIREGUARD_SCRIPT '${rotate_wg_script}' is not executable"
-			"${rotate_wg_script}"
-			;;
-		openvpn)
-			[[ -x "${rotate_ovpn_script}" ]] || log_crit "ROTATE_OPENVPN_SCRIPT '${rotate_ovpn_script}' is not executable"
-			"${rotate_ovpn_script}"
-			;;
-		*)
-			log_crit "Internal error: unsupported rotation mode '${mode}'"
-			;;
+	wireguard)
+		if [[ "${refresh_enabled}" == "yes" ]]; then
+			[[ -x "${refresh_script}" ]] || log_crit "ROTATE_WIREGUARD_REFRESH_SCRIPT '${refresh_script}' is not executable"
+			log_info "Refreshing WireGuard profiles before rotation"
+			"${refresh_script}"
+		fi
+		[[ -x "${rotate_wg_script}" ]] || log_crit "ROTATE_WIREGUARD_SCRIPT '${rotate_wg_script}' is not executable"
+		"${rotate_wg_script}"
+		;;
+	openvpn)
+		[[ -x "${rotate_ovpn_script}" ]] || log_crit "ROTATE_OPENVPN_SCRIPT '${rotate_ovpn_script}' is not executable"
+		"${rotate_ovpn_script}"
+		;;
+	*)
+		log_crit "Internal error: unsupported rotation mode '${mode}'"
+		;;
 	esac
 }
 
 main() {
-	local mode="${ROTATE_MODE:-auto}"
+	local mode="${ROTATE_MODE:-$(nzbgetvpn_get_default ROTATE_MODE)}"
 	local speedtest_urls_raw="${ROTATE_SPEEDTEST_URLS:-}"
 	local speedtest_url_fallback="${ROTATE_SPEEDTEST_URL:-}"
-	local speedtest_default_urls="https://speed.cloudflare.com/__down?bytes=4000000,https://proof.ovh.net/files/10Mb.dat"
+	local speedtest_default_urls
 	local speedtest_weights_raw="${ROTATE_SPEEDTEST_WEIGHTS:-}"
-	local speedtest_default_weights="0.60,0.40"
-	local timeout_secs="${ROTATE_SPEEDTEST_TIMEOUT:-20}"
-	local attempts="${ROTATE_SPEEDTEST_ATTEMPTS:-1}"
-	local min_successful_endpoints="${ROTATE_MIN_SUCCESSFUL_ENDPOINTS:-1}"
-	local min_mbps="${ROTATE_MIN_DOWNLOAD_MBPS:-10}"
-	local max_latency_ms="${ROTATE_MAX_LATENCY_MS:-700}"
-	local fail_streak_required="${ROTATE_FAIL_STREAK:-3}"
-	local cooldown_seconds="${ROTATE_COOLDOWN_SECONDS:-1800}"
-	local state_file="${ROTATE_STATE_FILE:-/data/rotate-on-poor-speed-state}"
-	local wg_script="${ROTATE_WIREGUARD_SCRIPT:-/data/scripts/select_random_wireguard_config.sh}"
-	local ovpn_script="${ROTATE_OPENVPN_SCRIPT:-/data/scripts/select_random_openvpn_config.sh}"
-	local refresh_script="${ROTATE_WIREGUARD_REFRESH_SCRIPT:-/data/scripts/get_wireguard_configs_nordvpn.sh}"
+	local speedtest_default_weights
+	local timeout_secs="${ROTATE_SPEEDTEST_TIMEOUT:-$(nzbgetvpn_get_default ROTATE_SPEEDTEST_TIMEOUT)}"
+	local attempts="${ROTATE_SPEEDTEST_ATTEMPTS:-$(nzbgetvpn_get_default ROTATE_SPEEDTEST_ATTEMPTS)}"
+	local min_successful_endpoints="${ROTATE_MIN_SUCCESSFUL_ENDPOINTS:-$(nzbgetvpn_get_default ROTATE_MIN_SUCCESSFUL_ENDPOINTS)}"
+	local min_mbps="${ROTATE_MIN_DOWNLOAD_MBPS:-$(nzbgetvpn_get_default ROTATE_MIN_DOWNLOAD_MBPS)}"
+	local max_latency_ms="${ROTATE_MAX_LATENCY_MS:-$(nzbgetvpn_get_default ROTATE_MAX_LATENCY_MS)}"
+	local fail_streak_required="${ROTATE_FAIL_STREAK:-$(nzbgetvpn_get_default ROTATE_FAIL_STREAK)}"
+	local cooldown_seconds="${ROTATE_COOLDOWN_SECONDS:-$(nzbgetvpn_get_default ROTATE_COOLDOWN_SECONDS)}"
+	local state_file="${ROTATE_STATE_FILE:-$(nzbgetvpn_get_default ROTATE_STATE_FILE)}"
+	local wg_script="${ROTATE_WIREGUARD_SCRIPT:-$(nzbgetvpn_get_default ROTATE_WIREGUARD_SCRIPT)}"
+	local ovpn_script="${ROTATE_OPENVPN_SCRIPT:-$(nzbgetvpn_get_default ROTATE_OPENVPN_SCRIPT)}"
+	local refresh_script="${ROTATE_WIREGUARD_REFRESH_SCRIPT:-$(nzbgetvpn_get_default ROTATE_WIREGUARD_REFRESH_SCRIPT)}"
 	local refresh_enabled
-	local post_action="${ROTATE_POST_ROTATION_ACTION:-none}"
-	local restart_request_file="${ROTATE_RESTART_REQUEST_FILE:-/tmp/rotate-on-poor-speed-exit-watchdog}"
+	local post_action="${ROTATE_POST_ROTATION_ACTION:-$(nzbgetvpn_get_default ROTATE_POST_ROTATION_ACTION)}"
+	local restart_request_file="${ROTATE_RESTART_REQUEST_FILE:-$(nzbgetvpn_get_default ROTATE_RESTART_REQUEST_FILE)}"
 	local now current_streak previous_streak last_rotate_epoch
 	local speed_mbps latency_ms poor_reason=""
 	local endpoint
@@ -174,11 +169,14 @@ main() {
 	local use_custom_weights="no"
 	local selected_mode
 
+	speedtest_default_urls="$(nzbgetvpn_get_default ROTATE_SPEEDTEST_URLS)"
+	speedtest_default_weights="$(nzbgetvpn_get_default ROTATE_SPEEDTEST_WEIGHTS)"
+
 	require_command curl
-	validate_absolute_path "${state_file}" "ROTATE_STATE_FILE"
-	validate_absolute_path "${wg_script}" "ROTATE_WIREGUARD_SCRIPT"
-	validate_absolute_path "${ovpn_script}" "ROTATE_OPENVPN_SCRIPT"
-	validate_absolute_path "${refresh_script}" "ROTATE_WIREGUARD_REFRESH_SCRIPT"
+	require_absolute_path "${state_file}" "ROTATE_STATE_FILE"
+	require_absolute_path "${wg_script}" "ROTATE_WIREGUARD_SCRIPT"
+	require_absolute_path "${ovpn_script}" "ROTATE_OPENVPN_SCRIPT"
+	require_absolute_path "${refresh_script}" "ROTATE_WIREGUARD_REFRESH_SCRIPT"
 
 	is_positive_integer "${timeout_secs}" || log_crit "ROTATE_SPEEDTEST_TIMEOUT must be a positive integer"
 	is_positive_integer "${attempts}" || log_crit "ROTATE_SPEEDTEST_ATTEMPTS must be a positive integer"
@@ -188,31 +186,31 @@ main() {
 	[[ "${min_mbps}" =~ ^[0-9]+([.][0-9]+)?$ ]] || log_crit "ROTATE_MIN_DOWNLOAD_MBPS must be numeric"
 	[[ "${max_latency_ms}" =~ ^[0-9]+$ ]] || log_crit "ROTATE_MAX_LATENCY_MS must be an integer"
 
-	refresh_enabled="$(normalize_yes_no "${ROTATE_WIREGUARD_REFRESH_ENABLED:-no}")"
+	refresh_enabled="$(normalize_yes_no "${ROTATE_WIREGUARD_REFRESH_ENABLED:-$(nzbgetvpn_get_default ROTATE_WIREGUARD_REFRESH_ENABLED)}")"
 	[[ -n "${refresh_enabled}" ]] || log_crit "ROTATE_WIREGUARD_REFRESH_ENABLED must be yes/no/true/false/1/0"
 	case "${post_action}" in
-		none|watchdog-exit)
-			;;
-		*)
-			log_crit "ROTATE_POST_ROTATION_ACTION must be 'none' or 'watchdog-exit'"
-			;;
+	none | watchdog-exit)
+		;;
+	*)
+		log_crit "ROTATE_POST_ROTATION_ACTION must be 'none' or 'watchdog-exit'"
+		;;
 	esac
-	validate_absolute_path "${restart_request_file}" "ROTATE_RESTART_REQUEST_FILE"
+	require_absolute_path "${restart_request_file}" "ROTATE_RESTART_REQUEST_FILE"
 
 	case "${mode}" in
-		auto)
-			case "${VPN_CLIENT:-}" in
-				wireguard) selected_mode="wireguard" ;;
-				openvpn) selected_mode="openvpn" ;;
-				*) log_crit "ROTATE_MODE=auto requires VPN_CLIENT=openvpn or VPN_CLIENT=wireguard" ;;
-			esac
-			;;
-		wireguard|openvpn)
-			selected_mode="${mode}"
-			;;
-		*)
-			log_crit "ROTATE_MODE must be 'auto', 'wireguard', or 'openvpn'"
-			;;
+	auto)
+		case "${VPN_CLIENT:-}" in
+		wireguard) selected_mode="wireguard" ;;
+		openvpn) selected_mode="openvpn" ;;
+		*) log_crit "ROTATE_MODE=auto requires VPN_CLIENT=openvpn or VPN_CLIENT=wireguard" ;;
+		esac
+		;;
+	wireguard | openvpn)
+		selected_mode="${mode}"
+		;;
+	*)
+		log_crit "ROTATE_MODE must be 'auto', 'wireguard', or 'openvpn'"
+		;;
 	esac
 
 	if [[ -z "${speedtest_urls_raw}" ]]; then
@@ -224,10 +222,10 @@ main() {
 		fi
 	fi
 
-	IFS=',' read -r -a speedtest_urls <<< "${speedtest_urls_raw}"
+	IFS=',' read -r -a speedtest_urls <<<"${speedtest_urls_raw}"
 	[[ "${#speedtest_urls[@]}" -gt 0 ]] || log_crit "No speedtest endpoints configured"
 	if [[ -n "${speedtest_weights_raw}" ]]; then
-		IFS=',' read -r -a speedtest_weights <<< "${speedtest_weights_raw}"
+		IFS=',' read -r -a speedtest_weights <<<"${speedtest_weights_raw}"
 		use_custom_weights="yes"
 	fi
 
@@ -237,10 +235,10 @@ main() {
 		all_endpoint_count=$((all_endpoint_count + 1))
 		endpoint_weight="1"
 		if [[ "${use_custom_weights}" == "yes" ]]; then
-			[[ "${#speedtest_weights[@]}" -gt "${endpoint_index}" ]] || \
+			[[ "${#speedtest_weights[@]}" -gt "${endpoint_index}" ]] ||
 				log_crit "ROTATE_SPEEDTEST_WEIGHTS count must match ROTATE_SPEEDTEST_URLS count"
 			endpoint_weight="$(trim "${speedtest_weights[endpoint_index]}")"
-			is_positive_number "${endpoint_weight}" || \
+			is_positive_number "${endpoint_weight}" ||
 				log_crit "ROTATE_SPEEDTEST_WEIGHTS must contain positive numeric values"
 		fi
 		endpoint_index=$((endpoint_index + 1))
@@ -334,7 +332,7 @@ main() {
 	log_info "Rotation completed (${selected_mode})"
 
 	if [[ "${post_action}" == "watchdog-exit" ]]; then
-		printf 'rotate_on_poor_speed %s %s\n' "${selected_mode}" "${now}" > "${restart_request_file}" || \
+		printf 'rotate_on_poor_speed %s %s\n' "${selected_mode}" "${now}" >"${restart_request_file}" ||
 			log_crit "Failed to write restart request file '${restart_request_file}'"
 		log_warn "Requested watchdog exit via '${restart_request_file}' to force container restart"
 	fi

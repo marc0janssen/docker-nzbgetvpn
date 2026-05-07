@@ -9,12 +9,12 @@ NZBGETVPN_CONTACT_URL=https://bio.mjanssen.nl/@Marco
 
 is_enabled() {
 	case "${1:-}" in
-		yes|true|1)
-			return 0
-			;;
-		*)
-			return 1
-			;;
+	yes | true | 1)
+		return 0
+		;;
+	*)
+		return 1
+		;;
 	esac
 }
 
@@ -22,15 +22,15 @@ resolve_vpn_selftest_mode() {
 	local configured="${VPN_SELFTEST_ENABLED:-no}"
 
 	case "${configured}" in
-		no|false|0|"")
-			echo "no"
-			;;
-		yes|true|1)
-			echo "yes"
-			;;
-		*)
-			echo "${configured}"
-			;;
+	no | false | 0 | "")
+		echo "no"
+		;;
+	yes | true | 1)
+		echo "yes"
+		;;
+	*)
+		echo "${configured}"
+		;;
 	esac
 }
 
@@ -55,11 +55,10 @@ log_nzbgetvpn_version() {
 
 	log_line="[info] NZBGetVPN ${nzbgetvpn_version} | NZBGet ${nzbget_version} | Changelog: ${NZBGETVPN_CHANGELOG_URL} | Contact page: ${NZBGETVPN_CONTACT_URL}"
 	printf '%s\n' "${log_line}"
-	: > "${NZBGETVPN_VERSION_LOG_MARKER}"
+	: >"${NZBGETVPN_VERSION_LOG_MARKER}"
 }
 
 if [[ ! -f /config/nzbget.conf ]]; then
-
 
 	echo "[info] Nzbget config file doesn't exist, copying default..."
 	cp $CONFIG_DIR/nzbget.conf /config/
@@ -74,12 +73,12 @@ else
 
 fi
 sed -i '/WebDir=*/ s/=.*/=${AppDir}\/webui/' /config/nzbget.conf
-sed -i  '/ConfigTemplate=*/ s/=.*/=${AppDir}\/webui\/nzbget.conf.template/' /config/nzbget.conf
+sed -i '/ConfigTemplate=*/ s/=.*/=${AppDir}\/webui\/nzbget.conf.template/' /config/nzbget.conf
 if [[ -f "${CA_CERT_STORE}" ]]; then
 	if grep -q '^CertStore=' /config/nzbget.conf; then
 		sed -i "s|^CertStore=.*|CertStore=${CA_CERT_STORE}|g" /config/nzbget.conf
 	else
-		printf '\nCertStore=%s\n' "${CA_CERT_STORE}" >> /config/nzbget.conf
+		printf '\nCertStore=%s\n' "${CA_CERT_STORE}" >>/config/nzbget.conf
 	fi
 else
 	echo "[warn] System CA certificate store '${CA_CERT_STORE}' not found; leaving NZBGet CertStore unchanged"
@@ -97,9 +96,9 @@ if [[ "${nzbget_running}" == "false" ]]; then
 	retry_wait=1
 	while true; do
 
-		if ! pgrep -x nzbget > /dev/null; then
+		if ! pgrep -x nzbget >/dev/null; then
 
-			retry_count=$((retry_count-1))
+			retry_count=$((retry_count - 1))
 			if [ "${retry_count}" -eq "0" ]; then
 
 				echo "[warn] Wait for nzbget process to start aborted, too many retries"
@@ -129,7 +128,7 @@ if [[ "${nzbget_running}" == "false" ]]; then
 	retry_count=120
 	retry_wait=0.1
 	while [[ $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".6789\"") == "" ]]; do
-		retry_count=$((retry_count-1))
+		retry_count=$((retry_count - 1))
 		if [ "${retry_count}" -eq "0" ]; then
 			echo "[warn] Wait for nzbget port 6789 to listen aborted, too many retries"
 			break

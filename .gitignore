@@ -27,6 +27,8 @@ data/*
 data/scripts/*
 !data/scripts/*.sh
 !data/scripts/README.md
+!data/scripts/docs/
+!data/scripts/docs/*.md
 !data/wireguard-configs/
 data/wireguard-configs/*
 !data/wireguard-configs/README.md

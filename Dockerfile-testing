@@ -13,9 +13,9 @@ LABEL org.opencontainers.image.title="NZBGetVPN" \
       org.opencontainers.image.version="${NZBGETVPN_VERSION}" \
       org.opencontainers.image.base.name="binhex/arch-int-vpn:${BASE_IMAGE_TAG}"
 
-ENV NZBGET_VERSION=26.2-testing-20260506
+ENV NZBGET_VERSION=26.2-testing-20260507
 ENV NZBGET_VERSION_DIR=testing
-ENV NZBGET_SHA256=8863b6ea7c8bba6195f78065de2d229567c140392b558a376fcbe807e653e918
+ENV NZBGET_SHA256=420e6479c935459e32b824a4443179afd24d8e3dd9609ca0850e7bd8d6eae1d0
 
 # additional files
 ##################
@@ -36,6 +36,7 @@ ADD run/nobody/*.sh /home/nobody/
 ADD VERSION /usr/local/share/nzbgetvpn/VERSION
 ADD data/scripts/*.sh /usr/local/share/nzbgetvpn/scripts/
 ADD data/scripts/README.md /usr/local/share/nzbgetvpn/scripts/README.md
+ADD data/scripts/docs/*.md /usr/local/share/nzbgetvpn/scripts/docs/
 ADD data/wireguard-configs/README.md /usr/local/share/nzbgetvpn/wireguard-configs/README.md
 ADD data/openvpn-configs/README.md /usr/local/share/nzbgetvpn/openvpn-configs/README.md
 ADD data/backups/README.md /usr/local/share/nzbgetvpn/backups/README.md

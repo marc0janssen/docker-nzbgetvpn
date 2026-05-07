@@ -28,13 +28,11 @@ echo "[info] Updating pacman database..."
 # call pacman db and package updater script
 #source upd.sh
 printf '%s\n' \
-  'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' \
-  'Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch' \
-  'Server = https://mirror.leaseweb.net/archlinux/$repo/os/$arch' \
-  > /etc/pacman.d/mirrorlist \
-  && pacman -Syyu --noconfirm
-
-
+	'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' \
+	'Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch' \
+	'Server = https://mirror.leaseweb.net/archlinux/$repo/os/$arch' \
+	>/etc/pacman.d/mirrorlist &&
+	pacman -Syyu --noconfirm
 
 echo "[info] Installing pacman packages..."
 # define pacman packages
@@ -45,11 +43,11 @@ if [[ ! -z "${pacman_packages}" ]]; then
 	pacman -S --needed $pacman_packages --noconfirm
 fi
 
-
 echo "[info] Installing nzbget..."
 # install nzbget
 if [[ -z "${NZBGET_SHA256}" ]]; then
-	echo "[crit] NZBGET_SHA256 is not set, refusing to install unverified NZBGet release" ; exit 1
+	echo "[crit] NZBGET_SHA256 is not set, refusing to install unverified NZBGet release"
+	exit 1
 fi
 
 wget -O /tmp/nzbget.run "https://github.com/nzbgetcom/nzbget/releases/download/${NZBGET_VERSION_DIR}/nzbget-${NZBGET_VERSION}-bin-linux.run"
@@ -59,7 +57,7 @@ ln -s /usr/sbin/nzbget_bin/nzbget /usr/sbin/nzbget
 
 if [[ ! -f /usr/local/bin/shutdown.sh ]]; then
 	echo "[info] Installing fallback shutdown script..."
-	cat <<'EOF' > /usr/local/bin/shutdown.sh
+	cat <<'EOF' >/usr/local/bin/shutdown.sh
 #!/bin/bash
 
 application="${1:-}"
@@ -87,19 +85,20 @@ fi
 # container perms
 ####
 
-# define comma separated list of paths 
+# define comma separated list of paths
 mkdir -p /data/scripts /data/wireguard-configs /data/openvpn-configs /data/backups
 install_paths="/usr/sbin/nzbget_bin,/home/nobody,/data/scripts,/data/wireguard-configs,/data/openvpn-configs,/data/backups"
 
 # split comma separated string into list for install paths
-IFS=',' read -ra install_paths_list <<< "${install_paths}"
+IFS=',' read -ra install_paths_list <<<"${install_paths}"
 
 # process install paths in the list
 for i in "${install_paths_list[@]}"; do
 
 	# confirm path(s) exist, if not then exit
 	if [[ ! -d "${i}" ]]; then
-		echo "[crit] Path '${i}' does not exist, exiting build process..." ; exit 1
+		echo "[crit] Path '${i}' does not exist, exiting build process..."
+		exit 1
 	fi
 
 done
@@ -110,8 +109,9 @@ install_paths=$(echo "${install_paths}" | tr ',' ' ')
 # set permissions for container during build - Do NOT double quote variable for install_paths otherwise this will wrap space separated paths as a single string
 chmod -R 775 ${install_paths}
 
-cat <<EOF > /tmp/permissions_heredoc
+cat <<EOF >/tmp/permissions_heredoc
 mkdir -p /data/scripts /data/wireguard-configs /data/openvpn-configs /data/backups
+mkdir -p /data/scripts/docs
 for bundled_script in /usr/local/share/nzbgetvpn/scripts/*.sh; do
 	if [[ -f "\${bundled_script}" ]]; then
 		target_script="/data/scripts/\$(basename "\${bundled_script}")"
@@ -123,6 +123,18 @@ for bundled_script in /usr/local/share/nzbgetvpn/scripts/*.sh; do
 			echo "[info] Updating bundled script '\${target_script}'"
 			cp "\${bundled_script}" "\${target_script}"
 			chmod +x "\${target_script}"
+		fi
+	fi
+done
+for bundled_doc in /usr/local/share/nzbgetvpn/scripts/docs/*.md; do
+	if [[ -f "\${bundled_doc}" ]]; then
+		target_doc="/data/scripts/docs/\$(basename "\${bundled_doc}")"
+		if [[ ! -f "\${target_doc}" ]]; then
+			echo "[info] Installing bundled script doc '\${target_doc}'"
+			cp "\${bundled_doc}" "\${target_doc}"
+		elif ! cmp -s "\${bundled_doc}" "\${target_doc}"; then
+			echo "[info] Updating bundled script doc '\${target_doc}'"
+			cp "\${bundled_doc}" "\${target_doc}"
 		fi
 	fi
 done
@@ -166,7 +178,7 @@ rm /tmp/permissions_heredoc
 # env vars
 ####
 
-cat <<'EOF' > /tmp/envvars_heredoc
+cat <<'EOF' >/tmp/envvars_heredoc
 export APPLICATION="nzbget"
 EOF
 

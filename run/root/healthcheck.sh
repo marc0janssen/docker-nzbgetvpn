@@ -3,12 +3,12 @@ set -Eeuo pipefail
 
 is_enabled() {
 	case "${1:-}" in
-		yes|true|1)
-			return 0
-			;;
-		*)
-			return 1
-			;;
+	yes | true | 1)
+		return 0
+		;;
+	*)
+		return 1
+		;;
 	esac
 }
 

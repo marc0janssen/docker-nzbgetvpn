@@ -4,6 +4,152 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.24.25] - 2026-05-07
+
+### Changed
+
+- Added `data/scripts/docs/*.md` to both Dockerfiles so helper-script documentation is bundled into the image under `/usr/local/share/nzbgetvpn/scripts/docs/`.
+- Extended startup install/sync logic in `build/root/install.sh` to install and update bundled script docs into `/data/scripts/docs/` alongside bundled helper scripts.
+- Updated `README.md` and `README-containers.md` to document container-side availability of bundled script docs.
+
+## [4.24.24] - 2026-05-07
+
+### Changed
+
+- Extended `scripts/ci-quality-checks.sh` with hard CI guards for unresolved merge-conflict markers and Docker Hub README size limits (`README-containers.md` must remain below `25000` bytes).
+- Added optional conventional commit lint support in quality checks via `CI_CONVENTIONAL_COMMIT_LINT` and `CI_CONVENTIONAL_COMMIT_RANGE`, and wired workflow defaults in `.github/workflows/quality-checks.yml`.
+- Updated `README.md` and `README-containers.md` CI documentation with the new guards and optional commit-lint activation flow.
+
+## [4.24.23] - 2026-05-07
+
+### Fixed
+
+- Hardened fail-safe idempotency in `run/root/iptable.sh` by introducing a reusable `ip rule` check-before-add helper for fwmark routes, preventing duplicate rule insertion across restarts and retries.
+
+## [4.24.22] - 2026-05-07
+
+### Fixed
+
+- Hardened `scripts/latest-nzbget-version.sh` testing-channel lookup against GitHub API `403` rate-limit/abuse responses by adding token-aware API auth (`GITHUB_TOKEN`/`GH_TOKEN`) and an HTML fallback that reads `releases/expanded_assets/testing` to resolve the current `nzbget-*-bin-linux.run` asset.
+
+## [4.24.21] - 2026-05-07
+
+### Fixed
+
+- Updated testing release pinning to `26.2-testing-20260507` in `Dockerfile-testing`, `README.md`, and `README-containers.md` so testing builds no longer point at a removed release asset.
+- Hardened `build.sh` and `build-testing.sh` argument handling by trimming accidental leading/trailing whitespace on version/base/SHA arguments to prevent malformed download URLs during retries or copy/paste usage.
+
+## [4.24.20] - 2026-05-07
+
+### Fixed
+
+- Tightened fail-safe idempotency in `run/root/iptable.sh` by switching LAN route programming to `ip route replace` and by enforcing consistent check-before-add behavior for iptables rules (including mangle marks) to avoid duplicate entries on restarts/retries.
+
+## [4.24.19] - 2026-05-07
+
+### Changed
+
+- Centralized adaptive-rotation defaults in `data/scripts/lib.sh` and updated `data/scripts/rotate_on_poor_speed.sh` plus `run/nobody/watchdog.sh` to consume the shared defaults instead of duplicating hard-coded values.
+- Added `scripts/sync-rotate-defaults-doc.sh` to render/check `data/scripts/docs/rotate_on_poor_speed.md` defaults from the shared runtime source and wired this drift check into `scripts/ci-quality-checks.sh`.
+- Updated `README.md`, `README-containers.md`, and `data/scripts/README.md` to document the generated/validated defaults workflow.
+
+## [4.24.18] - 2026-05-07
+
+### Fixed
+
+- Hardened runtime script trust boundaries by removing `/data/scripts/lib.sh` fallback from `run/root/iptable.sh`, `run/nobody/watchdog.sh`, and `run/nobody/vpn-selftest.sh`; these scripts now only source `/usr/local/share/nzbgetvpn/scripts/lib.sh`.
+
+## [4.24.17] - 2026-05-07
+
+### Changed
+
+- Added shared helper library `data/scripts/lib.sh` and updated `run/nobody/watchdog.sh`, `run/nobody/vpn-selftest.sh`, `run/root/iptable.sh`, and `data/scripts/rotate_on_poor_speed.sh` to reuse common enable/normalize/path/log helper logic.
+- Updated `data/scripts/README.md` with the bundled `lib.sh` helper entry for operator visibility.
+
+## [4.24.16] - 2026-05-07
+
+### Fixed
+
+- Corrected remaining `shfmt --diff` formatting in `scripts/ci-quality-checks.sh` redirection spacing so local and CI quality checks pass cleanly.
+
+## [4.24.15] - 2026-05-07
+
+### Changed
+
+- Applied repository-wide shell formatting with `shfmt -w` to align scripts with the enforced `shfmt --diff` quality gate.
+- Updated `VERSION`, `README.md`, and `README-containers.md` version metadata after the formatting sweep.
+
+## [4.24.14] - 2026-05-07
+
+### Changed
+
+- Updated `scripts/ci-quality-checks.sh` with a temporary shellcheck baseline exclude list for known legacy findings so CI can gate new regressions while cleanup is phased.
+- Added strict-mode guidance (`SHELLCHECK_EXCLUDES=`) in `README.md`, `README-containers.md`, and `ci/README.md` to support full shellcheck cleanup runs.
+
+## [4.24.13] - 2026-05-07
+
+### Changed
+
+- Added CI status badges and expanded CI workflow descriptions in `README.md` and `README-containers.md` for clearer visibility of automated quality and runtime checks.
+- Updated `ci/README.md` to explicitly point to the separate shell-quality check workflow and local command.
+
+## [4.24.12] - 2026-05-07
+
+### Added
+
+- Added GitHub Actions workflow `.github/workflows/quality-checks.yml` to run shell quality checks on `push` and `pull_request`.
+- Added `scripts/ci-quality-checks.sh` to run `bash`/`sh` syntax checks on tracked scripts, `shellcheck`, `shfmt --diff`, and AGENTS.md validation commands in one CI/local entrypoint.
+
+### Changed
+
+- Updated `README.md` and `README-containers.md` with the new local and CI shell-quality check flow.
+
+## [4.24.11] - 2026-05-07
+
+### Fixed
+
+- Removed the host-side `rg` dependency from `scripts/ci-smoke-test.sh` by replacing the running-container check with a Docker-native `docker compose ps -q` + `docker inspect` wait loop.
+
+### Changed
+
+- Documented host requirements (`docker compose` and `nc`) in `ci/README.md`.
+
+## [4.24.10] - 2026-05-07
+
+### Changed
+
+- Updated `ci/docker-compose.smoke.yml` and `scripts/ci-smoke-test.sh` to run smoke tests with explicit platform selection (`SMOKE_PLATFORM`, default `linux/amd64`) to avoid manifest-platform mismatches on Apple Silicon and other non-amd64 hosts.
+- Expanded smoke-test docs in `ci/README.md`, `README.md`, and `README-containers.md` with platform guidance and a direct workaround for `no match for platform in manifest`.
+
+## [4.24.9] - 2026-05-07
+
+### Added
+
+- Added `ci/README.md` with a dedicated runtime smoke-test guide covering purpose, validated checks, local usage, optional debug mode, and troubleshooting commands.
+
+### Changed
+
+- Updated `README.md` and `README-containers.md` to link to the dedicated smoke-test documentation.
+
+## [4.24.8] - 2026-05-07
+
+### Added
+
+- Added runtime smoke-test assets (`ci/docker-compose.smoke.yml` and `scripts/ci-smoke-test.sh`) that validate container startup, NZBGet listen port `6789`, Privoxy reachability on `8118` when enabled, and successful self-test exits.
+- Added GitHub Actions workflow `.github/workflows/smoke-test.yml` to run the smoke test on push and pull request events.
+
+### Changed
+
+- Updated `README.md` and `README-containers.md` with a short CI smoke-test reference.
+
+## [4.24.7] - 2026-05-07
+
+### Changed
+
+- Simplified `README.md` into a compact operator-focused document with generated anchor-based table of contents and direct links to detailed docs.
+- Simplified `README-containers.md` to keep Docker Hub content concise while linking to full repository docs.
+- Replaced the large monolithic `data/scripts/README.md` with an index-style helper overview and added per-script docs under `data/scripts/docs/` to reduce merge-conflict hotspots.
+
 ## [4.24.6] - 2026-05-07
 
 ### Changed
