@@ -8,7 +8,7 @@ Full documentation is available in the GitHub repository README.
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.15.1
+* NZBGetVPN image/codebase version: 4.16.2
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -19,7 +19,7 @@ Full documentation is available in the GitHub repository README.
 | `stable` | Stable NZBGet release. |
 | `testing` | Testing NZBGet release. |
 | `<version>` | Versioned image, for example `26.1`. |
-| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.15.1`. |
+| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.16.2`. |
 
 ## Included
 
@@ -167,7 +167,7 @@ Bundled notification examples are also included:
 - `/data/scripts/notify_pushover.sh`
 
 They are intended for `NOTIFY_SELFTEST_STATE_SCRIPT` and `NOTIFY_UNHEALTHY_SCRIPT` flows.
-The bundle also includes `/data/scripts/log_sanitizer.sh` to sanitize logs before sharing.
+The bundle also includes `/data/scripts/log_sanitizer.sh` to sanitize logs before sharing and `/data/scripts/upgrade_check.sh` for pre-update checks.
 
 ## Backup And Restore
 
@@ -540,6 +540,21 @@ Examples:
 ```sh
 /data/scripts/log_sanitizer.sh /data/nzbgetvpn.log /data/nzbgetvpn.sanitized.log
 docker logs nzbgetvpn 2>&1 | /data/scripts/log_sanitizer.sh > /data/nzbgetvpn-dockerlogs.sanitized.log
+```
+
+## Bundled Upgrade Check Script
+
+Included script:
+
+```text
+/data/scripts/upgrade_check.sh
+```
+
+Use this helper before updating. It compares local and remote NZBGetVPN version metadata, checks NZBGet app version drift against remote stable/testing metadata, and prints a changelog impact snippet.
+If remote metadata cannot be fetched (for example DNS timeout), it logs warnings and exits successfully after local checks.
+
+```sh
+/data/scripts/upgrade_check.sh
 ```
 
 ## Build Verification

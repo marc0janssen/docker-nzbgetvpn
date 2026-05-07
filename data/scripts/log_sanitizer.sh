@@ -27,8 +27,8 @@ sanitize_stream() {
 		-e 's/(Authorization:[[:space:]]*Bearer[[:space:]]+)[^[:space:]]+/\1<redacted-token>/g' \
 		-e 's/((NORDVPN_ACCESS_TOKEN|VPN_PASS|VPN_USER|PUSHOVER_APP_TOKEN|PUSHOVER_USER_KEY|TELEGRAM_BOT_TOKEN|DISCORD_WEBHOOK_URL|SOCKS_PASS|SOCKS_USER|API_KEY|ACCESS_TOKEN|SECRET_KEY|PASSWORD)[[:space:]]*[:=][[:space:]]*)[^[:space:]"]+/\1<redacted-secret>/g' \
 		-e 's/([?&](token|access_token|apikey|api_key|password|passwd|secret|key)=)[^&[:space:]]+/\1<redacted-query>/g' \
-		-e 's/\b([0-9]{1,3}\.){3}[0-9]{1,3}\b/<redacted-ipv4>/g' \
-		-e 's/\b([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}\b/<redacted-ipv6>/g' \
+		-e 's/(^|[^0-9])(([0-9]{1,3}\.){3}[0-9]{1,3})([^0-9]|$)/\1<redacted-ipv4>\4/g' \
+		-e 's/(^|[^0-9A-Fa-f:])([0-9A-Fa-f:]*::[0-9A-Fa-f:]*|([0-9A-Fa-f]{0,4}:){3,7}[0-9A-Fa-f]{0,4})([^0-9A-Fa-f:]|$)/\1<redacted-ipv6>\4/g' \
 		-e 's#(^|[[:space:]"'\''=])(/[^[:space:]"'\'']+)#\1<redacted-path>#g'
 }
 
@@ -41,8 +41,12 @@ main() {
 		exit 0
 	fi
 
-	if [[ -n "${input_file}" && ! -f "${input_file}" ]]; then
-		echo "[crit] [log-sanitizer] Input file '${input_file}' does not exist" >&2
+	if [[ -n "${input_file}" && ! -e "${input_file}" ]]; then
+		echo "[crit] [log-sanitizer] Input path '${input_file}' does not exist" >&2
+		exit 1
+	fi
+	if [[ -n "${input_file}" && ! -r "${input_file}" ]]; then
+		echo "[crit] [log-sanitizer] Input path '${input_file}' is not readable" >&2
 		exit 1
 	fi
 
@@ -54,6 +58,12 @@ main() {
 		sanitize_stream < "${input_file}" > "${output_file}"
 		echo "[info] [log-sanitizer] Wrote sanitized output to '${output_file}'"
 		return
+	fi
+
+	if [[ -z "${input_file}" && -t 0 ]]; then
+		log_warn "No input provided. Pass a file path or pipe logs via stdin."
+		usage
+		exit 1
 	fi
 
 	if [[ -n "${input_file}" ]]; then

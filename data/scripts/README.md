@@ -18,6 +18,7 @@ Bundled scripts are managed by the image. On container start, they are installed
 | `select_random_openvpn_config.sh` | Pick a random `*.ovpn` from `/data/openvpn-configs` and install it in `/config/openvpn`. |
 | `backup_config.sh` | Create timestamped archives of `/config` to `/data/backups` (or custom target). |
 | `log_sanitizer.sh` | Redact tokens/secrets, IP addresses, and absolute paths from logs before sharing. |
+| `upgrade_check.sh` | Show whether a newer image/codebase version is available and print relevant changelog impact before updating. |
 | `notify_discord.sh` | Send a state/unhealthy notification to a Discord webhook. |
 | `notify_telegram.sh` | Send a state/unhealthy notification through the Telegram Bot API. |
 | `notify_pushover.sh` | Send a state/unhealthy notification through Pushover. |
@@ -211,6 +212,38 @@ Pipe Docker logs:
 
 ```text
 docker logs nzbgetvpn 2>&1 | /data/scripts/log_sanitizer.sh > /data/nzbgetvpn-dockerlogs.sanitized.log
+```
+
+## `upgrade_check.sh`
+
+Checks whether a newer NZBGetVPN image/codebase version is available, checks NZBGet app version drift (stable/testing), then prints changelog impact before you update.
+
+When GitHub metadata cannot be reached (for example DNS/network timeout inside container), the script logs warnings and exits successfully after local checks, so it can be used safely in cron workflows.
+
+Manual run:
+
+```text
+/data/scripts/upgrade_check.sh
+```
+
+Optional variables:
+
+```text
+UPGRADE_CHECK_REPO=marc0janssen/nzbgetvpn
+UPGRADE_CHECK_BRANCH=develop
+UPGRADE_CHECK_CHANNEL=stable
+UPGRADE_CHECK_TIMEOUT=15
+UPGRADE_CHECK_CHANGELOG_LIMIT=4
+UPGRADE_CHECK_LOCAL_VERSION_FILE=/usr/local/share/nzbgetvpn/VERSION
+UPGRADE_CHECK_LOCAL_NZBGET_VERSION=26.1
+```
+
+Example scheduled check:
+
+```text
+VPN_CRON_SCHEDULE=0 8 * * *
+VPN_CRON_SCRIPT=/data/scripts/upgrade_check.sh
+VPN_CRON_SCRIPT_TIMEOUT=60
 ```
 
 ## Notification Scripts

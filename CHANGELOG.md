@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.16.2] - 2026-05-07
+
+### Fixed
+
+- Made `upgrade_check.sh` tolerant of GitHub/DNS/network lookup failures: it now warns and exits successfully after local checks instead of failing hard.
+
+## [4.16.1] - 2026-05-07
+
+### Fixed
+
+- Extended `upgrade_check.sh` to also report NZBGet application version drift against remote stable/testing metadata from `README.md`, not only the image/codebase version.
+
+## [4.16.0] - 2026-05-07
+
+### Added
+
+- Added bundled helper `data/scripts/upgrade_check.sh` to perform a simple pre-update check: compare local vs remote image/codebase version metadata and print relevant changelog impact before updating.
+
+### Changed
+
+- Documented `upgrade_check.sh` usage in `README.md`, `README-containers.md`, and `data/scripts/README.md`.
+
 ## [4.15.1] - 2026-05-07
 
 ### Changed
