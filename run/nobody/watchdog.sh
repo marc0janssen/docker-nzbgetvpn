@@ -10,6 +10,7 @@ vpn_selftest_has_run="no"
 vpn_selftest_last_run_minute=""
 vpn_selftest_mode_logged="no"
 vpn_selftest_startup_delay_logged="no"
+vpn_selftest_ready_file_cleared="no"
 watchdog_start_epoch="$(date +%s)"
 
 is_positive_integer() {
@@ -112,6 +113,29 @@ get_vpn_selftest_startup_delay() {
 	echo "${configured}"
 }
 
+clear_vpn_selftest_ready_file_once() {
+	local path
+
+	if [[ "${vpn_selftest_ready_file_cleared}" == "yes" ]]; then
+		return
+	fi
+	vpn_selftest_ready_file_cleared="yes"
+
+	path="${VPN_SELFTEST_READY_FILE:-}"
+	if [[ -z "${path}" ]]; then
+		return
+	fi
+	if [[ "${path}" != /* || "${path}" == *..* ]]; then
+		echo "[warn] VPN_SELFTEST_READY_FILE '${path}' is invalid, skipping startup stale-file cleanup"
+		return
+	fi
+
+	if [[ -e "${path}" ]]; then
+		rm -f -- "${path}"
+		echo "[info] Cleared stale VPN self-test ready file '${path}' at watchdog startup"
+	fi
+}
+
 handle_vpn_selftest() {
 	local mode
 	local current_run_minute
@@ -127,6 +151,7 @@ handle_vpn_selftest() {
 	if [[ "${mode}" == "no" ]]; then
 		return
 	fi
+	clear_vpn_selftest_ready_file_once
 
 	if [[ "${mode}" == "yes" ]]; then
 		if [[ "${vpn_selftest_has_run}" == "yes" ]]; then

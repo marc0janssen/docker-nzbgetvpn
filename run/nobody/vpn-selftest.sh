@@ -29,6 +29,83 @@ is_enabled() {
 	esac
 }
 
+ready_path_warn() {
+	# Does not increment warn_count; path validation is orthogonal to VPN/NZBGet checks.
+	echo "[warn] [vpn-selftest] $*"
+}
+
+validate_ready_file_path() {
+	local path="${1:-}"
+
+	if [[ -z "${path}" ]]; then
+		return 1
+	fi
+	if [[ "${path}" != /* ]]; then
+		ready_path_warn "VPN_SELFTEST_READY_FILE must be an absolute path, ignoring ready file"
+		return 1
+	fi
+	if [[ "${path}" == *..* ]]; then
+		ready_path_warn "VPN_SELFTEST_READY_FILE must not contain '..', ignoring ready file"
+		return 1
+	fi
+	if [[ "${#path}" -gt 4096 ]]; then
+		ready_path_warn "VPN_SELFTEST_READY_FILE path is too long, ignoring ready file"
+		return 1
+	fi
+	return 0
+}
+
+clear_ready_file() {
+	local path="${VPN_SELFTEST_READY_FILE:-}"
+
+	validate_ready_file_path "${path}" || return 0
+	rm -f -- "${path}"
+}
+
+write_ready_file() {
+	local path="${VPN_SELFTEST_READY_FILE:-}"
+	local dir
+	local tmp
+
+	if ! validate_ready_file_path "${path}"; then
+		return 0
+	fi
+
+	dir="$(dirname -- "${path}")"
+	if [[ ! -d "${dir}" ]]; then
+		ready_path_warn "VPN_SELFTEST_READY_FILE parent directory '${dir}' does not exist, skipping ready file"
+		return 0
+	fi
+	if [[ ! -w "${dir}" ]]; then
+		ready_path_warn "VPN_SELFTEST_READY_FILE parent directory '${dir}' is not writable, skipping ready file"
+		return 0
+	fi
+
+	tmp="$(mktemp "${dir}/.nzbgetvpn-ready.XXXXXX")"
+	trap 'rm -f -- "${tmp}"' EXIT
+	printf 'ok %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "${tmp}"
+	chmod 644 "${tmp}"
+	mv -f -- "${tmp}" "${path}"
+	trap - EXIT
+	log_info "Wrote ready signal file '${path}'"
+}
+
+update_ready_file() {
+	local path="${VPN_SELFTEST_READY_FILE:-}"
+
+	if [[ -z "${path}" ]]; then
+		return 0
+	fi
+
+	if is_enabled "${VPN_SELFTEST_READY_STRICT:-no}" && [[ "${warn_count}" -gt 0 ]]; then
+		clear_ready_file
+		log_info "Ready file not written (VPN_SELFTEST_READY_STRICT and ${warn_count} warning(s))"
+		return 0
+	fi
+
+	write_ready_file
+}
+
 check_dir_writable() {
 	local dir_path="$1"
 	if [[ ! -d "${dir_path}" ]]; then
@@ -87,7 +164,7 @@ check_vpn_ip_signal() {
 }
 
 nzbget_listening() {
-	netstat -lnt | awk '$6 == "LISTEN" && $4 ~ /\.6789$/ {found=1} END {exit(found?0:1)}'
+	netstat -lnt | awk '$6 == "LISTEN" && $4 ~ /:6789$/ {found=1} END {exit(found?0:1)}'
 }
 
 check_nzbget_state() {
@@ -127,10 +204,12 @@ main() {
 	check_nzbget_state
 
 	if [[ "${fail_count}" -gt 0 ]]; then
+		clear_ready_file
 		log_crit "Self-test finished with ${fail_count} critical issue(s) and ${warn_count} warning(s)"
 		exit 1
 	fi
 
+	update_ready_file
 	log_info "Self-test finished successfully with ${warn_count} warning(s)"
 }
 

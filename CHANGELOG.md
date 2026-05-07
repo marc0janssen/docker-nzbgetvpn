@@ -4,6 +4,32 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.1.11] - 2026-05-07
+
+### Changed
+
+- Clear `VPN_SELFTEST_READY_FILE` once at watchdog startup when self-test mode is enabled, so container restarts begin in a not-ready state until a fresh self-test succeeds.
+- Documented startup stale-ready-file cleanup behavior in both README files.
+
+## [4.1.10] - 2026-05-07
+
+### Fixed
+
+- Corrected the NZBGet listen-port detection regex in `run/nobody/vpn-selftest.sh` to match `:6789` socket addresses (IPv4/IPv6), preventing false warnings when NZBGet is already reachable.
+
+## [4.1.9] - 2026-05-07
+
+### Changed
+
+- Clarified self-test readiness semantics in both README files: `VPN_SELFTEST_ENABLED=yes` is a one-shot startup snapshot, while cron schedules provide continuous readiness updates (including ready-file refresh/removal over time).
+
+## [4.1.8] - 2026-05-06
+
+### Added
+
+- `VPN_SELFTEST_READY_FILE`: optional absolute path; on successful self-test, `vpn-selftest.sh` writes a one-line `ok <UTC ISO8601>` stamp (atomic replace). The file is removed when the self-test exits with critical failures.
+- `VPN_SELFTEST_READY_STRICT`: when `yes`/`true`/`1`, the ready file is written only if there are zero warnings; otherwise any existing file is removed.
+
 ## [4.1.7] - 2026-05-06
 
 ### Changed
