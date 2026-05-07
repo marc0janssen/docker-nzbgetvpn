@@ -14,6 +14,7 @@ vpn_selftest_mode_logged="no"
 vpn_selftest_startup_delay_logged="no"
 vpn_selftest_ready_file_cleared="no"
 watchdog_start_epoch="$(date +%s)"
+nzbget_failsafe_applied="no"
 
 is_positive_integer() {
 	[[ "$1" =~ ^[0-9]+$ ]] && [[ "$1" -gt 0 ]]
@@ -210,6 +211,65 @@ get_vpn_unhealthy_cooldown() {
 	fi
 
 	echo "${configured}"
+}
+
+get_vpn_failsafe_nzbget_action() {
+	local configured="${VPN_FAILSAFE_NZBGET_ACTION:-none}"
+	configured="$(strip_wrapping_quotes "${configured}")"
+
+	case "${configured}" in
+		""|none)
+			echo "none"
+			;;
+		pause|stop)
+			echo "${configured}"
+			;;
+		*)
+			echo "[warn] VPN_FAILSAFE_NZBGET_ACTION '${configured}' is invalid, using 'none'"
+			echo "none"
+			;;
+	esac
+}
+
+handle_vpn_failsafe_nzbget() {
+	local action
+	local after
+
+	action="$(get_vpn_failsafe_nzbget_action)"
+	if [[ "${action}" == "none" ]]; then
+		return
+	fi
+	if [[ "${nzbget_failsafe_applied}" == "yes" ]]; then
+		return
+	fi
+
+	after="$(get_vpn_unhealthy_after)"
+	if [[ "${vpn_unhealthy_count}" -lt "${after}" ]]; then
+		return
+	fi
+
+	if ! pgrep -x nzbget >/dev/null 2>&1; then
+		return
+	fi
+
+	case "${action}" in
+		pause)
+			echo "[warn] VPN has been unhealthy for ${vpn_unhealthy_count} watchdog checks, pausing NZBGet downloads via '/usr/bin/nzbget -P'"
+			if /usr/bin/nzbget -P >/dev/null 2>&1; then
+				nzbget_failsafe_applied="yes"
+			else
+				echo "[warn] NZBGet pause command failed; check credentials/listen state in /config/nzbget.conf"
+			fi
+			;;
+		stop)
+			echo "[warn] VPN has been unhealthy for ${vpn_unhealthy_count} watchdog checks, stopping NZBGet via '/usr/bin/nzbget -Q'"
+			if /usr/bin/nzbget -Q >/dev/null 2>&1; then
+				nzbget_failsafe_applied="yes"
+			else
+				echo "[warn] NZBGet stop command failed; check credentials/listen state in /config/nzbget.conf"
+			fi
+			;;
+	esac
 }
 
 handle_vpn_unhealthy() {
@@ -503,6 +563,7 @@ while true; do
 				echo "[info] VPN IP detected, resetting unhealthy counter"
 			fi
 			vpn_unhealthy_count=0
+			nzbget_failsafe_applied="no"
 
 			# check if nzbget is running, if not then skip shutdown of process
 			if ! pgrep -x nzbget > /dev/null; then
@@ -555,6 +616,7 @@ while true; do
 
 			echo "[warn] VPN IP not detected, VPN tunnel maybe down"
 			vpn_unhealthy_count=$((vpn_unhealthy_count+1))
+			handle_vpn_failsafe_nzbget
 			handle_vpn_unhealthy
 
 		fi

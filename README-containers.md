@@ -8,7 +8,7 @@ Full documentation is available in the GitHub repository README.
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.13.3
+* NZBGetVPN image/codebase version: 4.14.0
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -19,7 +19,7 @@ Full documentation is available in the GitHub repository README.
 | `stable` | Stable NZBGet release. |
 | `testing` | Testing NZBGet release. |
 | `<version>` | Versioned image, for example `26.1`. |
-| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.13.3`. |
+| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.14.0`. |
 
 ## Included
 
@@ -255,6 +255,7 @@ The watchdog runs every 30 seconds. If the VPN IP is missing for multiple checks
 | Variable | Default | Description |
 | --- | --- | --- |
 | `VPN_UNHEALTHY_ACTION` | `none` | `none`, `script`, `script+exit`, or `exit`. |
+| `VPN_FAILSAFE_NZBGET_ACTION` | `none` | Optional app-level fail-safe when unhealthy threshold is reached: `none`, `pause` (`nzbget -P`), or `stop` (`nzbget -Q`). |
 | `VPN_UNHEALTHY_SCRIPT` | unset | Executable script path for `script` and `script+exit`. |
 | `VPN_UNHEALTHY_AFTER` | `10` | Failed checks before action. `10` is about 5 minutes. |
 | `VPN_UNHEALTHY_COOLDOWN` | `300` | Minimum seconds between actions. Values below `300` are raised to `300`. |
@@ -263,6 +264,12 @@ The watchdog runs every 30 seconds. If the VPN IP is missing for multiple checks
 | `VPN_UNHEALTHY_TEST` | `no` | Set `yes` to simulate a missing VPN IP for testing. |
 | `NOTIFY_UNHEALTHY_SCRIPT` | unset | Dedicated notify script run when unhealthy threshold is reached. |
 | `NOTIFY_UNHEALTHY_TIMEOUT` | `300` | Max runtime for the dedicated unhealthy notify script. |
+
+Recovery behavior after VPN returns:
+
+- `VPN_FAILSAFE_NZBGET_ACTION=stop`: watchdog starts NZBGet again automatically when VPN IP is detected and NZBGet is not running.
+- `VPN_FAILSAFE_NZBGET_ACTION=pause`: NZBGet process keeps running, but downloads stay paused until you resume manually (WebUI/API/CLI).
+- `VPN_FAILSAFE_NZBGET_ACTION=none`: no app-level pause/stop action is applied.
 
 Example:
 

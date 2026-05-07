@@ -10,7 +10,7 @@ This image builds on top of [`binhex/arch-int-vpn`](https://github.com/binhex/ar
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 4.13.3
+* NZBGetVPN image/codebase version: 4.14.0
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -23,7 +23,7 @@ The NZBGetVPN image/codebase version is stored in `VERSION`. The two NZBGet vers
 | `marc0janssen/nzbgetvpn:stable` | Stable NZBGet release from `Dockerfile`. |
 | `marc0janssen/nzbgetvpn:testing` | Testing NZBGet release from `Dockerfile-testing`. |
 | `marc0janssen/nzbgetvpn:<version>` | Versioned image, for example `26.1` or `26.2-testing-20260504`. |
-| `marc0janssen/nzbgetvpn:<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version from `VERSION`, for example `26.1-image-v4.13.3`. |
+| `marc0janssen/nzbgetvpn:<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version from `VERSION`, for example `26.1-image-v4.14.0`. |
 
 ## What Is Included
 
@@ -309,6 +309,7 @@ The watchdog loop runs every 30 seconds.
 | Variable | Required | Values / format | Default | Description |
 | --- | --- | --- | --- | --- |
 | `VPN_UNHEALTHY_ACTION` | No | `none`, `script`, `script+exit`, `exit` | `none` | Action when VPN health keeps failing. |
+| `VPN_FAILSAFE_NZBGET_ACTION` | No | `none`, `pause`, `stop` | `none` | Optional app-level fail-safe when unhealthy threshold is reached. `pause` runs `nzbget -P`; `stop` runs `nzbget -Q`. |
 | `VPN_UNHEALTHY_SCRIPT` | For `script` / `script+exit` | Executable path | unset | Script to run when the unhealthy action needs a script. |
 | `VPN_UNHEALTHY_AFTER` | No | Positive integer | `10` | Number of failed watchdog checks before action. `10` is about 5 minutes. |
 | `VPN_UNHEALTHY_COOLDOWN` | No | Positive integer seconds | `300` | Minimum time between repeated actions. Values below `300` are raised to `300` and logged. |
@@ -317,6 +318,13 @@ The watchdog loop runs every 30 seconds.
 | `VPN_UNHEALTHY_TEST` | No | `yes`, `no` | `no` | Makes the watchdog pretend the VPN IP is missing so you can test the action. |
 
 Dedicated notifications can run independently through `NOTIFY_UNHEALTHY_SCRIPT` (without requiring `VPN_UNHEALTHY_ACTION=script`).
+App-level fail-safe behavior is independent from firewall/killswitch behavior: when `VPN_FAILSAFE_NZBGET_ACTION` is `pause` or `stop`, watchdog triggers the NZBGet command once after the unhealthy threshold and resets this one-shot guard after VPN IP recovery.
+
+Recovery behavior after VPN returns:
+
+- `VPN_FAILSAFE_NZBGET_ACTION=stop`: watchdog starts NZBGet again automatically when VPN IP is detected and NZBGet is not running.
+- `VPN_FAILSAFE_NZBGET_ACTION=pause`: NZBGet process keeps running, but downloads stay paused until you resume manually (WebUI/API/CLI).
+- `VPN_FAILSAFE_NZBGET_ACTION=none`: no app-level pause/stop action is applied.
 
 Example:
 
@@ -869,7 +877,7 @@ Supervisor uses `loglevel=info` plus program `stdout_logfile=/dev/fd/1` and `std
 After NZBGet is running and listening on port `6789`, startup logs the NZBGetVPN image/codebase version, the NZBGet application version, a link to the GitHub changelog and the maintainer contact page:
 
 ```text
-[info] NZBGetVPN 4.13.3 | NZBGet 26.1 | Changelog: https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md | Contact page: https://bio.mjanssen.nl/@Marco
+[info] NZBGetVPN 4.14.0 | NZBGet 26.1 | Changelog: https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md | Contact page: https://bio.mjanssen.nl/@Marco
 [info] VPN self-test mode 'yes' (VPN_SELFTEST_ENABLED='yes')
 [info] VPN self-test watchdog mode 'yes' (VPN_SELFTEST_ENABLED='yes')
 [info] Delaying one-shot VPN self-test by 20 seconds after watchdog start (elapsed 0s)
@@ -900,7 +908,7 @@ The build scripts are safe by default: without arguments they build the values a
 | `./build.sh newest --accept-downloaded-sha256 --base newest` | Update both NZBGet stable and the base image before building. |
 | `./build-testing.sh newest --accept-downloaded-sha256 --base newest` | Update both NZBGet testing and the base image before building. |
 
-Both build scripts read the NZBGetVPN codebase version from `VERSION`. Stable builds also push `<nzbget-version>-image-v<version>`, for example `26.1-image-v4.13.3`. Testing builds push the same combined pattern, for example `26.2-testing-20260504-image-v4.13.3`. The same codebase version is also written to the OCI image label `org.opencontainers.image.version`.
+Both build scripts read the NZBGetVPN codebase version from `VERSION`. Stable builds also push `<nzbget-version>-image-v<version>`, for example `26.1-image-v4.14.0`. Testing builds push the same combined pattern, for example `26.2-testing-20260504-image-v4.14.0`. The same codebase version is also written to the OCI image label `org.opencontainers.image.version`.
 
 When `--base newest` resolves to a different base image tag, `scripts/update-base-image.sh` bumps the patch value in `VERSION` and updates the README version lines before the image build starts. If the Dockerfile is already on the newest resolved base tag, `VERSION` is left unchanged.
 
