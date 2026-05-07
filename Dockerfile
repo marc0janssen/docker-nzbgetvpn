@@ -57,6 +57,10 @@ VOLUME /data
 # expose port for http
 EXPOSE 6789
 
+# docker healthcheck based on internal self-test
+HEALTHCHECK --interval=60s --timeout=30s --start-period=120s --retries=3 \
+	CMD ["/bin/bash", "/root/healthcheck.sh"]
+
 # set permissions
 #################
 

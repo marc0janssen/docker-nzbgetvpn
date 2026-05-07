@@ -10,7 +10,7 @@ This image builds on top of [`binhex/arch-int-vpn`](https://github.com/binhex/ar
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 4.1.11
+* NZBGetVPN image/codebase version: 4.4.0
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -23,7 +23,7 @@ The NZBGetVPN image/codebase version is stored in `VERSION`. The two NZBGet vers
 | `marc0janssen/nzbgetvpn:stable` | Stable NZBGet release from `Dockerfile`. |
 | `marc0janssen/nzbgetvpn:testing` | Testing NZBGet release from `Dockerfile-testing`. |
 | `marc0janssen/nzbgetvpn:<version>` | Versioned image, for example `26.1` or `26.2-testing-20260504`. |
-| `marc0janssen/nzbgetvpn:<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version from `VERSION`, for example `26.1-image-v4.1.11`. |
+| `marc0janssen/nzbgetvpn:<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version from `VERSION`, for example `26.1-image-v4.4.0`. |
 
 ## What Is Included
 
@@ -235,8 +235,13 @@ The table below describes the important `binhex/arch-int-vpn` behavior this imag
 | `PGID` | No | Numeric GID | Base-image controlled | Group ID for file ownership. |
 | `UMASK` | No | Octal mask | Base-image controlled | File creation mask, for example `000`, `002`, `022`. |
 | `DEBUG` | No | `true`, `false` | `false` | Enables extra script output where supported. |
+| `VPN_HEALTHCHECK_ENABLED` | No | `yes`, `no`, `true`, `false`, `1`, `0` | `yes` | Controls Docker `HEALTHCHECK` probes. Set `no` to force healthcheck success while keeping other runtime behavior unchanged. |
 | `VPN_SELFTEST_ENABLED` | No | `no`, `yes`, cron expression | `no` | Controls internal VPN self-test scheduling. `false`/`0` map to `no`, `true`/`1` map to `yes`. |
 | `VPN_SELFTEST_STARTUP_DELAY` | No | Non-negative integer seconds | `20` | Delay before one-shot self-test when `VPN_SELFTEST_ENABLED=yes`. Helps avoid startup timing warnings. Values above `300` are clamped to `300`. |
+| `VPN_SELFTEST_NZBGET_PORT` | No | TCP port `1-65535` | `6789` | NZBGet TCP port used by self-test listen checks in watchdog and Docker health probes. Invalid values fall back to `6789` with a warning. |
+| `VPN_SELFTEST_STATE_HOOK` | No | Executable absolute path | unset | Optional script called only when self-test readiness transitions between `ready` and `not_ready`. |
+| `VPN_SELFTEST_STATE_FILE` | No | Absolute path | `/tmp/nzbgetvpn-selftest-state` | State file used to persist last readiness state between self-test runs. |
+| `VPN_SELFTEST_STATE_HOOK_TIMEOUT` | No | Positive integer seconds | `30` | Max runtime for `VPN_SELFTEST_STATE_HOOK` when `timeout` is available. |
 | `VPN_SELFTEST_READY_FILE` | No | Absolute filesystem path | unset | When set, successful self-test writes one line `ok <UTC timestamp>` here (atomic); critical failure removes the file. On watchdog startup, any stale file at this path is cleared before new self-test runs. Parent directory must exist and be writable. |
 | `VPN_SELFTEST_READY_STRICT` | No | `yes`, `no`, `true`, `false`, `1`, `0` | `no` | If truthy, the ready file is written only when there are zero warnings; otherwise the file is removed. |
 
@@ -341,6 +346,10 @@ This image includes an internal script at `/home/nobody/vpn-selftest.sh`. It is 
 | --- | --- | --- | --- | --- |
 | `VPN_SELFTEST_ENABLED` | No | `no`, `yes`, cron expression | `no` | `yes` runs once at startup and cron values run on schedule. `true`/`1` behave as `yes`, `false`/`0` behave as `no`. |
 | `VPN_SELFTEST_STARTUP_DELAY` | No | Non-negative integer seconds | `20` | Delay before one-shot self-test in `yes` mode. Values above `300` are clamped to `300`. |
+| `VPN_SELFTEST_NZBGET_PORT` | No | TCP port `1-65535` | `6789` | Target NZBGet listen port for self-test checks. |
+| `VPN_SELFTEST_STATE_HOOK` | No | Executable absolute path | unset | Optional script called only when self-test state changes between `ready` and `not_ready`. |
+| `VPN_SELFTEST_STATE_FILE` | No | Absolute path | `/tmp/nzbgetvpn-selftest-state` | Stores previous readiness state for transition detection. |
+| `VPN_SELFTEST_STATE_HOOK_TIMEOUT` | No | Positive integer seconds | `30` | Max runtime for state hook when `timeout` is available. |
 | `VPN_SELFTEST_READY_FILE` | No | Absolute path | unset | Optional ready signal: on success writes `ok <UTC ISO8601>` (atomic replace); on critical failure removes the file. On watchdog startup, stale files are cleared before fresh checks run. |
 | `VPN_SELFTEST_READY_STRICT` | No | `yes`, `no`, `true`, `false`, `1`, `0` | `no` | If truthy, write the ready file only when there are zero warnings. |
 
@@ -364,6 +373,20 @@ environment:
 ```
 
 The self-test does not modify routes, firewall rules, VPN profiles, or NZBGet state. It logs to container stdout with `[info]`, `[warn]`, and `[crit]` prefixes and returns an exit code. Optionally, `VPN_SELFTEST_READY_FILE` writes or removes a small marker file (see table above). With `VPN_SELFTEST_ENABLED=yes`, this is a startup snapshot: the marker reflects the one-shot result only. With a cron expression, it becomes continuous readiness: each scheduled run can update or clear the marker based on current state. When watchdog starts, it clears any stale marker file once before new checks run, so restarts begin in a not-ready state until a fresh self-test succeeds. The watchdog invokes the self-test at the end of each loop iteration (after `preruncheck` and any NZBGet start attempt), passes `vpn_ip` into the script, derives tunnel IPv4 from `VPN_DEVICE_TYPE` when `vpn_ip` is unset, and waits up to about 12 seconds for NZBGet to listen on port `6789` before emitting a listen warning.
+The self-test does not modify routes, firewall rules, VPN profiles, or NZBGet state. It logs to container stdout with `[info]`, `[warn]`, and `[crit]` prefixes and returns an exit code. Optionally, `VPN_SELFTEST_READY_FILE` writes or removes a small marker file (see table above). With `VPN_SELFTEST_ENABLED=yes`, this is a startup snapshot: the marker reflects the one-shot result only. With a cron expression, it becomes continuous readiness: each scheduled run can update or clear the marker based on current state. When watchdog starts, it clears any stale marker file once before new checks run, so restarts begin in a not-ready state until a fresh self-test succeeds. The watchdog invokes the self-test at the end of each loop iteration (after `preruncheck` and any NZBGet start attempt), passes `vpn_ip` into the script, derives tunnel IPv4 from `VPN_DEVICE_TYPE` when `vpn_ip` is unset, and waits up to about 12 seconds for NZBGet to listen on the configured `VPN_SELFTEST_NZBGET_PORT` (default `6789`) before emitting a listen warning.
+The self-test does not modify routes, firewall rules, VPN profiles, or NZBGet state. It logs to container stdout with `[info]`, `[warn]`, and `[crit]` prefixes and returns an exit code. Optionally, `VPN_SELFTEST_READY_FILE` writes or removes a small marker file (see table above). With `VPN_SELFTEST_ENABLED=yes`, this is a startup snapshot: the marker reflects the one-shot result only. With a cron expression, it becomes continuous readiness: each scheduled run can update or clear the marker based on current state. When watchdog starts, it clears any stale marker file once before new checks run, so restarts begin in a not-ready state until a fresh self-test succeeds. The watchdog invokes the self-test at the end of each loop iteration (after `preruncheck` and any NZBGet start attempt), passes `vpn_ip` into the script, derives tunnel IPv4 from `VPN_DEVICE_TYPE` when `vpn_ip` is unset, and waits up to about 12 seconds for NZBGet to listen on the configured `VPN_SELFTEST_NZBGET_PORT` (default `6789`) before emitting a listen warning. If `VPN_SELFTEST_STATE_HOOK` is set, the hook runs only when readiness transitions (`ready` <-> `not_ready`) and receives `VPN_SELFTEST_PREVIOUS_STATE`, `VPN_SELFTEST_CURRENT_STATE`, `VPN_SELFTEST_WARN_COUNT`, and `VPN_SELFTEST_FAIL_COUNT`.
+
+### Docker Healthcheck
+
+Both `Dockerfile` and `Dockerfile-testing` define a native Docker `HEALTHCHECK`:
+
+```text
+interval=60s, timeout=30s, start-period=120s, retries=3
+```
+
+The healthcheck runs `/root/healthcheck.sh`, which executes the internal self-test and maps critical self-test failures to `unhealthy`. Warnings do not mark the container unhealthy. Healthcheck probes do not write ready marker files or update self-test state-hook tracking, so `VPN_SELFTEST_READY_FILE` and `VPN_SELFTEST_STATE_*` behavior remain owned by watchdog-driven self-test scheduling.
+
+Use `VPN_HEALTHCHECK_ENABLED=no` when you need Docker to always report healthy while still keeping the internal self-test feature available for logs/ready-marker workflows.
 
 ### Bundled NordVPN WireGuard Script
 
@@ -586,7 +609,7 @@ Supervisor uses `loglevel=info` plus program `stdout_logfile=/dev/fd/1` and `std
 After NZBGet is running and listening on port `6789`, startup logs the NZBGetVPN image/codebase version, the NZBGet application version, a link to the GitHub changelog and the maintainer contact page:
 
 ```text
-[info] NZBGetVPN 4.1.11 | NZBGet 26.1 | Changelog: https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md | Contact page: https://bio.mjanssen.nl/@Marco
+[info] NZBGetVPN 4.4.0 | NZBGet 26.1 | Changelog: https://github.com/marc0janssen/nzbgetvpn/blob/develop/CHANGELOG.md | Contact page: https://bio.mjanssen.nl/@Marco
 [info] VPN self-test mode 'yes' (VPN_SELFTEST_ENABLED='yes')
 [info] VPN self-test watchdog mode 'yes' (VPN_SELFTEST_ENABLED='yes')
 [info] Delaying one-shot VPN self-test by 20 seconds after watchdog start (elapsed 0s)
@@ -617,7 +640,7 @@ The build scripts are safe by default: without arguments they build the values a
 | `./build.sh newest --accept-downloaded-sha256 --base newest` | Update both NZBGet stable and the base image before building. |
 | `./build-testing.sh newest --accept-downloaded-sha256 --base newest` | Update both NZBGet testing and the base image before building. |
 
-Both build scripts read the NZBGetVPN codebase version from `VERSION`. Stable builds also push `<nzbget-version>-image-v<version>`, for example `26.1-image-v4.1.11`. Testing builds push the same combined pattern, for example `26.2-testing-20260504-image-v4.1.11`. The same codebase version is also written to the OCI image label `org.opencontainers.image.version`.
+Both build scripts read the NZBGetVPN codebase version from `VERSION`. Stable builds also push `<nzbget-version>-image-v<version>`, for example `26.1-image-v4.4.0`. Testing builds push the same combined pattern, for example `26.2-testing-20260504-image-v4.4.0`. The same codebase version is also written to the OCI image label `org.opencontainers.image.version`.
 
 When `--base newest` resolves to a different base image tag, `scripts/update-base-image.sh` bumps the patch value in `VERSION` and updates the README version lines before the image build starts. If the Dockerfile is already on the newest resolved base tag, `VERSION` is left unchanged.
 

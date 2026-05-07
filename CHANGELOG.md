@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.4.0] - 2026-05-07
+
+### Added
+
+- `VPN_SELFTEST_STATE_HOOK`: optional executable script triggered when self-test readiness state changes between `ready` and `not_ready`.
+- `VPN_SELFTEST_STATE_FILE` (default `/tmp/nzbgetvpn-selftest-state`) and `VPN_SELFTEST_STATE_HOOK_TIMEOUT` (default `30`) to persist state and bound hook execution.
+
+## [4.3.0] - 2026-05-07
+
+### Added
+
+- `VPN_SELFTEST_NZBGET_PORT` to configure which TCP port the internal self-test checks for NZBGet listen readiness (default `6789`, validated to `1-65535` with safe fallback).
+
+## [4.2.0] - 2026-05-07
+
+### Added
+
+- Native Docker `HEALTHCHECK` integration in both Dockerfiles, backed by a new `/root/healthcheck.sh` wrapper that runs the internal VPN self-test.
+- `VPN_HEALTHCHECK_ENABLED` runtime toggle (`yes`/`no`/boolean, default `yes`) for opting out of container health probes without disabling self-test scheduling.
+
 ## [4.1.11] - 2026-05-07
 
 ### Changed

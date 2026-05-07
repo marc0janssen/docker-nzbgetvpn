@@ -106,6 +106,92 @@ update_ready_file() {
 	write_ready_file
 }
 
+state_path_warn() {
+	# State tracking should not alter warning counters used for strict readiness.
+	echo "[warn] [vpn-selftest] $*"
+}
+
+validate_state_file_path() {
+	local path="${1:-}"
+
+	if [[ -z "${path}" ]]; then
+		return 1
+	fi
+	if [[ "${path}" != /* ]]; then
+		state_path_warn "VPN_SELFTEST_STATE_FILE must be an absolute path, skipping state tracking"
+		return 1
+	fi
+	if [[ "${path}" == *..* ]]; then
+		state_path_warn "VPN_SELFTEST_STATE_FILE must not contain '..', skipping state tracking"
+		return 1
+	fi
+	if [[ "${#path}" -gt 4096 ]]; then
+		state_path_warn "VPN_SELFTEST_STATE_FILE path is too long, skipping state tracking"
+		return 1
+	fi
+	return 0
+}
+
+run_script_with_timeout() {
+	local timeout_secs="$1"
+	shift
+
+	if command -v timeout >/dev/null 2>&1; then
+		timeout --kill-after=5s "${timeout_secs}s" "$@"
+	else
+		"$@"
+	fi
+}
+
+handle_state_change_hook() {
+	local state_file="${VPN_SELFTEST_STATE_FILE:-/tmp/nzbgetvpn-selftest-state}"
+	local hook_script="${VPN_SELFTEST_STATE_HOOK:-}"
+	local hook_timeout="${VPN_SELFTEST_STATE_HOOK_TIMEOUT:-30}"
+	local current_state="$1"
+	local previous_state="unknown"
+	local dir
+
+	validate_state_file_path "${state_file}" || return 0
+	dir="$(dirname -- "${state_file}")"
+	if [[ ! -d "${dir}" || ! -w "${dir}" ]]; then
+		state_path_warn "VPN_SELFTEST_STATE_FILE parent directory '${dir}' is unavailable, skipping state tracking"
+		return 0
+	fi
+
+	if [[ -f "${state_file}" ]]; then
+		previous_state="$(cat "${state_file}" 2>/dev/null || true)"
+		case "${previous_state}" in
+			ready|not_ready)
+				;;
+			*)
+				previous_state="unknown"
+				;;
+		esac
+	fi
+
+	printf '%s\n' "${current_state}" > "${state_file}"
+
+	if [[ -z "${hook_script}" ]]; then
+		return 0
+	fi
+	if [[ "${previous_state}" == "unknown" || "${previous_state}" == "${current_state}" ]]; then
+		return 0
+	fi
+	if [[ ! -x "${hook_script}" ]]; then
+		state_path_warn "VPN_SELFTEST_STATE_HOOK '${hook_script}' is not executable, skipping hook"
+		return 0
+	fi
+	if ! [[ "${hook_timeout}" =~ ^[0-9]+$ ]] || [[ "${hook_timeout}" -lt 1 ]]; then
+		state_path_warn "VPN_SELFTEST_STATE_HOOK_TIMEOUT '${hook_timeout}' is invalid, using 30 seconds"
+		hook_timeout=30
+	fi
+
+	log_info "Self-test state changed (${previous_state} -> ${current_state}), running '${hook_script}'"
+	if ! VPN_SELFTEST_PREVIOUS_STATE="${previous_state}" VPN_SELFTEST_CURRENT_STATE="${current_state}" VPN_SELFTEST_WARN_COUNT="${warn_count}" VPN_SELFTEST_FAIL_COUNT="${fail_count}" run_script_with_timeout "${hook_timeout}" "${hook_script}"; then
+		state_path_warn "VPN_SELFTEST_STATE_HOOK '${hook_script}' failed or timed out"
+	fi
+}
+
 check_dir_writable() {
 	local dir_path="$1"
 	if [[ ! -d "${dir_path}" ]]; then
@@ -164,12 +250,19 @@ check_vpn_ip_signal() {
 }
 
 nzbget_listening() {
-	netstat -lnt | awk '$6 == "LISTEN" && $4 ~ /:6789$/ {found=1} END {exit(found?0:1)}'
+	local port="$1"
+	netstat -lnt | awk -v port="${port}" '$6 == "LISTEN" && $4 ~ ":" port "$" {found=1} END {exit(found?0:1)}'
 }
 
 check_nzbget_state() {
 	local attempt
 	local max_attempts=24
+	local nzbget_port="${VPN_SELFTEST_NZBGET_PORT:-6789}"
+
+	if ! [[ "${nzbget_port}" =~ ^[0-9]+$ ]] || [[ "${nzbget_port}" -lt 1 ]] || [[ "${nzbget_port}" -gt 65535 ]]; then
+		log_warn "VPN_SELFTEST_NZBGET_PORT '${nzbget_port}' is invalid, using default port 6789"
+		nzbget_port=6789
+	fi
 
 	if ! pgrep -x nzbget >/dev/null 2>&1; then
 		log_warn "NZBGet process is not running at self-test time"
@@ -177,14 +270,14 @@ check_nzbget_state() {
 	fi
 
 	for ((attempt = 1; attempt <= max_attempts; attempt++)); do
-		if nzbget_listening; then
-			log_info "NZBGet process is running and listening on port 6789"
+		if nzbget_listening "${nzbget_port}"; then
+			log_info "NZBGet process is running and listening on port ${nzbget_port}"
 			return
 		fi
 		sleep 0.5
 	done
 
-	log_warn "NZBGet process is running but port 6789 is not listening yet"
+	log_warn "NZBGet process is running but port ${nzbget_port} is not listening yet"
 }
 
 main() {
@@ -204,11 +297,17 @@ main() {
 	check_nzbget_state
 
 	if [[ "${fail_count}" -gt 0 ]]; then
+		handle_state_change_hook "not_ready"
 		clear_ready_file
 		log_crit "Self-test finished with ${fail_count} critical issue(s) and ${warn_count} warning(s)"
 		exit 1
 	fi
 
+	if is_enabled "${VPN_SELFTEST_READY_STRICT:-no}" && [[ "${warn_count}" -gt 0 ]]; then
+		handle_state_change_hook "not_ready"
+	else
+		handle_state_change_hook "ready"
+	fi
 	update_ready_file
 	log_info "Self-test finished successfully with ${warn_count} warning(s)"
 }

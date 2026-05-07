@@ -8,7 +8,7 @@ Full documentation is available in the GitHub repository README.
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.1.11
+* NZBGetVPN image/codebase version: 4.4.0
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -19,7 +19,7 @@ Full documentation is available in the GitHub repository README.
 | `stable` | Stable NZBGet release. |
 | `testing` | Testing NZBGet release. |
 | `<version>` | Versioned image, for example `26.1`. |
-| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.1.11`. |
+| `<nzbget-version>-image-v<version>` | Image tagged with both the NZBGet version and the NZBGetVPN codebase version, for example `26.1-image-v4.4.0`. |
 
 ## Included
 
@@ -196,8 +196,13 @@ Report vulnerabilities privately through the maintainer contact page linked in t
 | `PUID` / `PGID` | numeric | Runtime file ownership. |
 | `UMASK` | octal | File creation mask. |
 | `DEBUG` | `true`, `false` | Extra script logging. |
+| `VPN_HEALTHCHECK_ENABLED` | `yes`, `no`, boolean | Controls Docker `HEALTHCHECK` probes (`yes` by default). |
 | `VPN_SELFTEST_ENABLED` | `no`, `yes`, cron expression | Control internal read-only self-test scheduling (`false`/`0` = `no`, `true`/`1` = `yes`). |
 | `VPN_SELFTEST_STARTUP_DELAY` | non-negative integer seconds | Delay one-shot self-test when `VPN_SELFTEST_ENABLED=yes` (default `20`, max `300`). |
+| `VPN_SELFTEST_NZBGET_PORT` | TCP port `1-65535` | NZBGet listen port used by self-test checks (`6789` by default). |
+| `VPN_SELFTEST_STATE_HOOK` | executable absolute path | Optional script called on readiness transitions (`ready`/`not_ready`). |
+| `VPN_SELFTEST_STATE_FILE` | absolute path | File storing previous self-test state (default `/tmp/nzbgetvpn-selftest-state`). |
+| `VPN_SELFTEST_STATE_HOOK_TIMEOUT` | positive integer seconds | State-hook timeout (default `30`). |
 | `VPN_SELFTEST_READY_FILE` | absolute path | Optional: write `ok <UTC>` on self-test success (atomic); remove file on critical failure. Watchdog also clears stale file on startup before fresh checks. |
 | `VPN_SELFTEST_READY_STRICT` | `yes`/`no`/boolean | If truthy, ready file only when zero warnings. |
 
@@ -298,7 +303,11 @@ environment:
   VPN_SELFTEST_ENABLED: "*/5 * * * *"
 ```
 
-The script runs from the watchdog loop, logs to normal container stdout, and does not modify VPN or app state. With `VPN_SELFTEST_ENABLED=yes`, results are a one-shot startup snapshot. With a cron expression, readiness is continuously re-evaluated and the optional ready marker can be updated or removed over time. On container restart, watchdog clears any stale ready marker once before the next self-test cycle.
+The script runs from the watchdog loop, logs to normal container stdout, and does not modify VPN or app state. With `VPN_SELFTEST_ENABLED=yes`, results are a one-shot startup snapshot. With a cron expression, readiness is continuously re-evaluated and the optional ready marker can be updated or removed over time. On container restart, watchdog clears any stale ready marker once before the next self-test cycle. Listen checks target `VPN_SELFTEST_NZBGET_PORT` (default `6789`). Optional `VPN_SELFTEST_STATE_HOOK` runs only when readiness transitions.
+
+## Docker Healthcheck
+
+The image defines a native Docker `HEALTHCHECK` (`interval=60s`, `timeout=30s`, `start-period=120s`, `retries=3`) that runs `/root/healthcheck.sh`. It executes the internal self-test and marks the container unhealthy only for critical failures. Warnings remain healthy. Health probes do not modify ready/state-hook tracking files.
 
 ## Bundled NordVPN WireGuard Script
 
