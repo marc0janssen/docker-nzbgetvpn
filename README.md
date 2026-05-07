@@ -30,7 +30,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 4.24.23
+* NZBGetVPN image/codebase version: 4.24.24
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260507
 
@@ -153,11 +153,14 @@ CI quality checks (run locally and in GitHub Actions):
 - Workflow: `.github/workflows/quality-checks.yml`
 - Trigger: `push` and `pull_request`
 - Scope:
+  - unresolved merge conflict marker scan (`<<<<<<<`, `=======`, `>>>>>>>`)
+  - Docker Hub README size guard (`README-containers.md` must stay under `25000` bytes)
   - shell syntax validation (`sh -n` / `bash -n` based on shebang)
   - `shellcheck` for static shell linting
   - `shfmt --diff` for formatting drift detection
   - rotate-defaults docs drift check (`./scripts/sync-rotate-defaults-doc.sh check`)
   - AGENTS.md validation checklist commands
+  - optional conventional commit lint (enable with `CI_CONVENTIONAL_COMMIT_LINT=true`)
 
 ```sh
 ./scripts/ci-quality-checks.sh
@@ -168,6 +171,12 @@ Run strict mode locally (no excludes) with:
 
 ```sh
 SHELLCHECK_EXCLUDES= ./scripts/ci-quality-checks.sh
+```
+
+Optional conventional commit lint (for changelog/version flow consistency):
+
+```sh
+CI_CONVENTIONAL_COMMIT_LINT=true CI_CONVENTIONAL_COMMIT_RANGE=origin/develop..HEAD ./scripts/ci-quality-checks.sh
 ```
 
 Runtime smoke test (run locally and in GitHub Actions):

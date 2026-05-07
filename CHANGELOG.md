@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.24.24] - 2026-05-07
+
+### Changed
+
+- Extended `scripts/ci-quality-checks.sh` with hard CI guards for unresolved merge-conflict markers and Docker Hub README size limits (`README-containers.md` must remain below `25000` bytes).
+- Added optional conventional commit lint support in quality checks via `CI_CONVENTIONAL_COMMIT_LINT` and `CI_CONVENTIONAL_COMMIT_RANGE`, and wired workflow defaults in `.github/workflows/quality-checks.yml`.
+- Updated `README.md` and `README-containers.md` CI documentation with the new guards and optional commit-lint activation flow.
+
 ## [4.24.23] - 2026-05-07
 
 ### Fixed

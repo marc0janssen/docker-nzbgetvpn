@@ -12,7 +12,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.24.23
+* NZBGetVPN image/codebase version: 4.24.24
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260507
 
@@ -99,9 +99,10 @@ For complete environment matrix, self-test/unhealthy logic, provider setup, trou
 - Runtime smoke-test docs: [`ci/README.md`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/ci/README.md)
 - For Apple Silicon/non-amd64 hosts, run smoke tests with `SMOKE_PLATFORM=linux/amd64`.
 - Shell quality checks helper: `./scripts/ci-quality-checks.sh`
-- GitHub Actions quality checks workflow: [`quality-checks.yml`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/.github/workflows/quality-checks.yml) (`push` + `pull_request`, syntax + `shellcheck` + `shfmt --diff` + AGENTS.md validation checklist).
+- GitHub Actions quality checks workflow: [`quality-checks.yml`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/.github/workflows/quality-checks.yml) (`push` + `pull_request`, conflict-marker scan + `README-containers.md` `<25000` bytes guard + syntax + `shellcheck` + `shfmt --diff` + AGENTS.md validation checklist).
 - Rotate defaults docs are generated from shared runtime defaults with `./scripts/sync-rotate-defaults-doc.sh` and validated in quality checks.
 - Quality checks use a temporary shellcheck baseline for legacy findings; run strict locally with `SHELLCHECK_EXCLUDES= ./scripts/ci-quality-checks.sh`.
+- Optional conventional commit lint can be enabled with `CI_CONVENTIONAL_COMMIT_LINT=true` (workflow reads repo variable `CI_CONVENTIONAL_COMMIT_LINT`).
 - GitHub Actions smoke-test workflow: [`smoke-test.yml`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/.github/workflows/smoke-test.yml) (`push` + `pull_request`, runtime startup/reachability/self-test checks).
 
 ## Security
