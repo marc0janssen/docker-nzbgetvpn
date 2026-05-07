@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.24.23] - 2026-05-07
+
+### Fixed
+
+- Hardened fail-safe idempotency in `run/root/iptable.sh` by introducing a reusable `ip rule` check-before-add helper for fwmark routes, preventing duplicate rule insertion across restarts and retries.
+
 ## [4.24.22] - 2026-05-07
 
 ### Fixed

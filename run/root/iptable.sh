@@ -24,6 +24,16 @@ iptables_append_if_missing() {
 	fi
 }
 
+ip_rule_add_if_missing() {
+	local fwmark="$1"
+	local table_id="$2"
+	local rule_pattern="fwmark (0x${fwmark}|${fwmark})(/0x[0-9a-fA-F]+)? (lookup|table) ${table_id}( |$)"
+
+	if ! ip -4 rule show | grep -Eq "${rule_pattern}"; then
+		ip -4 rule add fwmark "${fwmark}" table "${table_id}"
+	fi
+}
+
 validate_cidr_list() {
 	local name="$1"
 	shift
@@ -200,9 +210,7 @@ if iptables -t mangle -S >/dev/null 2>&1; then
 		echo "[warn] /etc/iproute2/rt_tables not found; using numeric routing table ${webui_http_table_id}"
 	fi
 
-	if ! ip rule show | awk -v table_id="${webui_http_table_id}" '$0 ~ /fwmark 0x1/ && $0 ~ ("lookup " table_id "($| )") { found=1 } END { exit(found ? 0 : 1) }'; then
-		ip rule add fwmark 1 table "${webui_http_table_id}"
-	fi
+	ip_rule_add_if_missing 1 "${webui_http_table_id}"
 	ip route replace default via "${default_gateway}" table "${webui_http_table_id}"
 else
 	echo "[warn] iptables mangle support unavailable, Web UI/Privoxy outside LAN may not work"
