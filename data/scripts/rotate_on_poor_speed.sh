@@ -16,9 +16,9 @@ log_crit() {
 
 normalize_yes_no() {
 	case "${1:-}" in
-		yes|true|1) echo "yes" ;;
-		no|false|0) echo "no" ;;
-		*) echo "" ;;
+	yes | true | 1) echo "yes" ;;
+	no | false | 0) echo "no" ;;
+	*) echo "" ;;
 	esac
 }
 
@@ -72,7 +72,7 @@ write_state() {
 
 	tmp="$(mktemp "${dir}/.rotate-on-poor-speed.XXXXXX")"
 	trap 'rm -f -- "${tmp}"' EXIT
-	cat > "${tmp}" <<EOF
+	cat >"${tmp}" <<EOF
 fail_streak=${fail_streak}
 last_rotate_epoch=${last_rotate_epoch}
 last_reason=${last_reason}
@@ -114,22 +114,22 @@ execute_rotation() {
 	log_warn "Rotation triggered (${reason}) using mode '${mode}'"
 
 	case "${mode}" in
-		wireguard)
-			if [[ "${refresh_enabled}" == "yes" ]]; then
-				[[ -x "${refresh_script}" ]] || log_crit "ROTATE_WIREGUARD_REFRESH_SCRIPT '${refresh_script}' is not executable"
-				log_info "Refreshing WireGuard profiles before rotation"
-				"${refresh_script}"
-			fi
-			[[ -x "${rotate_wg_script}" ]] || log_crit "ROTATE_WIREGUARD_SCRIPT '${rotate_wg_script}' is not executable"
-			"${rotate_wg_script}"
-			;;
-		openvpn)
-			[[ -x "${rotate_ovpn_script}" ]] || log_crit "ROTATE_OPENVPN_SCRIPT '${rotate_ovpn_script}' is not executable"
-			"${rotate_ovpn_script}"
-			;;
-		*)
-			log_crit "Internal error: unsupported rotation mode '${mode}'"
-			;;
+	wireguard)
+		if [[ "${refresh_enabled}" == "yes" ]]; then
+			[[ -x "${refresh_script}" ]] || log_crit "ROTATE_WIREGUARD_REFRESH_SCRIPT '${refresh_script}' is not executable"
+			log_info "Refreshing WireGuard profiles before rotation"
+			"${refresh_script}"
+		fi
+		[[ -x "${rotate_wg_script}" ]] || log_crit "ROTATE_WIREGUARD_SCRIPT '${rotate_wg_script}' is not executable"
+		"${rotate_wg_script}"
+		;;
+	openvpn)
+		[[ -x "${rotate_ovpn_script}" ]] || log_crit "ROTATE_OPENVPN_SCRIPT '${rotate_ovpn_script}' is not executable"
+		"${rotate_ovpn_script}"
+		;;
+	*)
+		log_crit "Internal error: unsupported rotation mode '${mode}'"
+		;;
 	esac
 }
 
@@ -191,28 +191,28 @@ main() {
 	refresh_enabled="$(normalize_yes_no "${ROTATE_WIREGUARD_REFRESH_ENABLED:-no}")"
 	[[ -n "${refresh_enabled}" ]] || log_crit "ROTATE_WIREGUARD_REFRESH_ENABLED must be yes/no/true/false/1/0"
 	case "${post_action}" in
-		none|watchdog-exit)
-			;;
-		*)
-			log_crit "ROTATE_POST_ROTATION_ACTION must be 'none' or 'watchdog-exit'"
-			;;
+	none | watchdog-exit)
+		;;
+	*)
+		log_crit "ROTATE_POST_ROTATION_ACTION must be 'none' or 'watchdog-exit'"
+		;;
 	esac
 	validate_absolute_path "${restart_request_file}" "ROTATE_RESTART_REQUEST_FILE"
 
 	case "${mode}" in
-		auto)
-			case "${VPN_CLIENT:-}" in
-				wireguard) selected_mode="wireguard" ;;
-				openvpn) selected_mode="openvpn" ;;
-				*) log_crit "ROTATE_MODE=auto requires VPN_CLIENT=openvpn or VPN_CLIENT=wireguard" ;;
-			esac
-			;;
-		wireguard|openvpn)
-			selected_mode="${mode}"
-			;;
-		*)
-			log_crit "ROTATE_MODE must be 'auto', 'wireguard', or 'openvpn'"
-			;;
+	auto)
+		case "${VPN_CLIENT:-}" in
+		wireguard) selected_mode="wireguard" ;;
+		openvpn) selected_mode="openvpn" ;;
+		*) log_crit "ROTATE_MODE=auto requires VPN_CLIENT=openvpn or VPN_CLIENT=wireguard" ;;
+		esac
+		;;
+	wireguard | openvpn)
+		selected_mode="${mode}"
+		;;
+	*)
+		log_crit "ROTATE_MODE must be 'auto', 'wireguard', or 'openvpn'"
+		;;
 	esac
 
 	if [[ -z "${speedtest_urls_raw}" ]]; then
@@ -224,10 +224,10 @@ main() {
 		fi
 	fi
 
-	IFS=',' read -r -a speedtest_urls <<< "${speedtest_urls_raw}"
+	IFS=',' read -r -a speedtest_urls <<<"${speedtest_urls_raw}"
 	[[ "${#speedtest_urls[@]}" -gt 0 ]] || log_crit "No speedtest endpoints configured"
 	if [[ -n "${speedtest_weights_raw}" ]]; then
-		IFS=',' read -r -a speedtest_weights <<< "${speedtest_weights_raw}"
+		IFS=',' read -r -a speedtest_weights <<<"${speedtest_weights_raw}"
 		use_custom_weights="yes"
 	fi
 
@@ -237,10 +237,10 @@ main() {
 		all_endpoint_count=$((all_endpoint_count + 1))
 		endpoint_weight="1"
 		if [[ "${use_custom_weights}" == "yes" ]]; then
-			[[ "${#speedtest_weights[@]}" -gt "${endpoint_index}" ]] || \
+			[[ "${#speedtest_weights[@]}" -gt "${endpoint_index}" ]] ||
 				log_crit "ROTATE_SPEEDTEST_WEIGHTS count must match ROTATE_SPEEDTEST_URLS count"
 			endpoint_weight="$(trim "${speedtest_weights[endpoint_index]}")"
-			is_positive_number "${endpoint_weight}" || \
+			is_positive_number "${endpoint_weight}" ||
 				log_crit "ROTATE_SPEEDTEST_WEIGHTS must contain positive numeric values"
 		fi
 		endpoint_index=$((endpoint_index + 1))
@@ -334,7 +334,7 @@ main() {
 	log_info "Rotation completed (${selected_mode})"
 
 	if [[ "${post_action}" == "watchdog-exit" ]]; then
-		printf 'rotate_on_poor_speed %s %s\n' "${selected_mode}" "${now}" > "${restart_request_file}" || \
+		printf 'rotate_on_poor_speed %s %s\n' "${selected_mode}" "${now}" >"${restart_request_file}" ||
 			log_crit "Failed to write restart request file '${restart_request_file}'"
 		log_warn "Requested watchdog exit via '${restart_request_file}' to force container restart"
 	fi

@@ -29,9 +29,9 @@ fetch_api() {
 }
 
 latest_stable() {
-	tag_name=$(fetch_api "${REPO_API}/releases/latest" \
-		| sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' \
-		| head -n 1)
+	tag_name=$(fetch_api "${REPO_API}/releases/latest" |
+		sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' |
+		head -n 1)
 
 	if [ -z "${tag_name}" ]; then
 		echo "Unable to determine latest stable NZBGet release" >&2
@@ -39,23 +39,23 @@ latest_stable() {
 	fi
 
 	case "${tag_name}" in
-		v*testing*|*testing*)
-			echo "Latest stable release tag '${tag_name}' looks like a testing release" >&2
-			exit 1
-			;;
-		v*)
-			printf '%s\n' "${tag_name#v}"
-			;;
-		*)
-			printf '%s\n' "${tag_name}"
-			;;
+	v*testing* | *testing*)
+		echo "Latest stable release tag '${tag_name}' looks like a testing release" >&2
+		exit 1
+		;;
+	v*)
+		printf '%s\n' "${tag_name#v}"
+		;;
+	*)
+		printf '%s\n' "${tag_name}"
+		;;
 	esac
 }
 
 latest_testing() {
-	asset_name=$(fetch_api "${REPO_API}/releases/tags/testing" \
-		| sed -n 's/.*"name": *"\(nzbget-[^"]*-bin-linux\.run\)".*/\1/p' \
-		| head -n 1)
+	asset_name=$(fetch_api "${REPO_API}/releases/tags/testing" |
+		sed -n 's/.*"name": *"\(nzbget-[^"]*-bin-linux\.run\)".*/\1/p' |
+		head -n 1)
 
 	if [ -z "${asset_name}" ]; then
 		echo "Unable to determine latest testing NZBGet linux installer asset" >&2
@@ -66,17 +66,17 @@ latest_testing() {
 }
 
 case "${1:-}" in
-	stable)
-		latest_stable
-		;;
-	testing)
-		latest_testing
-		;;
-	-h|--help)
-		show_help
-		;;
-	*)
-		show_help >&2
-		exit 1
-		;;
+stable)
+	latest_stable
+	;;
+testing)
+	latest_testing
+	;;
+-h | --help)
+	show_help
+	;;
+*)
+	show_help >&2
+	exit 1
+	;;
 esac

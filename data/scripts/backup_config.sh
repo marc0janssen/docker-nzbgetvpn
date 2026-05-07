@@ -15,13 +15,13 @@ resolve_timestamp_mode() {
 	local tz_mode="${NZBGETVPN_TIMESTAMP_TZ:-utc}"
 
 	case "${tz_mode}" in
-		utc|local)
-			printf '%s' "${tz_mode}"
-			;;
-		*)
-			log_info "NZBGETVPN_TIMESTAMP_TZ must be 'utc' or 'local'; falling back to 'utc'"
-			printf 'utc'
-			;;
+	utc | local)
+		printf '%s' "${tz_mode}"
+		;;
+	*)
+		log_info "NZBGETVPN_TIMESTAMP_TZ must be 'utc' or 'local'; falling back to 'utc'"
+		printf 'utc'
+		;;
 	esac
 }
 

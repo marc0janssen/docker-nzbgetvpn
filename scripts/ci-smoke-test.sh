@@ -26,7 +26,7 @@ wait_for_port() {
 	local sleep_secs="${4:-2}"
 	local i
 
-	for ((i=1; i<=attempts; i+=1)); do
+	for ((i = 1; i <= attempts; i += 1)); do
 		if nc -z 127.0.0.1 "${port}" >/dev/null 2>&1; then
 			log_info "${name} is reachable on ${port}/tcp"
 			return 0
@@ -45,7 +45,7 @@ wait_for_container_running() {
 	local cid=""
 	local i
 
-	for ((i=1; i<=attempts; i+=1)); do
+	for ((i = 1; i <= attempts; i += 1)); do
 		cid="$(docker compose -f ci/docker-compose.smoke.yml ps -q "${service}" 2>/dev/null || true)"
 		if [[ -n "${cid}" ]] && [[ "$(docker inspect -f '{{.State.Running}}' "${cid}" 2>/dev/null || true)" == "true" ]]; then
 			log_info "Container ${service} is running"

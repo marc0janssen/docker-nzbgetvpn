@@ -64,12 +64,12 @@ is_sha256() {
 
 is_truthy() {
 	case "$1" in
-		yes|true|1)
-			return 0
-			;;
-		*)
-			return 1
-			;;
+	yes | true | 1)
+		return 0
+		;;
+	*)
+		return 1
+		;;
 	esac
 }
 
@@ -79,38 +79,38 @@ is_release_version() {
 
 while [ "$#" -gt 0 ]; do
 	case "$1" in
-		-h|--help)
-			show_help
-			exit 0
-			;;
-		--sha256)
-			if [ "$#" -lt 2 ]; then
-				echo "--sha256 requires a value" >&2
-				exit 1
-			fi
-			EXPECTED_SHA256="$2"
-			shift 2
-			;;
-		--sha256=*)
-			EXPECTED_SHA256="${1#--sha256=}"
-			shift
-			;;
-		--accept-downloaded-sha256)
-			ACCEPT_DOWNLOADED_SHA256="yes"
-			shift
-			;;
-		-*)
+	-h | --help)
+		show_help
+		exit 0
+		;;
+	--sha256)
+		if [ "$#" -lt 2 ]; then
+			echo "--sha256 requires a value" >&2
+			exit 1
+		fi
+		EXPECTED_SHA256="$2"
+		shift 2
+		;;
+	--sha256=*)
+		EXPECTED_SHA256="${1#--sha256=}"
+		shift
+		;;
+	--accept-downloaded-sha256)
+		ACCEPT_DOWNLOADED_SHA256="yes"
+		shift
+		;;
+	-*)
+		show_help >&2
+		exit 1
+		;;
+	*)
+		if [ "${VERSION}" != "${CURRENT_VERSION}" ]; then
 			show_help >&2
 			exit 1
-			;;
-		*)
-			if [ "${VERSION}" != "${CURRENT_VERSION}" ]; then
-				show_help >&2
-				exit 1
-			fi
-			VERSION="$1"
-			shift
-			;;
+		fi
+		VERSION="$1"
+		shift
+		;;
 	esac
 done
 

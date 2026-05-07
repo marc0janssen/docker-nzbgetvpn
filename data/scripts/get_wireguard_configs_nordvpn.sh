@@ -17,15 +17,15 @@ require_command() {
 
 normalize_yes_no() {
 	case "${1:-}" in
-		yes|true|1)
-			echo "yes"
-			;;
-		no|false|0)
-			echo "no"
-			;;
-		*)
-			echo ""
-			;;
+	yes | true | 1)
+		echo "yes"
+		;;
+	no | false | 0)
+		echo "no"
+		;;
+	*)
+		echo ""
+		;;
 	esac
 }
 
@@ -68,8 +68,8 @@ CREDENTIALS_URL="https://api.nordvpn.com/v1/users/services/credentials"
 
 log_info "Looking up NordVPN country id for '${COUNTRY_NAME}'"
 country_id="$(
-	curl --fail --silent --show-error --location "${COUNTRIES_URL}" \
-		| jq -er --arg country_name "${COUNTRY_NAME}" '[.[] | select(.name == $country_name) | .id][0] // empty'
+	curl --fail --silent --show-error --location "${COUNTRIES_URL}" |
+		jq -er --arg country_name "${COUNTRY_NAME}" '[.[] | select(.name == $country_name) | .id][0] // empty'
 )"
 
 [[ -n "${country_id}" ]] || log_crit "Unable to find NordVPN country '${COUNTRY_NAME}'"
@@ -80,8 +80,8 @@ log_info "Fetching NordLynx credentials"
 private_key="$(
 	curl --fail --silent --show-error --location \
 		--user "token:${NORDVPN_ACCESS_TOKEN}" \
-		"${CREDENTIALS_URL}" \
-		| jq -er '.nordlynx_private_key'
+		"${CREDENTIALS_URL}" |
+		jq -er '.nordlynx_private_key'
 )"
 
 [[ -n "${private_key}" && "${private_key}" != "null" ]] || log_crit "NordVPN did not return a NordLynx private key"
@@ -106,7 +106,7 @@ while IFS=$'\t' read -r filename endpoint public_key; do
 	safe_filename="${filename//\//-}"
 	output_file="${tmp_dir}/${safe_filename}"
 
-	cat > "${output_file}" <<EOF
+	cat >"${output_file}" <<EOF
 # ${safe_filename}
 
 [Interface]

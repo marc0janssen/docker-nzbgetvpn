@@ -6,6 +6,13 @@ This directory contains a fast end-to-end smoke test flow for runtime behavior.
 
 The smoke test catches runtime breaks that syntax checks cannot detect.
 
+For shell script quality gates (syntax/format/lint and AGENTS.md checklist), use the separate quality check flow:
+
+- Local: `./scripts/ci-quality-checks.sh`
+- CI workflow: `.github/workflows/quality-checks.yml`
+- Default behavior uses a temporary shellcheck baseline for known legacy findings.
+- Strict mode (no excludes): `SHELLCHECK_EXCLUDES= ./scripts/ci-quality-checks.sh`
+
 It validates:
 
 - container starts successfully

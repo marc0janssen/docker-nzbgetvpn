@@ -6,12 +6,12 @@ trim_value() {
 
 is_enabled() {
 	case "${1:-}" in
-		yes|true|1)
-			return 0
-			;;
-		*)
-			return 1
-			;;
+	yes | true | 1)
+		return 0
+		;;
+	*)
+		return 1
+		;;
 	esac
 }
 
@@ -31,10 +31,12 @@ validate_cidr_list() {
 	for item in "$@"; do
 		item=$(trim_value "${item}")
 		if [[ -z "${item}" ]]; then
-			echo "[crit] ${name} contains an empty network, exiting..." ; exit 1
+			echo "[crit] ${name} contains an empty network, exiting..."
+			exit 1
 		fi
 		if ! [[ "${item}" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}/[0-9]{1,2}$ ]] || ! ipcalc "${item}" >/dev/null 2>&1; then
-			echo "[crit] ${name} contains invalid CIDR '${item}', exiting..." ; exit 1
+			echo "[crit] ${name} contains invalid CIDR '${item}', exiting..."
+			exit 1
 		fi
 	done
 }
@@ -47,7 +49,8 @@ validate_port_list() {
 	for item in "$@"; do
 		item=$(trim_value "${item}")
 		if ! is_valid_port "${item}"; then
-			echo "[crit] ${name} contains invalid port '${item}', exiting..." ; exit 1
+			echo "[crit] ${name} contains invalid port '${item}', exiting..."
+			exit 1
 		fi
 	done
 }
@@ -77,7 +80,8 @@ harden_wireguard_config_permissions
 # identify docker bridge interface name by looking at defult route
 docker_interface=$(ip -4 route ls | grep default | xargs | grep -o -P '[^\s]+$')
 if [[ -z "${docker_interface}" ]] || ! is_valid_interface_name "${docker_interface}"; then
-	echo "[crit] Unable to identify a valid docker interface, exiting..." ; exit 1
+	echo "[crit] Unable to identify a valid docker interface, exiting..."
+	exit 1
 fi
 if is_enabled "${DEBUG:-}"; then
 	echo "[debug] Docker interface defined as ${docker_interface}"
@@ -86,14 +90,16 @@ fi
 # identify ip for local gateway (eth0)
 default_gateway=$(ip route show default | awk '/default/ {print $3}')
 if [[ -z "${default_gateway}" ]]; then
-	echo "[crit] Unable to identify default gateway, exiting..." ; exit 1
+	echo "[crit] Unable to identify default gateway, exiting..."
+	exit 1
 fi
 echo "[info] Default route for container is ${default_gateway}"
 
 # identify ip for docker bridge interface
 docker_ip=$(ifconfig "${docker_interface}" | grep -P -o -m 1 '(?<=inet\s)[^\s]+')
 if [[ -z "${docker_ip}" ]]; then
-	echo "[crit] Unable to identify docker IP for ${docker_interface}, exiting..." ; exit 1
+	echo "[crit] Unable to identify docker IP for ${docker_interface}, exiting..."
+	exit 1
 fi
 if is_enabled "${DEBUG:-}"; then
 	echo "[debug] Docker IP defined as ${docker_ip}"
@@ -102,7 +108,8 @@ fi
 # identify netmask for docker bridge interface
 docker_mask=$(ifconfig "${docker_interface}" | grep -P -o -m 1 '(?<=netmask\s)[^\s]+')
 if [[ -z "${docker_mask}" ]]; then
-	echo "[crit] Unable to identify docker netmask for ${docker_interface}, exiting..." ; exit 1
+	echo "[crit] Unable to identify docker netmask for ${docker_interface}, exiting..."
+	exit 1
 fi
 if is_enabled "${DEBUG:-}"; then
 	echo "[debug] Docker netmask defined as ${docker_mask}"
@@ -111,39 +118,43 @@ fi
 # convert netmask into cidr format
 docker_network_cidr=$(trim_value "$(ipcalc "${docker_ip}" "${docker_mask}" | grep -P -o -m 1 "(?<=Network:)\s+[^\s]+")")
 if [[ -z "${docker_network_cidr}" ]]; then
-	echo "[crit] Unable to calculate docker network CIDR, exiting..." ; exit 1
+	echo "[crit] Unable to calculate docker network CIDR, exiting..."
+	exit 1
 fi
 echo "[info] Docker network defined as ${docker_network_cidr}"
 
 # split comma separated string into list from LAN_NETWORK env variable
-IFS=',' read -ra lan_network_list <<< "${LAN_NETWORK:-}"
+IFS=',' read -ra lan_network_list <<<"${LAN_NETWORK:-}"
 if [[ -z "${LAN_NETWORK:-}" ]]; then
-	echo "[crit] LAN_NETWORK is not set, exiting..." ; exit 1
+	echo "[crit] LAN_NETWORK is not set, exiting..."
+	exit 1
 fi
 validate_cidr_list "LAN_NETWORK" "${lan_network_list[@]}"
 
 # split comma separated string into array from VPN_REMOTE_PORT env var
-IFS=',' read -ra vpn_remote_port_list <<< "${VPN_REMOTE_PORT:-}"
+IFS=',' read -ra vpn_remote_port_list <<<"${VPN_REMOTE_PORT:-}"
 if [[ -z "${VPN_REMOTE_PORT:-}" ]]; then
-	echo "[crit] VPN_REMOTE_PORT is not set, exiting..." ; exit 1
+	echo "[crit] VPN_REMOTE_PORT is not set, exiting..."
+	exit 1
 fi
 validate_port_list "VPN_REMOTE_PORT" "${vpn_remote_port_list[@]}"
 
 # split comma separated string into array for tcp and udp protocols (both required)
-IFS=',' read -ra vpn_remote_endpoint_protocol_list <<< "tcp,udp"
+IFS=',' read -ra vpn_remote_endpoint_protocol_list <<<"tcp,udp"
 
 # split comma separated string into list from ADDITIONAL_PORTS env variable
-IFS=',' read -ra additional_port_list <<< "${ADDITIONAL_PORTS:-}"
+IFS=',' read -ra additional_port_list <<<"${ADDITIONAL_PORTS:-}"
 if [[ ! -z "${ADDITIONAL_PORTS:-}" ]]; then
 	validate_port_list "ADDITIONAL_PORTS" "${additional_port_list[@]}"
 fi
 
 if [[ -z "${VPN_DEVICE_TYPE:-}" ]] || ! is_valid_interface_name "${VPN_DEVICE_TYPE}"; then
-	echo "[crit] VPN_DEVICE_TYPE is not set to a valid interface name, exiting..." ; exit 1
+	echo "[crit] VPN_DEVICE_TYPE is not set to a valid interface name, exiting..."
+	exit 1
 fi
 
 # split comma separated string into array for tcp and udp protocols (both required)
-IFS=',' read -ra additional_port_protocol_list <<< "tcp,udp"
+IFS=',' read -ra additional_port_protocol_list <<<"tcp,udp"
 
 # ip route
 ###
@@ -166,7 +177,8 @@ ip route | sed '/^[[:space:]]*$/d'
 ###
 
 if is_enabled "${DEBUG:-}"; then
-	echo "[debug] Modules currently loaded for kernel" ; lsmod
+	echo "[debug] Modules currently loaded for kernel"
+	lsmod
 fi
 
 # Detect mangle table support by probing iptables directly. Some kernels
@@ -181,7 +193,7 @@ if iptables -t mangle -S >/dev/null 2>&1; then
 	# port 6789 to lan interface. Always use numeric table id for compatibility.
 	if [[ -f /etc/iproute2/rt_tables ]]; then
 		if ! grep -Eq "^[[:space:]]*${webui_http_table_id}[[:space:]]+webui_http([[:space:]]|$)" /etc/iproute2/rt_tables; then
-			echo "${webui_http_table_id}    webui_http" >> /etc/iproute2/rt_tables
+			echo "${webui_http_table_id}    webui_http" >>/etc/iproute2/rt_tables
 		fi
 	else
 		echo "[warn] /etc/iproute2/rt_tables not found; using numeric routing table ${webui_http_table_id}"
@@ -321,7 +333,6 @@ fi
 # accept output from nzbget webui port 6789 - used for lan access
 iptables -A OUTPUT -o "${docker_interface}" -p tcp --dport 6789 -j ACCEPT
 iptables -A OUTPUT -o "${docker_interface}" -p tcp --sport 6789 -j ACCEPT
-
 
 # additional port list for scripts or container linking
 if [[ ! -z "${ADDITIONAL_PORTS}" ]]; then

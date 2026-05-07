@@ -24,12 +24,12 @@ is_positive_integer() {
 
 is_enabled() {
 	case "${1:-}" in
-		yes|true|1)
-			return 0
-			;;
-		*)
-			return 1
-			;;
+	yes | true | 1)
+		return 0
+		;;
+	*)
+		return 1
+		;;
 	esac
 }
 
@@ -91,15 +91,15 @@ get_vpn_selftest_mode() {
 	configured="$(strip_wrapping_quotes "${configured}")"
 
 	case "${configured}" in
-		""|no|false|0)
-			echo "no"
-			;;
-		yes|true|1)
-			echo "yes"
-			;;
-		*)
-			echo "${configured}"
-			;;
+	"" | no | false | 0)
+		echo "no"
+		;;
+	yes | true | 1)
+		echo "yes"
+		;;
+	*)
+		echo "${configured}"
+		;;
 	esac
 }
 
@@ -164,7 +164,7 @@ handle_vpn_selftest() {
 		fi
 		startup_delay="$(get_vpn_selftest_startup_delay)"
 		now="$(date +%s)"
-		elapsed=$((now-watchdog_start_epoch))
+		elapsed=$((now - watchdog_start_epoch))
 		if [[ "${elapsed}" -lt "${startup_delay}" ]]; then
 			if [[ "${vpn_selftest_startup_delay_logged}" == "no" ]]; then
 				echo "[info] Delaying one-shot VPN self-test by ${startup_delay} seconds after watchdog start (elapsed ${elapsed}s)"
@@ -220,16 +220,16 @@ get_vpn_failsafe_nzbget_action() {
 	configured="$(strip_wrapping_quotes "${configured}")"
 
 	case "${configured}" in
-		""|none)
-			echo "none"
-			;;
-		pause|stop)
-			echo "${configured}"
-			;;
-		*)
-			echo "[warn] VPN_FAILSAFE_NZBGET_ACTION '${configured}' is invalid, using 'none'"
-			echo "none"
-			;;
+	"" | none)
+		echo "none"
+		;;
+	pause | stop)
+		echo "${configured}"
+		;;
+	*)
+		echo "[warn] VPN_FAILSAFE_NZBGET_ACTION '${configured}' is invalid, using 'none'"
+		echo "none"
+		;;
 	esac
 }
 
@@ -255,22 +255,22 @@ handle_vpn_failsafe_nzbget() {
 	fi
 
 	case "${action}" in
-		pause)
-			echo "[warn] VPN has been unhealthy for ${vpn_unhealthy_count} watchdog checks, pausing NZBGet downloads via '/usr/bin/nzbget -P'"
-			if /usr/bin/nzbget -P >/dev/null 2>&1; then
-				nzbget_failsafe_applied="yes"
-			else
-				echo "[warn] NZBGet pause command failed; check credentials/listen state in /config/nzbget.conf"
-			fi
-			;;
-		stop)
-			echo "[warn] VPN has been unhealthy for ${vpn_unhealthy_count} watchdog checks, stopping NZBGet via '/usr/bin/nzbget -Q'"
-			if /usr/bin/nzbget -Q >/dev/null 2>&1; then
-				nzbget_failsafe_applied="yes"
-			else
-				echo "[warn] NZBGet stop command failed; check credentials/listen state in /config/nzbget.conf"
-			fi
-			;;
+	pause)
+		echo "[warn] VPN has been unhealthy for ${vpn_unhealthy_count} watchdog checks, pausing NZBGet downloads via '/usr/bin/nzbget -P'"
+		if /usr/bin/nzbget -P >/dev/null 2>&1; then
+			nzbget_failsafe_applied="yes"
+		else
+			echo "[warn] NZBGet pause command failed; check credentials/listen state in /config/nzbget.conf"
+		fi
+		;;
+	stop)
+		echo "[warn] VPN has been unhealthy for ${vpn_unhealthy_count} watchdog checks, stopping NZBGet via '/usr/bin/nzbget -Q'"
+		if /usr/bin/nzbget -Q >/dev/null 2>&1; then
+			nzbget_failsafe_applied="yes"
+		else
+			echo "[warn] NZBGet stop command failed; check credentials/listen state in /config/nzbget.conf"
+		fi
+		;;
 	esac
 }
 
@@ -296,7 +296,7 @@ handle_vpn_unhealthy() {
 	fi
 
 	now=$(date +%s)
-	elapsed=$((now-vpn_unhealthy_last_action))
+	elapsed=$((now - vpn_unhealthy_last_action))
 
 	if [[ "${vpn_unhealthy_last_action}" -ne 0 && "${elapsed}" -lt "${cooldown}" ]]; then
 		if is_enabled "${DEBUG:-}"; then
@@ -317,43 +317,43 @@ handle_vpn_unhealthy() {
 	fi
 
 	case "${action}" in
-		none)
-			:
-			;;
-		script|script+exit)
-			if [[ -z "${VPN_UNHEALTHY_SCRIPT:-}" ]]; then
-				echo "[warn] VPN_UNHEALTHY_ACTION is 'script' but VPN_UNHEALTHY_SCRIPT is not set"
-				return
-			fi
-			if [[ ! -x "${VPN_UNHEALTHY_SCRIPT}" ]]; then
-				echo "[warn] VPN_UNHEALTHY_SCRIPT '${VPN_UNHEALTHY_SCRIPT}' is not executable"
-				return
-			fi
-			echo "[warn] VPN has been unhealthy for ${vpn_unhealthy_count} watchdog checks, running '${VPN_UNHEALTHY_SCRIPT}'"
-			if ! VPN_UNHEALTHY_COUNT="${vpn_unhealthy_count}" run_script_with_timeout "${VPN_UNHEALTHY_SCRIPT_TIMEOUT:-300}" "${VPN_UNHEALTHY_SCRIPT}"; then
-				echo "[warn] VPN_UNHEALTHY_SCRIPT '${VPN_UNHEALTHY_SCRIPT}' failed or timed out"
-				vpn_unhealthy_last_action="${now}"
-				return
-			fi
+	none)
+		:
+		;;
+	script | script+exit)
+		if [[ -z "${VPN_UNHEALTHY_SCRIPT:-}" ]]; then
+			echo "[warn] VPN_UNHEALTHY_ACTION is 'script' but VPN_UNHEALTHY_SCRIPT is not set"
+			return
+		fi
+		if [[ ! -x "${VPN_UNHEALTHY_SCRIPT}" ]]; then
+			echo "[warn] VPN_UNHEALTHY_SCRIPT '${VPN_UNHEALTHY_SCRIPT}' is not executable"
+			return
+		fi
+		echo "[warn] VPN has been unhealthy for ${vpn_unhealthy_count} watchdog checks, running '${VPN_UNHEALTHY_SCRIPT}'"
+		if ! VPN_UNHEALTHY_COUNT="${vpn_unhealthy_count}" run_script_with_timeout "${VPN_UNHEALTHY_SCRIPT_TIMEOUT:-300}" "${VPN_UNHEALTHY_SCRIPT}"; then
+			echo "[warn] VPN_UNHEALTHY_SCRIPT '${VPN_UNHEALTHY_SCRIPT}' failed or timed out"
 			vpn_unhealthy_last_action="${now}"
-			if [[ "${action}" == "script+exit" ]]; then
-				exit_delay="${VPN_UNHEALTHY_EXIT_DELAY:-5}"
-				if ! is_positive_integer "${exit_delay}"; then
-					echo "[warn] VPN_UNHEALTHY_EXIT_DELAY value '${exit_delay}' is invalid, using default '5' seconds"
-					exit_delay=5
-				fi
-				echo "[crit] VPN unhealthy script completed, exiting watchdog in ${exit_delay} seconds by request"
-				sleep "${exit_delay}s"
-				exit 1
+			return
+		fi
+		vpn_unhealthy_last_action="${now}"
+		if [[ "${action}" == "script+exit" ]]; then
+			exit_delay="${VPN_UNHEALTHY_EXIT_DELAY:-5}"
+			if ! is_positive_integer "${exit_delay}"; then
+				echo "[warn] VPN_UNHEALTHY_EXIT_DELAY value '${exit_delay}' is invalid, using default '5' seconds"
+				exit_delay=5
 			fi
-			;;
-		exit)
-			echo "[crit] VPN has been unhealthy for ${vpn_unhealthy_count} watchdog checks, exiting watchdog by request"
+			echo "[crit] VPN unhealthy script completed, exiting watchdog in ${exit_delay} seconds by request"
+			sleep "${exit_delay}s"
 			exit 1
-			;;
-		*)
-			echo "[warn] VPN_UNHEALTHY_ACTION '${action}' is not supported, use 'none', 'script', 'script+exit', or 'exit'"
-			;;
+		fi
+		;;
+	exit)
+		echo "[crit] VPN has been unhealthy for ${vpn_unhealthy_count} watchdog checks, exiting watchdog by request"
+		exit 1
+		;;
+	*)
+		echo "[warn] VPN_UNHEALTHY_ACTION '${action}' is not supported, use 'none', 'script', 'script+exit', or 'exit'"
+		;;
 	esac
 }
 
@@ -372,7 +372,7 @@ cron_number_matches() {
 	local start
 	local end
 
-	IFS=',' read -ra parts <<< "${field}"
+	IFS=',' read -ra parts <<<"${field}"
 	for part in "${parts[@]}"; do
 		if [[ -z "${part}" ]]; then
 			return 1
@@ -406,7 +406,7 @@ cron_number_matches() {
 			return 1
 		fi
 
-		if [[ "${value}" -ge "${start}" && "${value}" -le "${end}" && $(((value-start)%step)) -eq 0 ]]; then
+		if [[ "${value}" -ge "${start}" && "${value}" -le "${end}" && $(((value - start) % step)) -eq 0 ]]; then
 			return 0
 		fi
 	done
@@ -428,7 +428,7 @@ cron_schedule_matches_now() {
 	local current_month
 	local current_weekday
 
-	read -r minute hour day month weekday extra <<< "${schedule}"
+	read -r minute hour day month weekday extra <<<"${schedule}"
 	if [[ -z "${minute}" || -z "${hour}" || -z "${day}" || -z "${month}" || -z "${weekday}" || -n "${extra:-}" ]]; then
 		echo "[warn] ${schedule_name} '${schedule}' is invalid, expected 5 fields like '* * * * *'"
 		return 1
@@ -630,7 +630,7 @@ while true; do
 			nzbget_failsafe_applied="no"
 
 			# check if nzbget is running, if not then skip shutdown of process
-			if ! pgrep -x nzbget > /dev/null; then
+			if ! pgrep -x nzbget >/dev/null; then
 
 				echo "[info] nzbget not running"
 
@@ -644,7 +644,7 @@ while true; do
 			if is_enabled "${ENABLE_PRIVOXY:-}"; then
 
 				# check if privoxy is running, if not then skip shutdown of process
-				if ! pgrep -fa "/usr/bin/privoxy" > /dev/null; then
+				if ! pgrep -fa "/usr/bin/privoxy" >/dev/null; then
 
 					echo "[info] Privoxy not running"
 
@@ -675,11 +675,10 @@ while true; do
 
 			fi
 
-
 		else
 
 			echo "[warn] VPN IP not detected, VPN tunnel maybe down"
-			vpn_unhealthy_count=$((vpn_unhealthy_count+1))
+			vpn_unhealthy_count=$((vpn_unhealthy_count + 1))
 			handle_vpn_failsafe_nzbget
 			handle_vpn_unhealthy
 
@@ -688,7 +687,7 @@ while true; do
 	else
 
 		# check if nzbget is running, if not then start via nzbget.sh
-		if ! pgrep -x nzbget > /dev/null; then
+		if ! pgrep -x nzbget >/dev/null; then
 
 			echo "[info] Nzbget not running"
 
@@ -700,7 +699,7 @@ while true; do
 		if is_enabled "${ENABLE_PRIVOXY:-}"; then
 
 			# check if privoxy is running, if not then start via privoxy.sh
-			if ! pgrep -fa "/usr/bin/privoxy" > /dev/null; then
+			if ! pgrep -fa "/usr/bin/privoxy" >/dev/null; then
 
 				echo "[info] Privoxy not running"
 

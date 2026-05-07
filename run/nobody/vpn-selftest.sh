@@ -20,12 +20,12 @@ log_crit() {
 
 is_enabled() {
 	case "${1:-}" in
-		yes|true|1)
-			return 0
-			;;
-		*)
-			return 1
-			;;
+	yes | true | 1)
+		return 0
+		;;
+	*)
+		return 1
+		;;
 	esac
 }
 
@@ -38,16 +38,16 @@ ready_timestamp() {
 	local tz_mode="${NZBGETVPN_TIMESTAMP_TZ:-utc}"
 
 	case "${tz_mode}" in
-		utc)
-			date -u +%Y-%m-%dT%H:%M:%SZ
-			;;
-		local)
-			date +%Y-%m-%dT%H:%M:%S%z
-			;;
-		*)
-			ready_path_warn "NZBGETVPN_TIMESTAMP_TZ must be 'utc' or 'local', falling back to 'utc'"
-			date -u +%Y-%m-%dT%H:%M:%SZ
-			;;
+	utc)
+		date -u +%Y-%m-%dT%H:%M:%SZ
+		;;
+	local)
+		date +%Y-%m-%dT%H:%M:%S%z
+		;;
+	*)
+		ready_path_warn "NZBGETVPN_TIMESTAMP_TZ must be 'utc' or 'local', falling back to 'utc'"
+		date -u +%Y-%m-%dT%H:%M:%SZ
+		;;
 	esac
 }
 
@@ -55,16 +55,16 @@ status_timestamp() {
 	local tz_mode="${NZBGETVPN_TIMESTAMP_TZ:-utc}"
 
 	case "${tz_mode}" in
-		utc)
-			date -u +%Y-%m-%dT%H:%M:%SZ
-			;;
-		local)
-			date +%Y-%m-%dT%H:%M:%S%z
-			;;
-		*)
-			status_path_warn "NZBGETVPN_TIMESTAMP_TZ must be 'utc' or 'local', falling back to 'utc'"
-			date -u +%Y-%m-%dT%H:%M:%SZ
-			;;
+	utc)
+		date -u +%Y-%m-%dT%H:%M:%SZ
+		;;
+	local)
+		date +%Y-%m-%dT%H:%M:%S%z
+		;;
+	*)
+		status_path_warn "NZBGETVPN_TIMESTAMP_TZ must be 'utc' or 'local', falling back to 'utc'"
+		date -u +%Y-%m-%dT%H:%M:%SZ
+		;;
 	esac
 }
 
@@ -117,7 +117,7 @@ write_ready_file() {
 
 	tmp="$(mktemp "${dir}/.nzbgetvpn-ready.XXXXXX")"
 	trap 'rm -f -- "${tmp}"' EXIT
-	printf 'ok %s\n' "$(ready_timestamp)" > "${tmp}"
+	printf 'ok %s\n' "$(ready_timestamp)" >"${tmp}"
 	chmod 644 "${tmp}"
 	mv -f -- "${tmp}" "${path}"
 	trap - EXIT
@@ -226,12 +226,12 @@ get_default_runtime_path() {
 	if [[ -n "${kind}" && -n "${base_path}" && -e "${base_path}" && ! -w "${base_path}" ]]; then
 		uid="$(id -u 2>/dev/null || echo 0)"
 		case "${kind}" in
-			state)
-				state_path_warn "Default state file '${base_path}' exists but is not writable by uid ${uid}; using '${base_path}-uid${uid}'"
-				;;
-			debounce)
-				debounce_path_warn "Default debounce file '${base_path}' exists but is not writable by uid ${uid}; using '${base_path}-uid${uid}'"
-				;;
+		state)
+			state_path_warn "Default state file '${base_path}' exists but is not writable by uid ${uid}; using '${base_path}-uid${uid}'"
+			;;
+		debounce)
+			debounce_path_warn "Default debounce file '${base_path}' exists but is not writable by uid ${uid}; using '${base_path}-uid${uid}'"
+			;;
 		esac
 		echo "${base_path}-uid${uid}"
 		return 0
@@ -291,7 +291,7 @@ save_debounce_streaks() {
 		return 0
 	}
 	trap 'rm -f -- "${tmp}"' EXIT
-	printf 'crit=%s\nwarn=%s\n' "${crit}" "${warn}" > "${tmp}" || {
+	printf 'crit=%s\nwarn=%s\n' "${crit}" "${warn}" >"${tmp}" || {
 		debounce_path_warn "Failed to write VPN_SELFTEST_DEBOUNCE_FILE temp, skipping debounce state"
 		return 0
 	}
@@ -331,8 +331,8 @@ write_status_json() {
 	now="$(status_timestamp)"
 	ts_mode="${NZBGETVPN_TIMESTAMP_TZ:-utc}"
 	case "${ts_mode}" in
-		utc|local) ;;
-		*) ts_mode="utc" ;;
+	utc | local) ;;
+	*) ts_mode="utc" ;;
 	esac
 	tmp="$(mktemp "${dir}/.nzbgetvpn-status.XXXXXX")"
 	trap 'rm -f -- "${tmp}"' EXIT
@@ -382,11 +382,11 @@ handle_state_change_hook() {
 	if [[ -f "${state_file}" ]]; then
 		previous_state="$(cat "${state_file}" 2>/dev/null || true)"
 		case "${previous_state}" in
-			ready|not_ready)
-				;;
-			*)
-				previous_state="unknown"
-				;;
+		ready | not_ready)
+			;;
+		*)
+			previous_state="unknown"
+			;;
 		esac
 	fi
 
@@ -396,7 +396,7 @@ handle_state_change_hook() {
 		return 0
 	}
 	trap 'rm -f -- "${tmp}"' EXIT
-	printf '%s\n' "${current_state}" > "${tmp}" || {
+	printf '%s\n' "${current_state}" >"${tmp}" || {
 		state_path_warn "Failed to write VPN_SELFTEST_STATE_FILE temp, skipping state tracking"
 		return 0
 	}

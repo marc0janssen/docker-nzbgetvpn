@@ -50,7 +50,7 @@ ${current_version}
 EOF_VERSION
 	new_version="${major}.${minor}.$((patch + 1))"
 
-	printf '%s\n' "${new_version}" > "${VERSION_FILE}"
+	printf '%s\n' "${new_version}" >"${VERSION_FILE}"
 	sed_in_place "s|^\\* NZBGetVPN image/codebase version: .*|* NZBGetVPN image/codebase version: ${new_version}|" "${README}"
 	if [ -f "${CONTAINER_README}" ]; then
 		sed_in_place "s|^\\* NZBGetVPN image/codebase version: .*|* NZBGetVPN image/codebase version: ${new_version}|" "${CONTAINER_README}"
@@ -60,10 +60,10 @@ EOF_VERSION
 }
 
 case "${1:-}" in
-	-h|--help)
-		show_help
-		exit 0
-		;;
+-h | --help)
+	show_help
+	exit 0
+	;;
 esac
 
 if [ "$#" -ne 2 ]; then
@@ -92,10 +92,10 @@ if [ "${requested_tag}" = "newest" ]; then
 fi
 
 case "${tag}" in
-	""|*[!0-9]*)
-		echo "Base image tag '${tag}' is invalid; expected a numeric tag like 2026032801" >&2
-		exit 1
-		;;
+"" | *[!0-9]*)
+	echo "Base image tag '${tag}' is invalid; expected a numeric tag like 2026032801" >&2
+	exit 1
+	;;
 esac
 
 sed_in_place "s|^ARG BASE_IMAGE_TAG=.*|ARG BASE_IMAGE_TAG=${tag}|" "${dockerfile}"

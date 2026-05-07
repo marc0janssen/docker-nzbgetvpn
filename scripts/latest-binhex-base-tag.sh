@@ -13,23 +13,23 @@ EOF
 }
 
 case "${1:-}" in
-	-h|--help)
-		show_help
-		exit 0
-		;;
-	"")
-		;;
-	*)
-		show_help >&2
-		exit 1
-		;;
+-h | --help)
+	show_help
+	exit 0
+	;;
+"")
+	;;
+*)
+	show_help >&2
+	exit 1
+	;;
 esac
 
 response="$(curl -L --fail --silent --show-error "${DOCKERHUB_TAGS_URL}")"
-tag="$(printf '%s\n' "${response}" \
-	| tr ',' '\n' \
-	| sed -n 's/.*"name":"\([0-9][0-9]*\)".*/\1/p' \
-	| head -n 1)"
+tag="$(printf '%s\n' "${response}" |
+	tr ',' '\n' |
+	sed -n 's/.*"name":"\([0-9][0-9]*\)".*/\1/p' |
+	head -n 1)"
 
 if [ -z "${tag}" ]; then
 	echo "Unable to determine latest numeric binhex/arch-int-vpn tag" >&2

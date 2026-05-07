@@ -1,5 +1,8 @@
 # NZBGetVPN
 
+[![Quality Checks](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/quality-checks.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/quality-checks.yml)
+[![Smoke Test](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/smoke-test.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/smoke-test.yml)
+
 Docker image for [NZBGet](https://github.com/nzbgetcom/nzbget) with OpenVPN/WireGuard, Privoxy, SOCKS support and VPN leak protection.
 
 Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
@@ -9,7 +12,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.24.11
+* NZBGetVPN image/codebase version: 4.24.16
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -95,6 +98,10 @@ For complete environment matrix, self-test/unhealthy logic, provider setup, trou
 - Runtime smoke-test helper: `./scripts/ci-smoke-test.sh`
 - Runtime smoke-test docs: [`ci/README.md`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/ci/README.md)
 - For Apple Silicon/non-amd64 hosts, run smoke tests with `SMOKE_PLATFORM=linux/amd64`.
+- Shell quality checks helper: `./scripts/ci-quality-checks.sh`
+- GitHub Actions quality checks workflow: [`quality-checks.yml`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/.github/workflows/quality-checks.yml) (`push` + `pull_request`, syntax + `shellcheck` + `shfmt --diff` + AGENTS.md validation checklist).
+- Quality checks use a temporary shellcheck baseline for legacy findings; run strict locally with `SHELLCHECK_EXCLUDES= ./scripts/ci-quality-checks.sh`.
+- GitHub Actions smoke-test workflow: [`smoke-test.yml`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/.github/workflows/smoke-test.yml) (`push` + `pull_request`, runtime startup/reachability/self-test checks).
 
 ## Security
 

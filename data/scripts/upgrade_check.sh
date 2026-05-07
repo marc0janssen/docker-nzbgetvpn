@@ -23,10 +23,14 @@ semver_gt() {
 	local rhs="$2"
 	local l1 l2 l3 r1 r2 r3
 
-	IFS='.' read -r l1 l2 l3 <<< "${lhs}"
-	IFS='.' read -r r1 r2 r3 <<< "${rhs}"
-	l1="${l1:-0}"; l2="${l2:-0}"; l3="${l3:-0}"
-	r1="${r1:-0}"; r2="${r2:-0}"; r3="${r3:-0}"
+	IFS='.' read -r l1 l2 l3 <<<"${lhs}"
+	IFS='.' read -r r1 r2 r3 <<<"${rhs}"
+	l1="${l1:-0}"
+	l2="${l2:-0}"
+	l3="${l3:-0}"
+	r1="${r1:-0}"
+	r2="${r2:-0}"
+	r3="${r3:-0}"
 
 	if ((l1 > r1)); then return 0; fi
 	if ((l1 < r1)); then return 1; fi
@@ -132,8 +136,8 @@ print_changelog_impact() {
 	local limit="$5"
 
 	log_info "Changelog impact (newer than ${current_version}):"
-	fetch_url "${timeout_secs}" "https://raw.githubusercontent.com/${repo}/${branch}/CHANGELOG.md" \
-		| awk -v current="${current_version}" -v max_sections="${limit}" '
+	fetch_url "${timeout_secs}" "https://raw.githubusercontent.com/${repo}/${branch}/CHANGELOG.md" |
+		awk -v current="${current_version}" -v max_sections="${limit}" '
 /^## \[/ {
 	version = $0
 	sub(/^## \[/, "", version)

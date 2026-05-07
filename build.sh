@@ -50,12 +50,12 @@ is_sha256() {
 
 is_truthy() {
 	case "$1" in
-		yes|true|1)
-			return 0
-			;;
-		*)
-			return 1
-			;;
+	yes | true | 1)
+		return 0
+		;;
+	*)
+		return 1
+		;;
 	esac
 }
 
@@ -72,10 +72,10 @@ is_docker_tag() {
 }
 
 case "${1:-}" in
-	-h|--help)
-		show_help
-		exit 0
-		;;
+-h | --help)
+	show_help
+	exit 0
+	;;
 esac
 
 NZBGET_VERSION_ARG=""
@@ -85,46 +85,46 @@ ACCEPT_DOWNLOADED_SHA256="no"
 
 while [ "$#" -gt 0 ]; do
 	case "$1" in
-		--base)
-			if [ "$#" -lt 2 ]; then
-				echo "--base requires a value" >&2
-				exit 1
-			fi
-			BASE_IMAGE_ARG="$2"
-			shift 2
-			;;
-		--base=*)
-			BASE_IMAGE_ARG="${1#--base=}"
-			shift
-			;;
-		--sha256)
-			if [ "$#" -lt 2 ]; then
-				echo "--sha256 requires a value" >&2
-				exit 1
-			fi
-			EXPECTED_SHA256_ARG="$2"
-			shift 2
-			;;
-		--sha256=*)
-			EXPECTED_SHA256_ARG="${1#--sha256=}"
-			shift
-			;;
-		--accept-downloaded-sha256)
-			ACCEPT_DOWNLOADED_SHA256="yes"
-			shift
-			;;
-		-*)
+	--base)
+		if [ "$#" -lt 2 ]; then
+			echo "--base requires a value" >&2
+			exit 1
+		fi
+		BASE_IMAGE_ARG="$2"
+		shift 2
+		;;
+	--base=*)
+		BASE_IMAGE_ARG="${1#--base=}"
+		shift
+		;;
+	--sha256)
+		if [ "$#" -lt 2 ]; then
+			echo "--sha256 requires a value" >&2
+			exit 1
+		fi
+		EXPECTED_SHA256_ARG="$2"
+		shift 2
+		;;
+	--sha256=*)
+		EXPECTED_SHA256_ARG="${1#--sha256=}"
+		shift
+		;;
+	--accept-downloaded-sha256)
+		ACCEPT_DOWNLOADED_SHA256="yes"
+		shift
+		;;
+	-*)
+		show_help >&2
+		exit 1
+		;;
+	*)
+		if [ -n "${NZBGET_VERSION_ARG}" ]; then
 			show_help >&2
 			exit 1
-			;;
-		*)
-			if [ -n "${NZBGET_VERSION_ARG}" ]; then
-				show_help >&2
-				exit 1
-			fi
-			NZBGET_VERSION_ARG="$1"
-			shift
-			;;
+		fi
+		NZBGET_VERSION_ARG="$1"
+		shift
+		;;
 	esac
 done
 

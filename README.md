@@ -6,8 +6,14 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 [Thanks for the tip!](https://ko-fi.com/marc0janssen)
 
+## CI Status
+
+[![Quality Checks](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/quality-checks.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/quality-checks.yml)
+[![Smoke Test](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/smoke-test.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/smoke-test.yml)
+
 ## Table of Contents
 
+- [CI Status](#ci-status)
 - [Versions](#versions)
 - [Quick Start](#quick-start)
 - [Compose](#compose)
@@ -24,7 +30,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 4.24.11
+* NZBGetVPN image/codebase version: 4.24.16
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260506
 
@@ -142,7 +148,35 @@ Script details are split into smaller files to reduce maintenance overhead and m
 
 Use `build.sh`, `build-testing.sh`, and scripts in `scripts/`.
 
-Runtime smoke test (container start, `6789` listen, Privoxy `8118` reachability when enabled, and self-test exit checks):
+CI quality checks (run locally and in GitHub Actions):
+
+- Workflow: `.github/workflows/quality-checks.yml`
+- Trigger: `push` and `pull_request`
+- Scope:
+  - shell syntax validation (`sh -n` / `bash -n` based on shebang)
+  - `shellcheck` for static shell linting
+  - `shfmt --diff` for formatting drift detection
+  - AGENTS.md validation checklist commands
+
+```sh
+./scripts/ci-quality-checks.sh
+```
+
+Temporary shellcheck baseline is enabled by default for known legacy findings.
+Run strict mode locally (no excludes) with:
+
+```sh
+SHELLCHECK_EXCLUDES= ./scripts/ci-quality-checks.sh
+```
+
+Runtime smoke test (run locally and in GitHub Actions):
+
+- Workflow: `.github/workflows/smoke-test.yml`
+- Trigger: `push` and `pull_request`
+- Scope:
+  - container boot and running-state validation
+  - NZBGet `6789/tcp` and Privoxy `8118/tcp` reachability
+  - healthcheck and direct self-test execution success
 
 ```sh
 ./scripts/ci-smoke-test.sh

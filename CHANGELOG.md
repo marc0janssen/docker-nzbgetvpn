@@ -4,6 +4,44 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.24.16] - 2026-05-07
+
+### Fixed
+
+- Corrected remaining `shfmt --diff` formatting in `scripts/ci-quality-checks.sh` redirection spacing so local and CI quality checks pass cleanly.
+
+## [4.24.15] - 2026-05-07
+
+### Changed
+
+- Applied repository-wide shell formatting with `shfmt -w` to align scripts with the enforced `shfmt --diff` quality gate.
+- Updated `VERSION`, `README.md`, and `README-containers.md` version metadata after the formatting sweep.
+
+## [4.24.14] - 2026-05-07
+
+### Changed
+
+- Updated `scripts/ci-quality-checks.sh` with a temporary shellcheck baseline exclude list for known legacy findings so CI can gate new regressions while cleanup is phased.
+- Added strict-mode guidance (`SHELLCHECK_EXCLUDES=`) in `README.md`, `README-containers.md`, and `ci/README.md` to support full shellcheck cleanup runs.
+
+## [4.24.13] - 2026-05-07
+
+### Changed
+
+- Added CI status badges and expanded CI workflow descriptions in `README.md` and `README-containers.md` for clearer visibility of automated quality and runtime checks.
+- Updated `ci/README.md` to explicitly point to the separate shell-quality check workflow and local command.
+
+## [4.24.12] - 2026-05-07
+
+### Added
+
+- Added GitHub Actions workflow `.github/workflows/quality-checks.yml` to run shell quality checks on `push` and `pull_request`.
+- Added `scripts/ci-quality-checks.sh` to run `bash`/`sh` syntax checks on tracked scripts, `shellcheck`, `shfmt --diff`, and AGENTS.md validation commands in one CI/local entrypoint.
+
+### Changed
+
+- Updated `README.md` and `README-containers.md` with the new local and CI shell-quality check flow.
+
 ## [4.24.11] - 2026-05-07
 
 ### Fixed
