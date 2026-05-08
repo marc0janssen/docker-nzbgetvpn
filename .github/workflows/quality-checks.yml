@@ -22,4 +22,6 @@ jobs:
         env:
           CI_CONVENTIONAL_COMMIT_LINT: ${{ vars.CI_CONVENTIONAL_COMMIT_LINT || 'false' }}
           CI_CONVENTIONAL_COMMIT_RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.sha) || 'HEAD~20..HEAD' }}
-        run: ./scripts/ci-quality-checks.sh
+        run: 
+          chmod +x ./script/ci-quality-checks.sh
+          ./scripts/ci-quality-checks.sh
