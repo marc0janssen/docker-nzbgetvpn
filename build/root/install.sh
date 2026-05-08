@@ -111,19 +111,49 @@ chmod -R 775 ${install_paths}
 
 cat <<EOF >/tmp/permissions_heredoc
 mkdir -p /data/scripts /data/wireguard-configs /data/openvpn-configs /data/backups
-mkdir -p /data/scripts/docs
+mkdir -p /data/scripts/docs /data/scripts/container /data/scripts/shared /data/scripts/notify /data/scripts/host
+
+sync_bundled_script() {
+	local source_script="\$1"
+	local target_script="\$2"
+	local target_dir
+
+	target_dir="\$(dirname -- "\${target_script}")"
+	mkdir -p "\${target_dir}"
+	if [[ ! -f "\${target_script}" ]]; then
+		echo "[info] Installing bundled script '\${target_script}'"
+		cp "\${source_script}" "\${target_script}"
+		chmod +x "\${target_script}"
+	elif ! cmp -s "\${source_script}" "\${target_script}"; then
+		echo "[info] Updating bundled script '\${target_script}'"
+		cp "\${source_script}" "\${target_script}"
+		chmod +x "\${target_script}"
+	fi
+}
+
+sync_bundled_script_tree() {
+	local source_dir="\$1"
+	local target_dir="\$2"
+	local script_path rel_path
+
+	[[ -d "\${source_dir}" ]] || return 0
+	while IFS= read -r -d '' script_path; do
+		rel_path="\${script_path#\${source_dir}/}"
+		sync_bundled_script "\${script_path}" "\${target_dir}/\${rel_path}"
+	done < <(find "\${source_dir}" -type f -name '*.sh' -print0)
+}
+
+sync_bundled_script_tree /usr/local/share/nzbgetvpn/scripts/container /data/scripts/container
+sync_bundled_script_tree /usr/local/share/nzbgetvpn/scripts/shared /data/scripts/shared
+sync_bundled_script_tree /usr/local/share/nzbgetvpn/scripts/notify /data/scripts/notify
+sync_bundled_script_tree /usr/local/share/nzbgetvpn/scripts/host /data/scripts/host
+
+# Keep flat /data/scripts/<name>.sh copies for backward compatibility with existing
+# VPN_CRON_SCRIPT and VPN_UNHEALTHY_SCRIPT values.
 for bundled_script in /usr/local/share/nzbgetvpn/scripts/*.sh; do
 	if [[ -f "\${bundled_script}" ]]; then
 		target_script="/data/scripts/\$(basename "\${bundled_script}")"
-		if [[ ! -f "\${target_script}" ]]; then
-			echo "[info] Installing bundled script '\${target_script}'"
-			cp "\${bundled_script}" "\${target_script}"
-			chmod +x "\${target_script}"
-		elif ! cmp -s "\${bundled_script}" "\${target_script}"; then
-			echo "[info] Updating bundled script '\${target_script}'"
-			cp "\${bundled_script}" "\${target_script}"
-			chmod +x "\${target_script}"
-		fi
+		sync_bundled_script "\${bundled_script}" "\${target_script}"
 	fi
 done
 for bundled_doc in /usr/local/share/nzbgetvpn/scripts/docs/*.md; do

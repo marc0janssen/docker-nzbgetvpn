@@ -38,6 +38,11 @@ ADD data/scripts/lib.sh /usr/local/share/nzbgetvpn/scripts/
 ADD data/scripts/container/*.sh /usr/local/share/nzbgetvpn/scripts/
 ADD data/scripts/shared/*.sh /usr/local/share/nzbgetvpn/scripts/
 ADD data/scripts/notify/*.sh /usr/local/share/nzbgetvpn/scripts/
+ADD data/scripts/host/*.sh /usr/local/share/nzbgetvpn/scripts/
+ADD data/scripts/container/*.sh /usr/local/share/nzbgetvpn/scripts/container/
+ADD data/scripts/shared/*.sh /usr/local/share/nzbgetvpn/scripts/shared/
+ADD data/scripts/notify/*.sh /usr/local/share/nzbgetvpn/scripts/notify/
+ADD data/scripts/host/*.sh /usr/local/share/nzbgetvpn/scripts/host/
 ADD data/scripts/README.md /usr/local/share/nzbgetvpn/scripts/README.md
 ADD data/scripts/docs/*.md /usr/local/share/nzbgetvpn/scripts/docs/
 ADD data/wireguard-configs/README.md /usr/local/share/nzbgetvpn/wireguard-configs/README.md

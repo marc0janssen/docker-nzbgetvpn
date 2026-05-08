@@ -27,6 +27,7 @@ Use environment variables first. If you need custom logic, copy to a new filenam
 | `log_sanitizer.sh` | Redact tokens/IP/paths before sharing logs. | Host-or-container |
 | `upgrade_check.sh` | Compare local/remote versions before upgrade. | Host-or-container |
 | `doctor.sh` | Run quick local diagnostics for config/runtime readiness. | Container-first (host possible with overrides) |
+| `run-container-helper.sh` | Host wrapper to run `/data/scripts/*.sh` inside a running container. | Host-only |
 | `notify_discord.sh` | Notification helper for Discord. | Host-or-container |
 | `notify_telegram.sh` | Notification helper for Telegram. | Host-or-container |
 | `notify_pushover.sh` | Notification helper for Pushover. | Host-or-container |
@@ -37,15 +38,17 @@ Script sources are organized by category
 - `data/scripts/container/` for container-focused helpers
 - `data/scripts/shared/` for host-or-container helpers
 - `data/scripts/notify/` for notification helpers
+- `data/scripts/host/` for host-only wrappers
 - `data/scripts/lib.sh` shared helper library
 
-At image build/startup, bundled helpers are flattened and installed as executable files under `/usr/local/share/nzbgetvpn/scripts/` and `/data/scripts/` (for backward compatibility with existing `/data/scripts/<name>.sh` paths).
+At image build/startup, bundled helpers are installed under category paths in `/data/scripts/{container,shared,notify,host}/` and also synced as flat compatibility copies in `/data/scripts/<name>.sh` for existing `VPN_*_SCRIPT` values.
 
 ## Execution Context
 
 - **Container-only**: relies on container runtime behavior and standard container paths like `/config`, `/data`, VPN env vars, or scheduler hooks (`VPN_CRON_*`, `VPN_UNHEALTHY_*`).
 - **Host-or-container**: can run from host or container when path/env inputs are valid.
 - **Container-first (host possible with overrides)**: optimized for in-container checks, but can run on host for dry-runs when overriding path/environment variables.
+- **Host-only**: intended to run on the Docker host, not inside the container.
 - **Internal library**: sourced by other scripts, not intended as direct executable entrypoint.
 
 ## Usage Patterns
@@ -60,7 +63,13 @@ docker exec -it nzbgetvpn /bin/bash
 Host helper (runs bundled scripts inside a running container):
 
 ```sh
-./scripts/run-container-helper.sh --container nzbgetvpn doctor.sh
+./data/scripts/host/run-container-helper.sh --container nzbgetvpn doctor.sh
+```
+
+Host helper from bind-mounted `/data`:
+
+```sh
+/path/to/data/scripts/host/run-container-helper.sh --container nzbgetvpn doctor.sh
 ```
 
 Scheduled (`VPN_CRON_*`):

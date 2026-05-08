@@ -35,6 +35,9 @@ data/scripts/shared/*
 !data/scripts/notify/
 data/scripts/notify/*
 !data/scripts/notify/*.sh
+!data/scripts/host/
+data/scripts/host/*
+!data/scripts/host/*.sh
 !data/scripts/README.md
 !data/scripts/docs/
 !data/scripts/docs/*.md

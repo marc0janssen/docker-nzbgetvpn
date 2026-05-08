@@ -45,9 +45,10 @@ Bundled helper scripts live in:
 - `data/scripts/container/*.sh`
 - `data/scripts/shared/*.sh`
 - `data/scripts/notify/*.sh`
+- `data/scripts/host/*.sh`
 - shared library: `data/scripts/lib.sh`
 
-They are copied into `/data/scripts` at container startup from `/usr/local/share/nzbgetvpn/scripts`. Existing bundled scripts in a mounted `/data/scripts` are updated when they differ from the image template.
+They are copied into `/data/scripts` at container startup from `/usr/local/share/nzbgetvpn/scripts`. Category folders under `/data/scripts` are synced from matching source folders, and flat `/data/scripts/<name>.sh` compatibility copies are also maintained. Existing bundled scripts in a mounted `/data/scripts` are updated when they differ from the image template.
 
 When adding a bundled helper script:
 

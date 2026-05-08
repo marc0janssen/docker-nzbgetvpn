@@ -4,12 +4,12 @@ set -eu
 usage() {
 	cat <<'EOF'
 Usage:
-  ./scripts/run-container-helper.sh [--container <name>] <script-name> [script-args...]
+  run-container-helper.sh [--container <name>] <script-name> [script-args...]
 
 Examples:
-  ./scripts/run-container-helper.sh doctor.sh
-  ./scripts/run-container-helper.sh --container nzbgetvpn rotate_on_poor_speed.sh
-  ./scripts/run-container-helper.sh container/doctor.sh --help
+  run-container-helper.sh doctor.sh
+  run-container-helper.sh --container nzbgetvpn rotate_on_poor_speed.sh
+  run-container-helper.sh container/doctor.sh --help
 
 Notes:
   - Scripts run inside the container via /data/scripts/<script-name>.

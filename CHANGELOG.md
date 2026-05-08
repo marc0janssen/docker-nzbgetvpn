@@ -4,6 +4,35 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.24.35] - 2026-05-08
+
+### Changed
+
+- Removed repository wrapper `scripts/run-container-helper.sh` and standardized host-helper usage/documentation on the source path `data/scripts/host/run-container-helper.sh`, which is bundled into the image and synced to `/data/scripts/host/`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [4.24.34] - 2026-05-08
+
+### Added
+
+- Added bundled host helper source `data/scripts/host/run-container-helper.sh` so host-side wrapper logic is included in the image templates and synced to `/data/scripts/host/`.
+
+### Changed
+
+- Updated startup sync in `build/root/install.sh` to include `/data/scripts/host/` from bundled image templates.
+- Updated both Dockerfiles and `.gitignore` for the new `data/scripts/host/*.sh` source path.
+- Updated script documentation (`data/scripts/README.md`, `AGENTS.md`) to include the `host` category and host-only run context.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [4.24.33] - 2026-05-08
+
+### Changed
+
+- Updated startup script sync in `build/root/install.sh` to populate `/data/scripts/{container,shared,notify}/` from bundled image templates while still maintaining flat `/data/scripts/<name>.sh` compatibility copies for existing scheduler/hook paths.
+- Updated both Dockerfiles to include category-specific bundled script paths under `/usr/local/share/nzbgetvpn/scripts/{container,shared,notify}/` so category sync sources are present in the image.
+- Clarified bundled script install behavior in `data/scripts/README.md` and `AGENTS.md`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [4.24.32] - 2026-05-08
 
 ### Added
