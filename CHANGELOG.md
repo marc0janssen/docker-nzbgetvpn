@@ -4,6 +4,40 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.24.32] - 2026-05-08
+
+### Added
+
+- Added host-side helper `scripts/run-container-helper.sh` to run bundled `/data/scripts/*.sh` safely inside a running container via `docker exec`, with container state checks and script-name validation.
+
+### Changed
+
+- Updated helper-script usage docs in `data/scripts/README.md`, `README.md`, and `README-containers.md` to include host-side wrapper usage.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [4.24.31] - 2026-05-08
+
+### Changed
+
+- Renamed helper source folder `data/scripts/portable/` to `data/scripts/shared/` for clearer intent, and updated Docker build inputs plus repository documentation (`Dockerfile`, `Dockerfile-testing`, `data/scripts/README.md`, `AGENTS.md`) accordingly.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [4.24.30] - 2026-05-08
+
+### Changed
+
+- Reorganized bundled helper script sources into category folders under `data/scripts/` (`container/`, `portable/`, `notify/`) while preserving runtime compatibility by continuing to install helpers into flat `/usr/local/share/nzbgetvpn/scripts/*.sh` and `/data/scripts/*.sh` paths.
+- Updated Docker build inputs (`Dockerfile`, `Dockerfile-testing`) and shell-quality validation (`scripts/ci-quality-checks.sh`, `AGENTS.md`) to include the new helper-script source layout.
+- Expanded `data/scripts/README.md` with a source-layout section that explains repository organization versus flattened runtime install paths.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [4.24.29] - 2026-05-08
+
+### Changed
+
+- Updated `data/scripts/README.md` with explicit run-context classification per helper script (`Container-only`, `Host-or-container`, `Container-first`, and `Internal library`) so operators can quickly see where each script should be executed.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [4.24.28] - 2026-05-08
 
 ### Changed

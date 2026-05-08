@@ -4,10 +4,13 @@ set -Eeuo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 shared_lib="${script_dir}/lib.sh"
 if [[ ! -r "${shared_lib}" ]]; then
+	shared_lib="${script_dir}/../lib.sh"
+fi
+if [[ ! -r "${shared_lib}" ]]; then
 	shared_lib="/usr/local/share/nzbgetvpn/scripts/lib.sh"
 fi
 if [[ ! -r "${shared_lib}" ]]; then
-	printf '[crit] [doctor] Shared helper library not found at %s or /usr/local/share/nzbgetvpn/scripts/lib.sh\n' "${script_dir}/lib.sh" >&2
+	printf '[crit] [doctor] Shared helper library not found at %s, %s, or /usr/local/share/nzbgetvpn/scripts/lib.sh\n' "${script_dir}/lib.sh" "${script_dir}/../lib.sh" >&2
 	exit 1
 fi
 # shellcheck source=/dev/null
