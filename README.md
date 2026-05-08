@@ -30,13 +30,15 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 4.24.25
+* NZBGetVPN image/codebase version: 4.24.26
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260507
 
 The NZBGetVPN image/codebase version is stored in `VERSION`.
 
 ## Quick Start
+
+Default NZBGet login is `nzbget` / `tegbzn6789`. Change this immediately after first start.
 
 OpenVPN:
 
@@ -113,6 +115,8 @@ Ready-to-edit examples live in [`examples/`](examples/).
 | `ENABLE_PRIVOXY` | No | `yes` | Enables Privoxy on `8118/tcp`. |
 | `PUID` / `PGID` | No | `1000` | Runtime ownership. |
 | `UMASK` | No | `000` | File creation mask. |
+
+Boolean-style toggles across this project accept `yes`/`no`, `true`/`false`, and `1`/`0`.
 
 ## Script Docs
 
