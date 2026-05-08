@@ -4,6 +4,29 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.0.0] - 2026-05-08
+
+### Breaking
+
+- Removed legacy flat bundled helper paths in `/data/scripts/*.sh`; bundled scripts are now only managed in categorized folders under `/data/scripts/{container,shared,notify,host}/`. Existing setups that reference flat script paths must update to category paths.
+
+### Fixed
+
+- Corrected POSIX shell compatibility in `data/scripts/host/run-container-helper.sh` by replacing Bash-specific `[[ ... ]]` with portable `[ ... ]`, fixing runtime errors on systems where `/bin/sh` is `dash`.
+
+### Changed
+
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [4.24.36] - 2026-05-08
+
+### Changed
+
+- Removed bundled flat script compatibility in `/data/scripts/*.sh`; startup sync now keeps only categorized helper paths under `/data/scripts/{container,shared,notify,host}/` and removes legacy flat bundled copies.
+- Updated helper defaults and runtime references to categorized paths (`data/scripts/lib.sh`, `run/nobody/watchdog.sh`) and updated host helper lookup in `data/scripts/host/run-container-helper.sh` to resolve scripts across category folders.
+- Updated helper-path documentation in `README.md`, `README-containers.md`, `data/scripts/README.md`, `data/openvpn-configs/README.md`, and `data/wireguard-configs/README.md`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [4.24.35] - 2026-05-08
 
 ### Changed

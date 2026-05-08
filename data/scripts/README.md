@@ -41,7 +41,7 @@ Script sources are organized by category
 - `data/scripts/host/` for host-only wrappers
 - `data/scripts/lib.sh` shared helper library
 
-At image build/startup, bundled helpers are installed under category paths in `/data/scripts/{container,shared,notify,host}/` and also synced as flat compatibility copies in `/data/scripts/<name>.sh` for existing `VPN_*_SCRIPT` values.
+At image build/startup, bundled helpers are installed under category paths in `/data/scripts/{container,shared,notify,host}/`. Legacy flat `/data/scripts/<name>.sh` bundled copies are removed automatically.
 
 ## Execution Context
 
@@ -57,7 +57,7 @@ Manual:
 
 ```sh
 docker exec -it nzbgetvpn /bin/bash
-/data/scripts/backup_config.sh
+/data/scripts/shared/backup_config.sh
 ```
 
 Host helper (runs bundled scripts inside a running container):
@@ -76,7 +76,7 @@ Scheduled (`VPN_CRON_*`):
 
 ```text
 VPN_CRON_SCHEDULE=0 */6 * * *
-VPN_CRON_SCRIPT=/data/scripts/select_random_wireguard_config.sh
+VPN_CRON_SCRIPT=/data/scripts/container/select_random_wireguard_config.sh
 VPN_CRON_SCRIPT_TIMEOUT=300
 ```
 
@@ -84,15 +84,15 @@ Unhealthy action (`VPN_UNHEALTHY_*`):
 
 ```text
 VPN_UNHEALTHY_ACTION=script+exit
-VPN_UNHEALTHY_SCRIPT=/data/scripts/get_wireguard_configs_nordvpn.sh
+VPN_UNHEALTHY_SCRIPT=/data/scripts/container/get_wireguard_configs_nordvpn.sh
 VPN_UNHEALTHY_SCRIPT_TIMEOUT=300
 ```
 
 Notification hooks:
 
 ```text
-NOTIFY_SELFTEST_STATE_SCRIPT=/data/scripts/notify_discord.sh
-NOTIFY_UNHEALTHY_SCRIPT=/data/scripts/notify_discord.sh
+NOTIFY_SELFTEST_STATE_SCRIPT=/data/scripts/notify/notify_discord.sh
+NOTIFY_UNHEALTHY_SCRIPT=/data/scripts/notify/notify_discord.sh
 ```
 
 ## Per-Script Docs

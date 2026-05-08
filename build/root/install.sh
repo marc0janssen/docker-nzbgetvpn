@@ -148,12 +148,26 @@ sync_bundled_script_tree /usr/local/share/nzbgetvpn/scripts/shared /data/scripts
 sync_bundled_script_tree /usr/local/share/nzbgetvpn/scripts/notify /data/scripts/notify
 sync_bundled_script_tree /usr/local/share/nzbgetvpn/scripts/host /data/scripts/host
 
-# Keep flat /data/scripts/<name>.sh copies for backward compatibility with existing
-# VPN_CRON_SCRIPT and VPN_UNHEALTHY_SCRIPT values.
-for bundled_script in /usr/local/share/nzbgetvpn/scripts/*.sh; do
-	if [[ -f "\${bundled_script}" ]]; then
-		target_script="/data/scripts/\$(basename "\${bundled_script}")"
-		sync_bundled_script "\${bundled_script}" "\${target_script}"
+# Remove legacy flat bundled script copies from /data/scripts root.
+# Keep subfolders (/data/scripts/{container,shared,notify,host}) as the
+# supported location for bundled helper scripts.
+for legacy_flat_script in \
+	/data/scripts/doctor.sh \
+	/data/scripts/get_wireguard_configs_nordvpn.sh \
+	/data/scripts/rotate_on_poor_speed.sh \
+	/data/scripts/select_random_openvpn_config.sh \
+	/data/scripts/select_random_wireguard_config.sh \
+	/data/scripts/backup_config.sh \
+	/data/scripts/benchmark_endpoints.sh \
+	/data/scripts/log_sanitizer.sh \
+	/data/scripts/upgrade_check.sh \
+	/data/scripts/notify_discord.sh \
+	/data/scripts/notify_telegram.sh \
+	/data/scripts/notify_pushover.sh \
+	/data/scripts/run-container-helper.sh; do
+	if [[ -f "\${legacy_flat_script}" ]]; then
+		echo "[info] Removing legacy flat bundled script '\${legacy_flat_script}'"
+		rm -f -- "\${legacy_flat_script}"
 	fi
 done
 for bundled_doc in /usr/local/share/nzbgetvpn/scripts/docs/*.md; do

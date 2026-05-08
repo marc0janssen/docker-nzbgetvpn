@@ -85,8 +85,19 @@ running_state="$(docker inspect -f '{{.State.Running}}' "${container_name}" 2>/d
 [ "${running_state}" = "true" ] || log_crit "Container '${container_name}' is not running"
 
 target_script="/data/scripts/${script_name}"
-docker exec "${container_name}" test -x "${target_script}" ||
-	log_crit "Script '${target_script}' not found/executable in container '${container_name}'"
+
+if ! docker exec "${container_name}" test -x "${target_script}"; then
+	for category in container shared notify host; do
+		target_script="/data/scripts/${category}/${script_name}"
+		if docker exec "${container_name}" test -x "${target_script}"; then
+			break
+		fi
+		target_script=""
+	done
+fi
+
+[ -n "${target_script}" ] ||
+	log_crit "Script '${script_name}' not found/executable in /data/scripts/{container,shared,notify,host} or /data/scripts inside container '${container_name}'"
 
 log_info "Running '${target_script}' inside container '${container_name}'"
 exec docker exec "${container_name}" "${target_script}" "$@"

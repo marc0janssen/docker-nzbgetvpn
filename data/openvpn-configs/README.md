@@ -5,7 +5,7 @@ Put OpenVPN `*.ovpn` files in this directory when you want NZBGetVPN to choose o
 Use this bundled script:
 
 ```text
-/data/scripts/select_random_openvpn_config.sh
+/data/scripts/container/select_random_openvpn_config.sh
 ```
 
 Common environment variables:
