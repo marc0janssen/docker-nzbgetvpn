@@ -12,9 +12,9 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.24.26
+* NZBGetVPN image/codebase version: 4.24.28
 * NZBGET Current stable version: 26.1
-* NZBGET Current testing version: 26.2-testing-20260507
+* NZBGET Current testing version: 26.2-testing-20260508
 
 ## Tags
 
@@ -90,6 +90,7 @@ Bundled script docs are synced to `/data/scripts/docs`.
 
 - Script index: [`data/scripts/README.md`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/data/scripts/README.md)
 - Per-script docs: [`data/scripts/docs/`](https://github.com/marc0janssen/nzbgetvpn/tree/develop/data/scripts/docs)
+- Quick diagnostics helper: run `/data/scripts/doctor.sh` inside the container.
 
 ## Full Documentation
 

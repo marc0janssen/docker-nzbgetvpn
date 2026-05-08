@@ -13,9 +13,9 @@ LABEL org.opencontainers.image.title="NZBGetVPN" \
       org.opencontainers.image.version="${NZBGETVPN_VERSION}" \
       org.opencontainers.image.base.name="binhex/arch-int-vpn:${BASE_IMAGE_TAG}"
 
-ENV NZBGET_VERSION=26.2-testing-20260507
+ENV NZBGET_VERSION=26.2-testing-20260508
 ENV NZBGET_VERSION_DIR=testing
-ENV NZBGET_SHA256=420e6479c935459e32b824a4443179afd24d8e3dd9609ca0850e7bd8d6eae1d0
+ENV NZBGET_SHA256=a6472399bbf0ba36e924b34ab0ef6594fd696de4c140bba2d5dbbe464ebc0434
 
 # additional files
 ##################

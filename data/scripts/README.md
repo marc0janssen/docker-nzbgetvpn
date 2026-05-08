@@ -24,6 +24,7 @@ Use environment variables first. If you need custom logic, copy to a new filenam
 | `backup_config.sh` | Create timestamped backups of config data. |
 | `log_sanitizer.sh` | Redact tokens/IP/paths before sharing logs. |
 | `upgrade_check.sh` | Compare local/remote versions before upgrade. |
+| `doctor.sh` | Run quick local diagnostics for config/runtime readiness. |
 | `notify_discord.sh` | Notification helper for Discord. |
 | `notify_telegram.sh` | Notification helper for Telegram. |
 | `notify_pushover.sh` | Notification helper for Pushover. |
@@ -71,6 +72,7 @@ NOTIFY_UNHEALTHY_SCRIPT=/data/scripts/notify_discord.sh
 - [`docs/backup_config.md`](docs/backup_config.md)
 - [`docs/log_sanitizer.md`](docs/log_sanitizer.md)
 - [`docs/upgrade_check.md`](docs/upgrade_check.md)
+- [`docs/doctor.md`](docs/doctor.md)
 - [`docs/notification_scripts.md`](docs/notification_scripts.md)
 
 ## Permissions
