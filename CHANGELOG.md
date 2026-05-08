@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.24.26] - 2026-05-08
+
+### Changed
+
+- Polished `README.md` quick-start guidance by adding explicit first-login credential hardening instructions (`nzbget` / `tegbzn6789` must be changed after initial startup).
+- Clarified in `README.md` that boolean-style toggles accept `yes`/`no`, `true`/`false`, and `1`/`0`.
+- Updated version metadata in `VERSION` and `README-containers.md`.
+
 ## [4.24.25] - 2026-05-07
 
 ### Changed
