@@ -4,6 +4,25 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [4.24.28] - 2026-05-08
+
+### Changed
+
+- Expanded `data/scripts/doctor.sh` diagnostics with default-route and DNS-entry validation, VPN interface/IP signal checks, and an optional internet reachability probe (`DOCTOR_INTERNET_CHECK_*`).
+- Updated `data/scripts/docs/doctor.md` with the extended checks and new optional variables.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [4.24.27] - 2026-05-08
+
+### Added
+
+- Added bundled diagnostics helper `data/scripts/doctor.sh` to run quick runtime/config readiness checks for commands, writable volumes, DNS resolver presence, and VPN profile availability based on `VPN_CLIENT`.
+
+### Changed
+
+- Updated helper-script docs and README references to document `doctor.sh`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [4.24.26] - 2026-05-08
 
 ### Changed
