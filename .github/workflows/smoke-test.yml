@@ -15,5 +15,5 @@ jobs:
 
       - name: Run runtime smoke test
         run: 
-          chmod +x ./script/ci-smoke-test.sh
+          chmod +x ./scripts/ci-smoke-test.sh
           ./scripts/ci-smoke-test.sh
