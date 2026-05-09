@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.5.8] - 2026-05-09
+
+### Changed
+
+- Fixed ARM64 package database sync in `build/root/install.sh` by writing an Arch Linux ARM mirrorlist when `OS_ARCH=aarch64`.
+- Disabled the optional `[aur]` repository during ARM sync to prevent `aur.db` 404 failures that blocked `pacman -Syyu` in multi-arch builds.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.5.7] - 2026-05-09
 
 ### Changed

@@ -191,6 +191,6 @@ if ! is_docker_tag "${VERSION}" || ! is_docker_tag "${VERSION}-image-v${IMAGE_VE
 	exit 1
 fi
 
-docker buildx build --no-cache --platform linux/amd64 --push --build-arg "NZBGETVPN_VERSION=${IMAGE_VERSION}" -t "marc0janssen/nzbgetvpn:${VERSION}" -t "marc0janssen/nzbgetvpn:${VERSION}-image-v${IMAGE_VERSION}" -t "marc0janssen/nzbgetvpn:stable" -f ./Dockerfile .
+docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push --build-arg "NZBGETVPN_VERSION=${IMAGE_VERSION}" -t "marc0janssen/nzbgetvpn:${VERSION}" -t "marc0janssen/nzbgetvpn:${VERSION}-image-v${IMAGE_VERSION}" -t "marc0janssen/nzbgetvpn:stable" -f ./Dockerfile .
 
 docker pushrm --file README-containers.md marc0janssen/nzbgetvpn:stable

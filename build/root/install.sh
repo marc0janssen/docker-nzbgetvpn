@@ -27,12 +27,38 @@ fi
 echo "[info] Updating pacman database..."
 # call pacman db and package updater script
 #source upd.sh
-printf '%s\n' \
-	'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' \
-	'Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch' \
-	'Server = https://mirror.leaseweb.net/archlinux/$repo/os/$arch' \
-	>/etc/pacman.d/mirrorlist &&
-	pacman -Syyu --noconfirm
+if [[ "${OS_ARCH}" == "aarch64" ]]; then
+	# Arch Linux ARM uses a different mirror layout than x86 Arch Linux.
+	printf '%s\n' \
+		'Server = http://mirror.archlinuxarm.org/$arch/$repo' \
+		>/etc/pacman.d/mirrorlist
+
+	# AUR-style repos are frequently unavailable on ARM mirrors and are not
+	# required for this image, so disable them during package sync to avoid
+	# hard failures on missing aur.db.
+	if grep -q '^\[aur\]' /etc/pacman.conf 2>/dev/null; then
+		awk '
+			BEGIN {skip=0}
+			/^\[aur\]/ {skip=1; print "#" $0; next}
+			/^\[/ && skip==1 {skip=0}
+			{
+				if (skip==1) {
+					print "#" $0
+				} else {
+					print $0
+				}
+			}
+		' /etc/pacman.conf >/tmp/pacman.conf && mv /tmp/pacman.conf /etc/pacman.conf
+		echo "[info] Disabled [aur] repository for ARM package sync"
+	fi
+else
+	printf '%s\n' \
+		'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' \
+		'Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch' \
+		'Server = https://mirror.leaseweb.net/archlinux/$repo/os/$arch' \
+		>/etc/pacman.d/mirrorlist
+fi
+pacman -Syyu --noconfirm
 
 echo "[info] Installing pacman packages..."
 # define pacman packages
