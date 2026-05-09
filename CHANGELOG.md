@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.5.7] - 2026-05-09
+
+### Changed
+
+- Replaced the default `ROTATE_SPEEDTEST_URLS` in `data/scripts/lib.sh` to remove the unstable `freetestdata.com` endpoint and use `proof.ovh.net` as primary with a Mozilla CDN fallback.
+- Regenerated `data/scripts/docs/rotate_on_poor_speed.md` defaults documentation via `scripts/sync-rotate-defaults-doc.sh`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.5.6] - 2026-05-09
 
 ### Changed
