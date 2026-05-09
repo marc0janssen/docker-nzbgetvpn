@@ -272,7 +272,7 @@ heal_copy_tree() {
 
 	[[ -d "${source_dir}" ]] || return 0
 	while IFS= read -r -d '' source_path; do
-		rel_path="${source_path#${source_dir}/}"
+		rel_path="${source_path#"${source_dir}"/}"
 		heal_copy_file "${source_path}" "${target_dir}/${rel_path}" "${mode}" "${backup_root}"
 	done < <(find "${source_dir}" -type f -name "${pattern}" -print0)
 }
