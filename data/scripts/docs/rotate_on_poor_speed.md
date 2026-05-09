@@ -10,7 +10,7 @@ Defaults below are generated from the shared runtime defaults in `data/scripts/l
 
 ```text
 ROTATE_MODE=auto
-ROTATE_SPEEDTEST_URLS=https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_1OMB_MP3.mp3,https://proof.ovh.net/files/10Mb.dat
+ROTATE_SPEEDTEST_URLS=https://proof.ovh.net/files/10Mb.dat,https://download-installer.cdn.mozilla.net/pub/firefox/releases/138.0/linux-x86_64/en-US/firefox-138.0.tar.xz
 ROTATE_SPEEDTEST_WEIGHTS=0.60,0.40
 ROTATE_SPEEDTEST_TIMEOUT=20
 ROTATE_SPEEDTEST_ATTEMPTS=1
