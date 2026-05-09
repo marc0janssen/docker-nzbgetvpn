@@ -49,6 +49,90 @@ run_readme_size_guard() {
 	fi
 }
 
+run_version_metadata_guard() {
+	required_files="VERSION CHANGELOG.md README.md README-containers.md"
+	changed_files="$(mktemp)"
+	commit_range="${CI_CHANGED_FILES_RANGE:-${CI_CONVENTIONAL_COMMIT_RANGE:-}}"
+	has_non_metadata_change="0"
+	missing_required="0"
+	required_file=""
+
+	if [ -n "${commit_range}" ] && git rev-parse "${commit_range}" >/dev/null 2>&1; then
+		log_info "Collecting changed files from range: ${commit_range}"
+		git diff --name-only "${commit_range}" >"${changed_files}"
+	else
+		log_info "Collecting changed files from HEAD fallback"
+		git show --name-only --pretty=format: HEAD >"${changed_files}"
+	fi
+
+	if [ ! -s "${changed_files}" ]; then
+		log_info "No changed files detected for version metadata guard; skipping"
+		return
+	fi
+
+	while IFS= read -r changed_file; do
+		case "${changed_file}" in
+		"" | VERSION | CHANGELOG.md | README.md | README-containers.md)
+			;;
+		*)
+			has_non_metadata_change="1"
+			;;
+		esac
+	done <"${changed_files}"
+
+	if [ "${has_non_metadata_change}" = "1" ]; then
+		for required_file in ${required_files}; do
+			if ! grep -Fxq "${required_file}" "${changed_files}"; then
+				log_crit "Versioning guard: '${required_file}' must be updated when non-metadata files change"
+				missing_required="1"
+			fi
+		done
+	fi
+
+	version_value="$(sed -n '1{s/^[[:space:]]*//;s/[[:space:]]*$//;p;}' VERSION)"
+	readme_version="$(sed -n 's|^\* NZBGetVPN image/codebase version: ||p' README.md | head -n1)"
+	container_readme_version="$(sed -n 's|^\* NZBGetVPN image/codebase version: ||p' README-containers.md | head -n1)"
+	if [ "${version_value}" != "${readme_version}" ]; then
+		log_crit "Versioning guard: README.md version '${readme_version}' does not match VERSION '${version_value}'"
+		missing_required="1"
+	fi
+	if [ "${version_value}" != "${container_readme_version}" ]; then
+		log_crit "Versioning guard: README-containers.md version '${container_readme_version}' does not match VERSION '${version_value}'"
+		missing_required="1"
+	fi
+
+	if [ "${missing_required}" != "0" ]; then
+		rm -f "${changed_files}"
+		exit 1
+	fi
+	rm -f "${changed_files}"
+}
+
+run_idempotence_checks() {
+	stable_tag="$(sed -n 's/^ARG BASE_IMAGE_TAG=//p' Dockerfile)"
+	testing_tag="$(sed -n 's/^ARG BASE_IMAGE_TAG=//p' Dockerfile-testing)"
+
+	if [ -z "${stable_tag}" ] || [ -z "${testing_tag}" ]; then
+		log_crit "Unable to read BASE_IMAGE_TAG from Dockerfile(s) for idempotence checks"
+		exit 1
+	fi
+
+	log_info "Running idempotence checks for local update scripts"
+	./scripts/sync-rotate-defaults-doc.sh write
+	./scripts/sync-rotate-defaults-doc.sh write
+	./scripts/update-base-image.sh ./Dockerfile "${stable_tag}"
+	./scripts/update-base-image.sh ./Dockerfile "${stable_tag}"
+	./scripts/update-base-image.sh ./Dockerfile-testing "${testing_tag}"
+	./scripts/update-base-image.sh ./Dockerfile-testing "${testing_tag}"
+
+	if ! git diff --quiet -- .; then
+		log_crit "Idempotence check failed: update scripts produced repository changes"
+		git status --short
+		git diff --stat
+		exit 1
+	fi
+}
+
 run_conventional_commit_lint() {
 	default_pattern='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._/-]+\))?(!)?: .+'
 	commit_pattern="${CI_CONVENTIONAL_COMMIT_PATTERN:-${default_pattern}}"
@@ -92,6 +176,8 @@ main() {
 
 	run_conflict_marker_check
 	run_readme_size_guard
+	run_version_metadata_guard
+	run_idempotence_checks
 
 	log_info "Collecting tracked shell scripts"
 	git ls-files "*.sh" >"${file_list}"

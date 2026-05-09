@@ -4,6 +4,21 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.3.8] - 2026-05-09
+
+### Changed
+
+- Added CI idempotence checks in `scripts/ci-quality-checks.sh` that run `sync-rotate-defaults-doc.sh` and `update-base-image.sh` twice and fail when those update scripts still produce repository diffs.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.3.7] - 2026-05-09
+
+### Changed
+
+- Added a CI versioning metadata guard to `scripts/ci-quality-checks.sh` that fails when non-metadata changes are made without updating `VERSION`, `CHANGELOG.md`, `README.md`, and `README-containers.md`, and also verifies README version lines match `VERSION`.
+- Updated `.github/workflows/quality-checks.yml` checkout to `fetch-depth: 0` so commit-range based checks have full history context.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.3.6] - 2026-05-09
 
 ### Changed
