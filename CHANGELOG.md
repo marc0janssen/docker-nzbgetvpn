@@ -4,6 +4,39 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.5.12] - 2026-05-09
+
+### Changed
+
+- Updated `build-testing-local.sh` default local registry repository from `192.168.178.200:5050/nzbgetvpn` to `192.168.1.1:5000/nzbgetvpn`.
+- Updated local build helper documentation in `README.md` and `README-containers.md` to reflect the new default repository.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.5.11] - 2026-05-09
+
+### Changed
+
+- Expanded `build-testing-local.sh` to match the update/version argument behavior of `build-testing.sh`, including `newest`, `--sha256`, `--accept-downloaded-sha256`, and `--base` flows before building.
+- Added local-build specific options `--repo` and `--platform`, while keeping local/private-registry output defaults (`192.168.178.200:5050/nzbgetvpn`, tag `testing`) and `sudo docker buildx build ... --push`.
+- Updated build documentation references in `README.md` and `README-containers.md`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.5.10] - 2026-05-09
+
+### Changed
+
+- Added `build-testing-local.sh` as a local/private-registry helper for testing builds, defaulting to `sudo docker buildx build --no-cache --platform linux/amd64 --push -t 192.168.178.200:5050/nzbgetvpn:testing -f ./Dockerfile-testing .`.
+- Updated build documentation references in `README.md` and `README-containers.md`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.5.9] - 2026-05-09
+
+### Changed
+
+- Reduced image layer footprint in `build/root/install.sh` by explicitly clearing pacman package caches (`pacman -Scc`) after package installation.
+- Removed the temporary NZBGet installer file (`/tmp/nzbget.run`) after successful install to avoid carrying transient build artifacts in final layers.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.5.8] - 2026-05-09
 
 ### Changed

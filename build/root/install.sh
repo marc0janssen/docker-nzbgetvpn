@@ -69,6 +69,10 @@ if [[ ! -z "${pacman_packages}" ]]; then
 	pacman -S --needed $pacman_packages --noconfirm
 fi
 
+# keep image layers lean by removing cached package archives after install
+echo "[info] Cleaning pacman package cache..."
+pacman -Scc --noconfirm || true
+
 echo "[info] Installing nzbget..."
 # install nzbget
 if [[ -z "${NZBGET_SHA256}" ]]; then
@@ -80,6 +84,7 @@ wget -O /tmp/nzbget.run "https://github.com/nzbgetcom/nzbget/releases/download/$
 printf '%s  %s\n' "${NZBGET_SHA256}" "/tmp/nzbget.run" | sha256sum -c -
 sh /tmp/nzbget.run --destdir /usr/sbin/nzbget_bin
 ln -s /usr/sbin/nzbget_bin/nzbget /usr/sbin/nzbget
+rm -f /tmp/nzbget.run
 
 if [[ ! -f /usr/local/bin/shutdown.sh ]]; then
 	echo "[info] Installing fallback shutdown script..."

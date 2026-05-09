@@ -15,7 +15,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 5.5.8
+* NZBGetVPN image/codebase version: 5.5.12
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260508
 * Base image stable tag: binhex/arch-int-vpn:2026050402
@@ -113,6 +113,7 @@ For complete environment matrix, self-test/unhealthy logic, provider setup, trou
 - Runtime smoke-test helper: `./scripts/ci-smoke-test.sh`
 - Runtime smoke-test docs: [`ci/README.md`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/ci/README.md)
 - For Apple Silicon/non-amd64 hosts, run smoke tests with `SMOKE_PLATFORM=linux/amd64`.
+- Local private-registry testing build helper: `./build-testing-local.sh` (same update/version argument flow as `build-testing.sh`; defaults to repo `192.168.1.1:5000/nzbgetvpn` and tag `testing`).
 - Shell quality checks helper: `./scripts/ci-quality-checks.sh`
 - GitHub Actions quality checks workflow: [`quality-checks.yml`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/.github/workflows/quality-checks.yml) (`push` + `pull_request`, conflict-marker scan + `README-containers.md` `<25000` bytes guard + syntax + `shellcheck` + `shfmt --diff` + AGENTS.md validation checklist).
 - Rotate defaults docs are generated from shared runtime defaults with `./scripts/sync-rotate-defaults-doc.sh` and validated in quality checks.
