@@ -25,7 +25,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 - [Script Docs](#script-docs)
 - [Provider Setup](#provider-setup)
 - [Health, Self-Test, and Unhealthy Actions](#health-self-test-and-unhealthy-actions)
-- [Build and Update](#build-and-update)
+- [Build and Update](#build-and-update) (includes [Docker Hub builds](#docker-hub-builds), [local registry build](#local-registry-build))
 - [Troubleshooting](#troubleshooting)
 - [Security](#security)
 
@@ -33,7 +33,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 5.5.12
+* NZBGetVPN image/codebase version: 5.5.21
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260508
 * Base image stable tag: binhex/arch-int-vpn:2026050402
@@ -162,7 +162,83 @@ Script details are split into smaller files to reduce maintenance overhead and m
 ## Build and Update
 
 Use `build.sh`, `build-testing.sh`, `build-testing-local.sh`, and scripts in `scripts/`.
-`build-testing-local.sh` follows the same version/update argument flow as `build-testing.sh`, but pushes to a local/private registry (default `192.168.1.1:5000/nzbgetvpn`).
+
+### Docker Hub builds
+
+**Scripts:** `build.sh` (stable image, `Dockerfile`) and `build-testing.sh` (testing image, `Dockerfile-testing`). Both push to Docker Hub via `docker buildx build ... --push` and run `docker pushrm` for `README-containers.md`.
+
+**Optional env files (gitignored, not pushed to GitHub)**
+
+| File | Template | Used by |
+| --- | --- | --- |
+| `build.env` | `build.env.example` | `build.sh` |
+| `build-testing.env` | `build-testing.env.example` | `build-testing.sh` |
+
+Copy and edit: `cp build.env.example build.env` (same idea for testing).
+
+Place the file in the **repository root**, next to the matching script. Format: POSIX shell assignments (`KEY=value`), `#` comments.
+
+| Variable | Default when unset | Purpose |
+| --- | --- | --- |
+| `DOCKER_IMAGE_REPO` | `marc0janssen/nzbgetvpn` | Docker Hub repository (`namespace/name`, **no** tag). Used for all `-t` arguments and for `docker pushrm`. |
+| `BUILD_PLATFORM` | `linux/amd64,linux/arm64` | Passed to `docker buildx build --platform`. |
+
+**Precedence:** built-in defaults, then assignments in the env file if present, then **`DOCKER_IMAGE_REPO` / `BUILD_PLATFORM` already exported** in your shell (exports win over the file), then **`--docker-repo`** and **`--platform`** on the command line (strongest).
+
+```sh
+./build.sh --docker-repo otheruser/nzbgetvpn --platform linux/amd64
+./build-testing.sh --docker-repo otheruser/nzbgetvpn
+```
+
+### Local registry build
+
+Script: **`build-testing-local.sh`**. Use this for pushing **testing** images to **your own** Docker registry (home lab, LAN, or VPN), instead of Docker Hub. Behaviour matches `build-testing.sh` for NZBGet bumps (`newest`, `--sha256`, `--accept-downloaded-sha256`) and base image updates (`--base`), but the build uses `Dockerfile-testing` and ends with:
+
+`sudo docker buildx build ... --push`
+
+You need a working `buildx` builder, permission for `sudo docker`, and a registry that accepts pushes (login with `docker login` where required).
+
+**Tags pushed to your registry** (repository = value of `LOCAL_REPO`, without tag):
+
+| Tag | Meaning |
+| --- | --- |
+| `<NZBGET_VERSION>` | Taken from `Dockerfile-testing` (`ENV NZBGET_VERSION`), for example the testing train string. |
+| `<NZBGET_VERSION>-image-v<semver>` | Same NZBGet version plus codebase semver from `VERSION` at repo root. |
+| `testing` | Convenience rolling tag for the latest push from this script. |
+
+There is no `docker pushrm` step; Docker Hub README sync is only for `build-testing.sh` / `build.sh`.
+
+**Optional config file `build-testing-local.env`**
+
+- **Git:** `build-testing-local.env` is listed in `.gitignore` so your registry hostname stays local and is not pushed to GitHub. The repository ships **`build-testing-local.env.example`** as a template; copy it and edit:
+  `cp build-testing-local.env.example build-testing-local.env`
+- **Location:** repository root, next to `build-testing-local.sh` (the script loads `build-testing-local.env` from that directory only).
+- **Format:** POSIX shell assignments, one variable per line; lines starting with `#` are comments. No `export` keyword needed.
+- **If the file is missing:** the script still runs; built-in defaults apply, and you can pass **`--repo`** / **`--platform`** anytime.
+
+| Variable | Default when unset | Purpose |
+| --- | --- | --- |
+| `LOCAL_REPO` | `192.168.1.1:5000/nzbgetvpn` | Image repository on your registry: `host:port/path/name` with **no** image tag. |
+| `LOCAL_PLATFORM` | `linux/amd64` | Value passed to `docker buildx build --platform` (comma-separated for multi-arch). |
+
+**Precedence** (each step overrides the previous):
+
+1. Built-in defaults in the script.
+2. Assignments in `build-testing-local.env`, **if that file exists**.
+3. **`LOCAL_REPO` / `LOCAL_PLATFORM` already set in the environment** when you start the script (exported values are **not** overwritten by the file, so your shell can override values from `build-testing-local.env`).
+4. **`--repo`** and **`--platform`** on the command line (highest priority).
+
+**Examples**
+
+```sh
+./build-testing-local.sh
+./build-testing-local.sh --repo 192.168.178.200:5050/nzbgetvpn
+./build-testing-local.sh newest --accept-downloaded-sha256 --platform linux/amd64,linux/arm64
+export LOCAL_REPO=192.168.178.200:5050/nzbgetvpn
+./build-testing-local.sh
+```
+
+Use `./build-testing-local.sh --help` for the full flag list.
 
 CI quality checks (run locally and in GitHub Actions):
 

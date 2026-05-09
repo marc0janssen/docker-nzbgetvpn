@@ -67,8 +67,8 @@ nzbgetvpn_log_crit() {
 nzbgetvpn_get_default() {
 	case "${1:-}" in
 	ROTATE_MODE) echo "auto" ;;
-	ROTATE_SPEEDTEST_URLS) echo "https://proof.ovh.net/files/10Mb.dat,https://download-installer.cdn.mozilla.net/pub/firefox/releases/138.0/linux-x86_64/en-US/firefox-138.0.tar.xz" ;;
-	ROTATE_SPEEDTEST_WEIGHTS) echo "0.60,0.40" ;;
+	ROTATE_SPEEDTEST_URLS) echo "https://download-installer.cdn.mozilla.net/pub/firefox/releases/138.0/linux-x86_64/en-US/firefox-138.0.tar.xz,https://ftp.debian.org/debian/dists/bookworm/main/binary-amd64/Packages.gz,https://nginx.org/download/nginx-1.26.3.tar.gz" ;;
+	ROTATE_SPEEDTEST_WEIGHTS) echo "0.40,0.35,0.25" ;;
 	ROTATE_SPEEDTEST_TIMEOUT) echo "20" ;;
 	ROTATE_SPEEDTEST_ATTEMPTS) echo "1" ;;
 	ROTATE_MIN_SUCCESSFUL_ENDPOINTS) echo "1" ;;

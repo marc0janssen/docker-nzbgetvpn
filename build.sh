@@ -9,9 +9,9 @@ set -eu
 
 show_help() {
 	cat <<EOF
-Usage: $0 [nzbget-version|newest] [--base <tag|newest>]
-       $0 [nzbget-version|newest] --sha256 <expected-sha256> [--base <tag|newest>]
-       $0 [nzbget-version|newest] --accept-downloaded-sha256 [--base <tag|newest>]
+Usage: $0 [nzbget-version|newest] [--base <tag|newest>] [--docker-repo <namespace/name>] [--platform <platforms>]
+       $0 [nzbget-version|newest] --sha256 <expected-sha256> [--base <tag|newest>] [--docker-repo <namespace/name>] [--platform <platforms>]
+       $0 [nzbget-version|newest] --accept-downloaded-sha256 [--base <tag|newest>] [--docker-repo <namespace/name>] [--platform <platforms>]
 
 Build the stable NZBGetVPN Docker image.
 
@@ -31,9 +31,15 @@ calculated from the downloaded release artifact.
 Use "newest" to look up the latest stable NZBGet GitHub release before
 updating and building.
 
+Optional env file build.env (copy from build.env.example): DOCKER_IMAGE_REPO,
+BUILD_PLATFORM. Same precedence as build-testing-local.env (defaults, file,
+exported vars).
+
 Use "--base newest" to look up and pin the newest numeric
 binhex/arch-int-vpn Docker Hub tag before building. If that changes the
 Dockerfile base tag, VERSION is bumped by one patch version.
+
+Optional docker overrides (highest precedence): --docker-repo, --platform (see build.env).
 
 Examples:
   $0
@@ -41,6 +47,7 @@ Examples:
   $0 newest --accept-downloaded-sha256
   $0 --base newest
   $0 newest --accept-downloaded-sha256 --base newest
+  $0 --docker-repo otheruser/nzbgetvpn --platform linux/amd64
 EOF
 }
 
@@ -86,6 +93,8 @@ NZBGET_VERSION_ARG=""
 BASE_IMAGE_ARG=""
 EXPECTED_SHA256_ARG=""
 ACCEPT_DOWNLOADED_SHA256="no"
+CLI_DOCKER_REPO_ARG=""
+CLI_PLATFORM_ARG=""
 
 while [ "$#" -gt 0 ]; do
 	arg="$(trim_value "$1")"
@@ -116,6 +125,30 @@ while [ "$#" -gt 0 ]; do
 		;;
 	--accept-downloaded-sha256)
 		ACCEPT_DOWNLOADED_SHA256="yes"
+		shift
+		;;
+	--docker-repo)
+		if [ "$#" -lt 2 ]; then
+			echo "--docker-repo requires a value" >&2
+			exit 1
+		fi
+		CLI_DOCKER_REPO_ARG="$(trim_value "$2")"
+		shift 2
+		;;
+	--docker-repo=*)
+		CLI_DOCKER_REPO_ARG="$(trim_value "${arg#--docker-repo=}")"
+		shift
+		;;
+	--platform)
+		if [ "$#" -lt 2 ]; then
+			echo "--platform requires a value" >&2
+			exit 1
+		fi
+		CLI_PLATFORM_ARG="$(trim_value "$2")"
+		shift 2
+		;;
+	--platform=*)
+		CLI_PLATFORM_ARG="$(trim_value "${arg#--platform=}")"
 		shift
 		;;
 	-*)
@@ -191,6 +224,47 @@ if ! is_docker_tag "${VERSION}" || ! is_docker_tag "${VERSION}-image-v${IMAGE_VE
 	exit 1
 fi
 
-docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push --build-arg "NZBGETVPN_VERSION=${IMAGE_VERSION}" -t "marc0janssen/nzbgetvpn:${VERSION}" -t "marc0janssen/nzbgetvpn:${VERSION}-image-v${IMAGE_VERSION}" -t "marc0janssen/nzbgetvpn:stable" -f ./Dockerfile .
+DOCKER_IMAGE_REPO_DEFAULT="marc0janssen/nzbgetvpn"
+BUILD_PLATFORM_DEFAULT="linux/amd64,linux/arm64"
 
-docker pushrm --file README-containers.md marc0janssen/nzbgetvpn:stable
+_prior_docker_repo_set=0
+_prior_plat_set=0
+_saved_docker_repo=""
+_saved_plat=""
+case ${DOCKER_IMAGE_REPO+x} in x)
+	_saved_docker_repo="${DOCKER_IMAGE_REPO}"
+	_prior_docker_repo_set=1
+	;;
+esac
+case ${BUILD_PLATFORM+x} in x)
+	_saved_plat="${BUILD_PLATFORM}"
+	_prior_plat_set=1
+	;;
+esac
+
+_script_dir="$(CDPATH= cd "$(dirname "$0")" && pwd)"
+_env_file="${_script_dir}/build.env"
+if [ -f "${_env_file}" ]; then
+	# shellcheck disable=SC1090
+	. "${_env_file}"
+fi
+if [ "${_prior_docker_repo_set}" -eq 1 ]; then
+	DOCKER_IMAGE_REPO="${_saved_docker_repo}"
+fi
+if [ "${_prior_plat_set}" -eq 1 ]; then
+	BUILD_PLATFORM="${_saved_plat}"
+fi
+
+DOCKER_IMAGE_REPO="${DOCKER_IMAGE_REPO:-${DOCKER_IMAGE_REPO_DEFAULT}}"
+BUILD_PLATFORM="${BUILD_PLATFORM:-${BUILD_PLATFORM_DEFAULT}}"
+
+if [ -n "${CLI_DOCKER_REPO_ARG}" ]; then
+	DOCKER_IMAGE_REPO="${CLI_DOCKER_REPO_ARG}"
+fi
+if [ -n "${CLI_PLATFORM_ARG}" ]; then
+	BUILD_PLATFORM="${CLI_PLATFORM_ARG}"
+fi
+
+docker buildx build --no-cache --platform "${BUILD_PLATFORM}" --push --build-arg "NZBGETVPN_VERSION=${IMAGE_VERSION}" -t "${DOCKER_IMAGE_REPO}:${VERSION}" -t "${DOCKER_IMAGE_REPO}:${VERSION}-image-v${IMAGE_VERSION}" -t "${DOCKER_IMAGE_REPO}:stable" -f ./Dockerfile .
+
+docker pushrm --file README-containers.md "${DOCKER_IMAGE_REPO}:stable"
