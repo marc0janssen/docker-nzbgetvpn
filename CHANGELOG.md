@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.5.5] - 2026-05-09
+
+### Changed
+
+- Updated GitHub Actions in CI workflows to Node.js 24-ready versions by moving `actions/checkout` from `v4` to `v5` and `actions/github-script` from `v7` to `v8` in the dependency drift radar workflow.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.5.4] - 2026-05-09
 
 ### Changed
