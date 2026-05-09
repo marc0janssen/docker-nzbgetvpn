@@ -68,7 +68,7 @@ nzbgetvpn_log_crit() {
 nzbgetvpn_get_default() {
 	case "${1:-}" in
 	ROTATE_MODE) echo "auto" ;;
-	ROTATE_SPEEDTEST_URLS) echo "https://speed.cloudflare.com/__down?bytes=4000000,https://proof.ovh.net/files/10Mb.dat" ;;
+	ROTATE_SPEEDTEST_URLS) echo "https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_1OMB_MP3.mp3,https://proof.ovh.net/files/10Mb.dat" ;;
 	ROTATE_SPEEDTEST_WEIGHTS) echo "0.60,0.40" ;;
 	ROTATE_SPEEDTEST_TIMEOUT) echo "20" ;;
 	ROTATE_SPEEDTEST_ATTEMPTS) echo "1" ;;

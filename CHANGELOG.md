@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.0.4] - 2026-05-09
+
+### Changed
+
+- Bumped NZBGetVPN image/codebase patch version to `5.0.4`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.0.3] - 2026-05-09
+
+### Changed
+
+- Default `ROTATE_SPEEDTEST_URLS` primary endpoint is now `https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_1OMB_MP3.mp3` instead of Cloudflare `speed.cloudflare.com/__down`; OVH `proof.ovh.net` remains the weighted secondary (backup) mirror.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.0.2] - 2026-05-09
+
+### Changed
+
+- Default `ROTATE_SPEEDTEST_URLS` uses Cloudflare `speed.cloudflare.com/__down` as the primary endpoint and keeps OVH `proof.ovh.net` only as the weighted secondary (backup) mirror; Hetzner `speed.hetzner.de` is no longer in the default list.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.0.1] - 2026-05-09
+
+### Changed
+
+- Default `ROTATE_SPEEDTEST_URLS` now uses European HTTP download mirrors (Hetzner `speed.hetzner.de`, OVH `proof.ovh.net`) instead of Cloudflare `speed.cloudflare.com/__down`, which has no region-specific URL and often exits far from Europe.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.0.0] - 2026-05-08
 
 ### Breaking
