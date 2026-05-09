@@ -1,0 +1,9 @@
+# Trivy ignore baseline
+#
+# Keep this file small and time-bounded:
+# - Add only reviewed findings that are currently accepted.
+# - Remove entries when fixed upstream.
+# - Prefer package/version fixes over long-lived ignores.
+#
+# Example format:
+# CVE-2020-0000

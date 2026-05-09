@@ -1,0 +1,158 @@
+name: Drift Radar
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  dependency-drift-radar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run dependency drift radar
+        id: drift
+        run: |
+          chmod +x ./scripts/ci-drift-radar.sh
+          ./scripts/ci-drift-radar.sh
+
+      - name: Create or update drift issue
+        if: steps.drift.outputs.drift_detected == 'yes'
+        uses: actions/github-script@v7
+        env:
+          DRIFT_BODY: ${{ steps.drift.outputs.summary_body }}
+          DRIFT_COUNT: ${{ steps.drift.outputs.drift_count }}
+        with:
+          script: |
+            const title = "Dependency drift radar: updates available";
+            const labels = ["dependencies", "maintenance", "drift-radar"];
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const body = [
+              "Automated dependency drift report detected one or more outdated pinned values.",
+              "",
+              process.env.DRIFT_BODY || "",
+              "",
+              `- Workflow run: ${runUrl}`,
+              `- Drift count: ${process.env.DRIFT_COUNT || "unknown"}`
+            ].join("\n");
+
+            const { data: existingIssues } = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: "open",
+              labels: "drift-radar",
+              per_page: 100
+            });
+
+            const issue = existingIssues.find((item) => item.title === title);
+            if (issue) {
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: issue.number,
+                body
+              });
+              core.info(`Updated existing drift issue #${issue.number}`);
+            } else {
+              const { data: created } = await github.rest.issues.create({
+                owner,
+                repo,
+                title,
+                body,
+                labels
+              });
+              core.info(`Created drift issue #${created.number}`);
+            }
+
+      - name: Close drift issue when no drift
+        if: steps.drift.outputs.drift_detected == 'no'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "Dependency drift radar: updates available";
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const { data: existingIssues } = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: "open",
+              labels: "drift-radar",
+              per_page: 100
+            });
+            const issue = existingIssues.find((item) => item.title === title);
+            if (!issue) {
+              core.info("No open drift issue found to close");
+              return;
+            }
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: issue.number,
+              body: `Dependency drift radar now reports no drift. Closing automatically.\n\n- Workflow run: ${runUrl}`
+            });
+            await github.rest.issues.update({
+              owner,
+              repo,
+              issue_number: issue.number,
+              state: "closed"
+            });
+            core.info(`Closed drift issue #${issue.number}`);
+
+      - name: Prepare drift auto-refresh branch
+        if: steps.drift.outputs.drift_detected == 'yes'
+        run: |
+          set -eu
+          latest="${{ steps.drift.outputs.latest_base_tag }}"
+          current_stable="${{ steps.drift.outputs.current_stable_base }}"
+          current_testing="${{ steps.drift.outputs.current_testing_base }}"
+          changed=no
+
+          if [ "${current_stable}" != "${latest}" ]; then
+            ./scripts/update-base-image.sh ./Dockerfile newest
+            changed=yes
+          fi
+          if [ "${current_testing}" != "${latest}" ]; then
+            if [ "${changed}" = "yes" ]; then
+              ./scripts/update-base-image.sh ./Dockerfile-testing "${latest}"
+            else
+              ./scripts/update-base-image.sh ./Dockerfile-testing newest
+              changed=yes
+            fi
+          fi
+
+          echo "changed=${changed}" >>"${GITHUB_OUTPUT}"
+        id: autoprep
+
+      - name: Create or update drift refresh PR
+        if: steps.drift.outputs.drift_detected == 'yes' && steps.autoprep.outputs.changed == 'yes'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: refresh base image tags from drift radar"
+          branch: "automation/drift-radar-base-refresh"
+          delete-branch: true
+          title: "chore: refresh base image tags from drift radar"
+          body: |
+            ## Summary
+            - refresh pinned `binhex/arch-int-vpn` base image tag(s) based on drift radar detection
+            - keep repository metadata in sync via existing update scripts
+
+            ## Source
+            - Generated by scheduled drift radar workflow
+            - Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          labels: |
+            dependencies
+            maintenance
+            drift-radar

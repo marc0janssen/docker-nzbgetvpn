@@ -19,12 +19,17 @@ It validates:
 - NZBGet web UI port `6789/tcp` is reachable
 - Privoxy port `8118/tcp` is reachable when `ENABLE_PRIVOXY=yes`
 - base self-test exits successfully (`/root/healthcheck.sh` and `/home/nobody/vpn-selftest.sh`)
+- `doctor.sh --heal` can recover managed script drift and writes recovery backups under `/data/backups/doctor-heal-*`
 
 ## Files
 
 - `docker-compose.smoke.yml`: isolated smoke-test stack for CI and local runs.
 - `../scripts/ci-smoke-test.sh`: orchestrates startup, checks, and cleanup.
 - `../.github/workflows/smoke-test.yml`: runs the smoke test on `push` and `pull_request`.
+- `../scripts/ci-drift-radar.sh`: checks current pinned base/NZBGet versions against latest upstream values.
+- `../.github/workflows/drift-radar.yml`: scheduled weekly dependency drift report (`workflow_dispatch` supported) and auto-create/update of a single open drift issue when updates are available.
+- `../.github/workflows/security-scan.yml`: Trivy filesystem scan with SARIF upload to GitHub Security tab and severity gate (`TRIVY_FAIL_SEVERITY`, default `CRITICAL`).
+- `../.github/workflows/release-orchestration.yml`: release-readiness orchestration workflow (quality + smoke + security gate) for manual runs and version tags.
 
 ## Local Usage
 

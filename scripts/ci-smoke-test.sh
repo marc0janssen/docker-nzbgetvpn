@@ -58,6 +58,49 @@ wait_for_container_running() {
 	return 1
 }
 
+run_doctor_heal_recovery_check() {
+	local service="$1"
+	local before_hash
+	local after_hash
+	local bundled_hash
+	local latest_backup_dir
+
+	log_info "Validating doctor --heal recovery path"
+	before_hash="$(docker compose -f ci/docker-compose.smoke.yml exec -T "${service}" bash -lc 'sha256sum /data/scripts/lib.sh | awk "{print \$1}"')"
+	bundled_hash="$(docker compose -f ci/docker-compose.smoke.yml exec -T "${service}" bash -lc 'sha256sum /usr/local/share/nzbgetvpn/scripts/lib.sh | awk "{print \$1}"')"
+	if [[ -z "${before_hash}" || -z "${bundled_hash}" ]]; then
+		log_crit "Unable to read lib.sh hashes before heal test"
+		return 1
+	fi
+
+	log_info "Injecting drift into /data/scripts/lib.sh"
+	docker compose -f ci/docker-compose.smoke.yml exec -T "${service}" bash -lc "printf '\n# smoke-heal-drift\n' >> /data/scripts/lib.sh"
+	after_hash="$(docker compose -f ci/docker-compose.smoke.yml exec -T "${service}" bash -lc 'sha256sum /data/scripts/lib.sh | awk "{print \$1}"')"
+	if [[ "${before_hash}" == "${after_hash}" ]]; then
+		log_crit "Failed to inject drift for doctor --heal test"
+		return 1
+	fi
+
+	log_info "Running doctor --heal"
+	docker compose -f ci/docker-compose.smoke.yml exec -T "${service}" /data/scripts/container/doctor.sh --heal
+
+	log_info "Verifying healed lib.sh matches bundled template"
+	after_hash="$(docker compose -f ci/docker-compose.smoke.yml exec -T "${service}" bash -lc 'sha256sum /data/scripts/lib.sh | awk "{print \$1}"')"
+	if [[ "${after_hash}" != "${bundled_hash}" ]]; then
+		log_crit "doctor --heal did not restore /data/scripts/lib.sh to bundled state"
+		return 1
+	fi
+
+	log_info "Verifying doctor heal backup was created"
+	latest_backup_dir="$(docker compose -f ci/docker-compose.smoke.yml exec -T "${service}" bash -lc 'ls -1dt /data/backups/doctor-heal-* 2>/dev/null | head -n1 || true')"
+	if [[ -z "${latest_backup_dir}" ]]; then
+		log_crit "doctor --heal did not create backup directory under /data/backups"
+		return 1
+	fi
+	docker compose -f ci/docker-compose.smoke.yml exec -T "${service}" bash -lc "[ -f '${latest_backup_dir}/data/scripts/lib.sh' ]"
+	log_info "doctor --heal recovery check passed"
+}
+
 main() {
 	local service="nzbgetvpn-smoke"
 	local smoke_platform="${SMOKE_PLATFORM:-linux/amd64}"
@@ -84,6 +127,8 @@ main() {
 
 	log_info "Running direct self-test"
 	docker compose -f ci/docker-compose.smoke.yml exec -T "${service}" /home/nobody/vpn-selftest.sh
+
+	run_doctor_heal_recovery_check "${service}"
 
 	log_info "Smoke test passed"
 }
