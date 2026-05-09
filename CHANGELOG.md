@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.3.6] - 2026-05-09
+
+### Changed
+
+- Updated `scripts/update-base-image.sh` to also refresh the `Base image stable/testing tag` lines in `README.md` and `README-containers.md` when a Dockerfile base image tag is changed.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.3.5] - 2026-05-09
+
+### Changed
+
+- Added base-image version lines to the `Versions` section in `README.md` and `README-containers.md`, showing stable and testing `binhex/arch-int-vpn` tags.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.3.4] - 2026-05-09
 
 ### Changed

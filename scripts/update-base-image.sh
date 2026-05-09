@@ -64,6 +64,37 @@ EOF_VERSION
 	echo "[info] Bumped NZBGetVPN image/codebase version from ${current_version} to ${new_version}"
 }
 
+update_base_image_version_lines() {
+	dockerfile_path="$1"
+	base_tag="$2"
+	dockerfile_name="$(basename -- "${dockerfile_path}")"
+	line_label=""
+
+	case "${dockerfile_name}" in
+	Dockerfile)
+		line_label="stable"
+		;;
+	Dockerfile-testing)
+		line_label="testing"
+		;;
+	*)
+		echo "[warn] Unknown Dockerfile '${dockerfile_name}'; skipping README base-image line update" >&2
+		return 0
+		;;
+	esac
+
+	sed_in_place \
+		"s|^\\* Base image ${line_label} tag: .*|* Base image ${line_label} tag: binhex/arch-int-vpn:${base_tag}|" \
+		"${README}"
+	if [ -f "${CONTAINER_README}" ]; then
+		sed_in_place \
+			"s|^\\* Base image ${line_label} tag: .*|* Base image ${line_label} tag: binhex/arch-int-vpn:${base_tag}|" \
+			"${CONTAINER_README}"
+	fi
+
+	echo "[info] Updated README base-image ${line_label} tag to binhex/arch-int-vpn:${base_tag}"
+}
+
 insert_changelog_entry_for_base_bump() {
 	dockerfile_path="$1"
 	old_tag="$2"
@@ -148,6 +179,7 @@ case "${tag}" in
 esac
 
 sed_in_place "s|^ARG BASE_IMAGE_TAG=.*|ARG BASE_IMAGE_TAG=${tag}|" "${dockerfile}"
+update_base_image_version_lines "${dockerfile}" "${tag}"
 
 echo "[info] Updated ${dockerfile} base image to binhex/arch-int-vpn:${tag}"
 
