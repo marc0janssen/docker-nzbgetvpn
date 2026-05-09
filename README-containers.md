@@ -2,6 +2,9 @@
 
 [![Quality Checks](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/quality-checks.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/quality-checks.yml)
 [![Smoke Test](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/smoke-test.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/smoke-test.yml)
+[![Security Scan](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/security-scan.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/security-scan.yml)
+[![Drift Radar](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/drift-radar.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/drift-radar.yml)
+[![Release Orchestration](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/release-orchestration.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/release-orchestration.yml)
 
 Docker image for [NZBGet](https://github.com/nzbgetcom/nzbget) with OpenVPN/WireGuard, Privoxy, SOCKS support and VPN leak protection.
 
@@ -12,7 +15,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 5.5.1
+* NZBGetVPN image/codebase version: 5.5.3
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260508
 * Base image stable tag: binhex/arch-int-vpn:2026050402

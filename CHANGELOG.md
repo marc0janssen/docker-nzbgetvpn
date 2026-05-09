@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.5.3] - 2026-05-09
+
+### Changed
+
+- Expanded `README-containers.md` CI status badges to include `security-scan.yml`, `drift-radar.yml`, and `release-orchestration.yml` alongside quality and smoke workflows.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.5.2] - 2026-05-09
+
+### Changed
+
+- Expanded `README.md` CI status badges to include `security-scan.yml`, `drift-radar.yml`, and `release-orchestration.yml` alongside quality and smoke workflows.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.5.1] - 2026-05-09
 
 ### Changed
