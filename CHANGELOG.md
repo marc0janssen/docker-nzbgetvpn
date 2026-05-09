@@ -4,6 +4,73 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.5.21] - 2026-05-09
+
+### Changed
+
+- Added `--docker-repo` and `--platform` CLI overrides to `build.sh` and `build-testing.sh` (highest precedence after env defaults, `build.env` / `build-testing.env`, and exported variables).
+- Updated `README.md`, `build.env.example`, and `build-testing.env.example` accordingly.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.5.20] - 2026-05-09
+
+### Changed
+
+- Added optional `build.env` / `build-testing.env` support to `build.sh` and `build-testing.sh` for `DOCKER_IMAGE_REPO` and `BUILD_PLATFORM`, with committed templates `build.env.example` and `build-testing.env.example`, `.gitignore` entries for the untracked env files, and documentation under **Docker Hub builds** in `README.md` plus a pointer in `README-containers.md`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.5.19] - 2026-05-09
+
+### Fixed
+
+- `build-testing-local.sh`: loading `build-testing-local.env` was effectively discarded because the post-source restore logic treated an empty pre-save placeholder as an exported value and cleared `LOCAL_REPO` / `LOCAL_PLATFORM`. Restore now runs only when those variables were actually set before sourcing the file.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.5.18] - 2026-05-09
+
+### Changed
+
+- Ignored `build-testing-local.env` in `.gitignore` so local registry settings are not committed or pushed; added committed template `build-testing-local.env.example` and updated `README.md`, `README-containers.md`, and `build-testing-local.sh` help text accordingly.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.5.17] - 2026-05-09
+
+### Changed
+
+- Expanded documentation for local registry builds: dedicated **Local registry build** section in `README.md` (purpose, prerequisites, pushed tags, `build-testing-local.env` variables and precedence, examples), table of contents entry, clearer comments in `build-testing-local.env`, and a deep link from `README-containers.md`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.5.16] - 2026-05-09
+
+### Changed
+
+- Clarified documentation for `build-testing-local.env` and `build-testing-local.sh` in `README.md` (optional file, variables, precedence vs exports and `--repo` / `--platform`) and tightened the related bullet in `README-containers.md`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.5.15] - 2026-05-09
+
+### Changed
+
+- Added `build-testing-local.env` and wired `build-testing-local.sh` to source it from the script directory, exposing `LOCAL_REPO` and optional `LOCAL_PLATFORM` without overwriting values already exported in the parent shell.
+- Documented the env file behavior in `README.md` and `README-containers.md`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.5.14] - 2026-05-09
+
+### Changed
+
+- Added a third default speedtest endpoint (`nginx.org` source tarball) to `ROTATE_SPEEDTEST_URLS` and adjusted `ROTATE_SPEEDTEST_WEIGHTS` to `0.40,0.35,0.25` so counts stay aligned with `rotate_on_poor_speed.sh`.
+- Regenerated `data/scripts/docs/rotate_on_poor_speed.md` via `scripts/sync-rotate-defaults-doc.sh`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.5.13] - 2026-05-09
+
+### Changed
+
+- Replaced the default `ROTATE_SPEEDTEST_URLS` primary endpoint: removed `proof.ovh.net` (often blocked or flaky behind VPN exit IPs) in favor of Mozilla CDN plus Debian `Packages.gz` as a second independent mirror.
+- Regenerated `data/scripts/docs/rotate_on_poor_speed.md` via `scripts/sync-rotate-defaults-doc.sh`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.5.12] - 2026-05-09
 
 ### Changed

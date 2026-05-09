@@ -10,8 +10,8 @@ Defaults below are generated from the shared runtime defaults in `data/scripts/l
 
 ```text
 ROTATE_MODE=auto
-ROTATE_SPEEDTEST_URLS=https://proof.ovh.net/files/10Mb.dat,https://download-installer.cdn.mozilla.net/pub/firefox/releases/138.0/linux-x86_64/en-US/firefox-138.0.tar.xz
-ROTATE_SPEEDTEST_WEIGHTS=0.60,0.40
+ROTATE_SPEEDTEST_URLS=https://download-installer.cdn.mozilla.net/pub/firefox/releases/138.0/linux-x86_64/en-US/firefox-138.0.tar.xz,https://ftp.debian.org/debian/dists/bookworm/main/binary-amd64/Packages.gz,https://nginx.org/download/nginx-1.26.3.tar.gz
+ROTATE_SPEEDTEST_WEIGHTS=0.40,0.35,0.25
 ROTATE_SPEEDTEST_TIMEOUT=20
 ROTATE_SPEEDTEST_ATTEMPTS=1
 ROTATE_MIN_SUCCESSFUL_ENDPOINTS=1

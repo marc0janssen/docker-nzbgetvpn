@@ -9,6 +9,9 @@
 # Local env and secrets
 .env
 .env.*
+build-testing-local.env
+build.env
+build-testing.env
 *.ovpn
 *.conf.local
 *.key

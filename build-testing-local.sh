@@ -14,9 +14,13 @@ Without an argument, this builds with values already pinned in Dockerfile-testin
 With a version argument, this first runs scripts/update-testing.sh.
 
 Defaults:
-  repo:     192.168.1.1:5000/nzbgetvpn
-  platform: linux/amd64
+  repo:     192.168.1.1:5000/nzbgetvpn (from env LOCAL_REPO or build-testing-local.env)
+  platform: linux/amd64 (from env LOCAL_PLATFORM or build-testing-local.env)
   tags:     <nzbget-version>, <nzbget-version>-image-v<version>, testing
+
+Optional env file:
+  build-testing-local.env next to this script (gitignored; copy from build-testing-local.env.example).
+  Command-line --repo and --platform override these values.
 
 Examples:
   $0
@@ -68,8 +72,45 @@ NZBGET_VERSION_ARG=""
 BASE_IMAGE_ARG=""
 EXPECTED_SHA256_ARG=""
 ACCEPT_DOWNLOADED_SHA256="no"
+
+# Defaults; overridden by build-testing-local.env unless LOCAL_REPO / LOCAL_PLATFORM were already exported,
+# then by CLI --repo / --platform.
 LOCAL_REPO_ARG="192.168.1.1:5000/nzbgetvpn"
 PLATFORM_ARG="linux/amd64"
+
+# If the caller already exported LOCAL_REPO / LOCAL_PLATFORM, remember them so we can
+# restore after sourcing build-testing-local.env (file must not clobber the shell).
+_prior_repo_set=0
+_prior_plat_set=0
+_saved_repo=""
+_saved_plat=""
+case ${LOCAL_REPO+x} in x)
+	_saved_repo="${LOCAL_REPO}"
+	_prior_repo_set=1
+	;;
+esac
+case ${LOCAL_PLATFORM+x} in x)
+	_saved_plat="${LOCAL_PLATFORM}"
+	_prior_plat_set=1
+	;;
+esac
+
+_script_dir="$(CDPATH= cd "$(dirname "$0")" && pwd)"
+_env_file="${_script_dir}/build-testing-local.env"
+if [ -f "${_env_file}" ]; then
+	# shellcheck disable=SC1090
+	. "${_env_file}"
+fi
+
+if [ "${_prior_repo_set}" -eq 1 ]; then
+	LOCAL_REPO="${_saved_repo}"
+fi
+if [ "${_prior_plat_set}" -eq 1 ]; then
+	LOCAL_PLATFORM="${_saved_plat}"
+fi
+
+LOCAL_REPO_ARG="${LOCAL_REPO:-${LOCAL_REPO_ARG}}"
+PLATFORM_ARG="${LOCAL_PLATFORM:-${PLATFORM_ARG}}"
 
 while [ "$#" -gt 0 ]; do
 	arg="$(trim_value "$1")"
