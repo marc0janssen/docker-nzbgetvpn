@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install quality tools
         run: |
@@ -25,3 +27,21 @@ jobs:
         run: 
           chmod +x ./scripts/ci-quality-checks.sh
           ./scripts/ci-quality-checks.sh
+
+      - name: Collect diagnostics on failure
+        if: failure()
+        run: |
+          {
+            echo "## git status --short"
+            git status --short
+            echo
+            echo "## git diff --stat"
+            git diff --stat
+          } > quality-failure-diagnostics.txt
+
+      - name: Upload quality diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-failure-diagnostics
+          path: quality-failure-diagnostics.txt

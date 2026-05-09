@@ -1,0 +1,11 @@
+# Default owners
+* @marc0janssen
+
+# Runtime and container behavior
+/build/ @marc0janssen
+/run/ @marc0janssen
+/data/scripts/ @marc0janssen
+
+# CI and release automation
+/.github/workflows/ @marc0janssen
+/scripts/ @marc0janssen

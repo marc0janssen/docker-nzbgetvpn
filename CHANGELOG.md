@@ -4,6 +4,76 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.5.0] - 2026-05-09
+
+### Added
+
+- Added release ownership policy via `.github/CODEOWNERS` for runtime, scripts, and workflow paths.
+- Added release-readiness workflow `.github/workflows/release-orchestration.yml` to run quality, smoke, and security checks for manual runs and version tags.
+
+### Changed
+
+- Extended drift automation to expose detailed outputs in `scripts/ci-drift-radar.sh` and enhanced `.github/workflows/drift-radar.yml` to auto-close resolved drift issues and open/update a base-refresh PR when applicable.
+- Added failure diagnostics artifact uploads to `.github/workflows/quality-checks.yml` and `.github/workflows/smoke-test.yml`.
+- Added Trivy baseline support via `.trivyignore` and diagnostic artifact uploads in `.github/workflows/security-scan.yml`.
+- Updated CI docs in `ci/README.md` for release orchestration, drift automation, and security baseline behavior.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.4.2] - 2026-05-09
+
+### Added
+
+- Added GitHub Actions security workflow `.github/workflows/security-scan.yml` with Trivy filesystem scanning, SARIF upload to GitHub Security, and configurable severity enforcement (`TRIVY_FAIL_SEVERITY`, default `CRITICAL`).
+
+### Changed
+
+- Updated CI documentation in `ci/README.md` with security scan workflow details.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.4.1] - 2026-05-09
+
+### Changed
+
+- Extended `.github/workflows/drift-radar.yml` to automatically create or update a single open `drift-radar` issue when drift is detected, using the generated markdown summary from `scripts/ci-drift-radar.sh`.
+- Updated `scripts/ci-drift-radar.sh` to export the markdown report as a workflow output for downstream issue automation.
+- Updated CI docs in `ci/README.md` to document drift issue automation behavior.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.4.0] - 2026-05-09
+
+### Added
+
+- Added dependency drift radar script `scripts/ci-drift-radar.sh` to compare pinned stable/testing NZBGet and base-image tags against latest upstream values and publish a markdown summary.
+- Added scheduled GitHub Actions workflow `.github/workflows/drift-radar.yml` (weekly + manual dispatch) to run the drift radar in CI.
+
+### Changed
+
+- Updated CI docs in `ci/README.md` with the new drift radar script/workflow references.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.3.9] - 2026-05-09
+
+### Changed
+
+- Extended runtime smoke coverage in `scripts/ci-smoke-test.sh` with a `doctor.sh --heal` recovery scenario that injects drift into `/data/scripts/lib.sh`, verifies restore to bundled state, and confirms backups under `/data/backups/doctor-heal-*`.
+- Updated smoke test documentation in `ci/README.md` to include the `doctor.sh --heal` recovery validation.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.3.8] - 2026-05-09
+
+### Changed
+
+- Added CI idempotence checks in `scripts/ci-quality-checks.sh` that run `sync-rotate-defaults-doc.sh` and `update-base-image.sh` twice and fail when those update scripts still produce repository diffs.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.3.7] - 2026-05-09
+
+### Changed
+
+- Added a CI versioning metadata guard to `scripts/ci-quality-checks.sh` that fails when non-metadata changes are made without updating `VERSION`, `CHANGELOG.md`, `README.md`, and `README-containers.md`, and also verifies README version lines match `VERSION`.
+- Updated `.github/workflows/quality-checks.yml` checkout to `fetch-depth: 0` so commit-range based checks have full history context.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.3.6] - 2026-05-09
 
 ### Changed
