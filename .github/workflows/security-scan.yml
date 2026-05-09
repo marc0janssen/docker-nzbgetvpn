@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Trivy SARIF scan
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -39,7 +39,7 @@ jobs:
       - name: Enforce security severity gate
         env:
           TRIVY_FAIL_SEVERITY: ${{ vars.TRIVY_FAIL_SEVERITY || 'CRITICAL' }}
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .

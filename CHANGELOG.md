@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.5.1] - 2026-05-09
+
+### Changed
+
+- Fixed workflow action references by pinning Trivy to an existing tag format (`aquasecurity/trivy-action@v0.36.0`) in `.github/workflows/security-scan.yml` and `.github/workflows/release-orchestration.yml`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.5.0] - 2026-05-09
 
 ### Added
