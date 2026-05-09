@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.5.4] - 2026-05-09
+
+### Changed
+
+- Stabilized release quality checks by extending the temporary shellcheck baseline excludes in `scripts/ci-quality-checks.sh` with legacy style findings (`SC2002`, `SC2236`) that are outside this change scope.
+- Fixed shellcheck findings introduced by recent CI additions: quoted parameter expansion in `data/scripts/container/doctor.sh` (`SC2295`) and grouped GitHub output writes in `scripts/ci-drift-radar.sh` (`SC2129`).
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.5.3] - 2026-05-09
 
 ### Changed

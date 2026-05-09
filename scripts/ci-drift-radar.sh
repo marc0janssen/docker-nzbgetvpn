@@ -94,22 +94,24 @@ if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
 fi
 
 if [ -n "${GITHUB_OUTPUT:-}" ]; then
-	if [ "${drift_count}" -eq 0 ]; then
-		echo "drift_detected=no" >>"${GITHUB_OUTPUT}"
-	else
-		echo "drift_detected=yes" >>"${GITHUB_OUTPUT}"
-	fi
-	echo "drift_count=${drift_count}" >>"${GITHUB_OUTPUT}"
-	echo "current_stable_base=${current_stable_base}" >>"${GITHUB_OUTPUT}"
-	echo "current_testing_base=${current_testing_base}" >>"${GITHUB_OUTPUT}"
-	echo "latest_base_tag=${latest_base_tag}" >>"${GITHUB_OUTPUT}"
-	echo "current_stable_nzbget=${current_stable_nzbget}" >>"${GITHUB_OUTPUT}"
-	echo "current_testing_nzbget=${current_testing_nzbget}" >>"${GITHUB_OUTPUT}"
-	echo "latest_stable_nzbget=${latest_stable_nzbget}" >>"${GITHUB_OUTPUT}"
-	echo "latest_testing_nzbget=${latest_testing_nzbget}" >>"${GITHUB_OUTPUT}"
-	echo "summary_body<<EOF" >>"${GITHUB_OUTPUT}"
-	cat "${summary_file}" >>"${GITHUB_OUTPUT}"
-	echo "EOF" >>"${GITHUB_OUTPUT}"
+	{
+		if [ "${drift_count}" -eq 0 ]; then
+			echo "drift_detected=no"
+		else
+			echo "drift_detected=yes"
+		fi
+		echo "drift_count=${drift_count}"
+		echo "current_stable_base=${current_stable_base}"
+		echo "current_testing_base=${current_testing_base}"
+		echo "latest_base_tag=${latest_base_tag}"
+		echo "current_stable_nzbget=${current_stable_nzbget}"
+		echo "current_testing_nzbget=${current_testing_nzbget}"
+		echo "latest_stable_nzbget=${latest_stable_nzbget}"
+		echo "latest_testing_nzbget=${latest_testing_nzbget}"
+		echo "summary_body<<EOF"
+		cat "${summary_file}"
+		echo "EOF"
+	} >>"${GITHUB_OUTPUT}"
 fi
 
 log_info "Drift radar completed (drift_count=${drift_count})"

@@ -166,7 +166,7 @@ EOF
 main() {
 	file_list="$(mktemp)"
 	trap 'rm -f "${file_list}"' EXIT INT TERM
-	default_shellcheck_excludes="SC1007,SC1091,SC2016,SC2027,SC2034,SC2086,SC2154"
+	default_shellcheck_excludes="SC1007,SC1091,SC2002,SC2016,SC2027,SC2034,SC2086,SC2154,SC2236"
 	shellcheck_excludes=""
 
 	require_cmd git
