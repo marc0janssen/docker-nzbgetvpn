@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.5.6] - 2026-05-09
+
+### Changed
+
+- Updated `.github/workflows/drift-radar.yml` to also run on `pull_request` for `develop`, so the `dependency-drift-radar` check can report a commit-linked `passed` status in PRs.
+- Scoped issue management and auto-refresh PR steps to non-PR events, keeping scheduled/manual drift automation behavior unchanged.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.5.5] - 2026-05-09
 
 ### Changed

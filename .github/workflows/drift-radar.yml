@@ -4,6 +4,9 @@ on:
   schedule:
     - cron: "17 6 * * 1"
   workflow_dispatch:
+  pull_request:
+    branches:
+      - develop
 
 jobs:
   dependency-drift-radar:
@@ -27,7 +30,7 @@ jobs:
           ./scripts/ci-drift-radar.sh
 
       - name: Create or update drift issue
-        if: steps.drift.outputs.drift_detected == 'yes'
+        if: steps.drift.outputs.drift_detected == 'yes' && github.event_name != 'pull_request'
         uses: actions/github-script@v8
         env:
           DRIFT_BODY: ${{ steps.drift.outputs.summary_body }}
@@ -77,7 +80,7 @@ jobs:
             }
 
       - name: Close drift issue when no drift
-        if: steps.drift.outputs.drift_detected == 'no'
+        if: steps.drift.outputs.drift_detected == 'no' && github.event_name != 'pull_request'
         uses: actions/github-script@v8
         with:
           script: |
@@ -112,7 +115,7 @@ jobs:
             core.info(`Closed drift issue #${issue.number}`);
 
       - name: Prepare drift auto-refresh branch
-        if: steps.drift.outputs.drift_detected == 'yes'
+        if: steps.drift.outputs.drift_detected == 'yes' && github.event_name != 'pull_request'
         run: |
           set -eu
           latest="${{ steps.drift.outputs.latest_base_tag }}"
@@ -137,7 +140,7 @@ jobs:
         id: autoprep
 
       - name: Create or update drift refresh PR
-        if: steps.drift.outputs.drift_detected == 'yes' && steps.autoprep.outputs.changed == 'yes'
+        if: steps.drift.outputs.drift_detected == 'yes' && steps.autoprep.outputs.changed == 'yes' && github.event_name != 'pull_request'
         uses: peter-evans/create-pull-request@v6
         with:
           commit-message: "chore: refresh base image tags from drift radar"
