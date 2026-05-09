@@ -2,45 +2,27 @@
 
 set -eu
 
-# Name: docker-nzbgetvpn
-# Coder: Marco Janssen (micro.blog @marc0janssen https://micro.mjanssen.nl)
-# date: 2021-11-28 14:24:26
-# update: 2021-11-28 14:24:32
-
 show_help() {
 	cat <<EOF
-Usage: $0 [nzbget-version|newest] [--base <tag|newest>]
-       $0 [nzbget-version|newest] --sha256 <expected-sha256> [--base <tag|newest>]
-       $0 [nzbget-version|newest] --accept-downloaded-sha256 [--base <tag|newest>]
+Usage: $0 [nzbget-testing-version|newest] [--base <tag|newest>] [--repo <registry/repository>] [--platform <platforms>]
+       $0 [nzbget-testing-version|newest] --sha256 <expected-sha256> [--base <tag|newest>] [--repo <registry/repository>] [--platform <platforms>]
+       $0 [nzbget-testing-version|newest] --accept-downloaded-sha256 [--base <tag|newest>] [--repo <registry/repository>] [--platform <platforms>]
 
-Build the stable NZBGetVPN Docker image.
+Local/private-registry variant of build-testing.sh.
 
-Without an argument, this builds with the version and SHA256 values already
-stored in Dockerfile.
+Without an argument, this builds with values already pinned in Dockerfile-testing.
+With a version argument, this first runs scripts/update-testing.sh.
 
-The image codebase version is read from VERSION and pushed as an additional
-Docker tag in the form "<nzbget-version>-image-v<version>".
-
-With a version argument, this first runs scripts/update-stable.sh to update
-Dockerfile, README.md, and SHA256 values, then builds the image.
-
-When updating NZBGet, pass --sha256 with an independently verified checksum.
-Use --accept-downloaded-sha256 only when you intentionally accept the checksum
-calculated from the downloaded release artifact.
-
-Use "newest" to look up the latest stable NZBGet GitHub release before
-updating and building.
-
-Use "--base newest" to look up and pin the newest numeric
-binhex/arch-int-vpn Docker Hub tag before building. If that changes the
-Dockerfile base tag, VERSION is bumped by one patch version.
+Defaults:
+  repo:     192.168.1.1:5000/nzbgetvpn
+  platform: linux/amd64
+  tags:     <nzbget-version>, <nzbget-version>-image-v<version>, testing
 
 Examples:
   $0
-  $0 26.2 --sha256 <expected-sha256>
   $0 newest --accept-downloaded-sha256
   $0 --base newest
-  $0 newest --accept-downloaded-sha256 --base newest
+  $0 --repo 192.168.1.1:5000/nzbgetvpn --platform linux/amd64,linux/arm64
 EOF
 }
 
@@ -86,6 +68,8 @@ NZBGET_VERSION_ARG=""
 BASE_IMAGE_ARG=""
 EXPECTED_SHA256_ARG=""
 ACCEPT_DOWNLOADED_SHA256="no"
+LOCAL_REPO_ARG="192.168.1.1:5000/nzbgetvpn"
+PLATFORM_ARG="linux/amd64"
 
 while [ "$#" -gt 0 ]; do
 	arg="$(trim_value "$1")"
@@ -116,6 +100,30 @@ while [ "$#" -gt 0 ]; do
 		;;
 	--accept-downloaded-sha256)
 		ACCEPT_DOWNLOADED_SHA256="yes"
+		shift
+		;;
+	--repo)
+		if [ "$#" -lt 2 ]; then
+			echo "--repo requires a value" >&2
+			exit 1
+		fi
+		LOCAL_REPO_ARG="$(trim_value "$2")"
+		shift 2
+		;;
+	--repo=*)
+		LOCAL_REPO_ARG="$(trim_value "${arg#--repo=}")"
+		shift
+		;;
+	--platform)
+		if [ "$#" -lt 2 ]; then
+			echo "--platform requires a value" >&2
+			exit 1
+		fi
+		PLATFORM_ARG="$(trim_value "$2")"
+		shift 2
+		;;
+	--platform=*)
+		PLATFORM_ARG="$(trim_value "${arg#--platform=}")"
 		shift
 		;;
 	-*)
@@ -153,30 +161,39 @@ if [ -n "${NZBGET_VERSION_ARG}" ] && [ -z "${EXPECTED_SHA256_ARG}" ] && ! is_tru
 	exit 1
 fi
 
+if [ -z "${LOCAL_REPO_ARG}" ]; then
+	echo "--repo must not be empty" >&2
+	exit 1
+fi
+
+if [ -z "${PLATFORM_ARG}" ]; then
+	echo "--platform must not be empty" >&2
+	exit 1
+fi
+
 if [ -n "${BASE_IMAGE_ARG}" ]; then
-	./scripts/update-base-image.sh ./Dockerfile "${BASE_IMAGE_ARG}"
+	./scripts/update-base-image.sh ./Dockerfile-testing "${BASE_IMAGE_ARG}"
 fi
 
 if [ -n "${NZBGET_VERSION_ARG}" ]; then
-	# Update Dockerfile, README, and SHA256 values only when a new version is supplied.
 	if [ "${NZBGET_VERSION_ARG}" = "newest" ]; then
-		VERSION_TO_UPDATE="$(./scripts/latest-nzbget-version.sh stable)"
-		echo "[info] Latest stable NZBGet version is ${VERSION_TO_UPDATE}"
+		VERSION_TO_UPDATE="$(./scripts/latest-nzbget-version.sh testing)"
+		echo "[info] Latest testing NZBGet version is ${VERSION_TO_UPDATE}"
 	else
 		VERSION_TO_UPDATE="${NZBGET_VERSION_ARG}"
 	fi
 	if [ -n "${EXPECTED_SHA256_ARG}" ]; then
-		./scripts/update-stable.sh "${VERSION_TO_UPDATE}" --sha256 "${EXPECTED_SHA256_ARG}"
+		./scripts/update-testing.sh "${VERSION_TO_UPDATE}" --sha256 "${EXPECTED_SHA256_ARG}"
 	elif is_truthy "${ACCEPT_DOWNLOADED_SHA256}"; then
-		./scripts/update-stable.sh "${VERSION_TO_UPDATE}" --accept-downloaded-sha256
+		./scripts/update-testing.sh "${VERSION_TO_UPDATE}" --accept-downloaded-sha256
 	else
-		./scripts/update-stable.sh "${VERSION_TO_UPDATE}"
+		./scripts/update-testing.sh "${VERSION_TO_UPDATE}"
 	fi
 fi
 
-VERSION=$(sed -n 's/^ENV NZBGET_VERSION=//p' ./Dockerfile)
+VERSION=$(sed -n 's/^ENV NZBGET_VERSION=//p' ./Dockerfile-testing)
 if [ -z "${VERSION}" ]; then
-	echo "Unable to read NZBGET_VERSION from Dockerfile" >&2
+	echo "Unable to read NZBGET_VERSION from Dockerfile-testing" >&2
 	exit 1
 fi
 
@@ -186,11 +203,14 @@ if ! is_semver "${IMAGE_VERSION}"; then
 	exit 1
 fi
 
-if ! is_docker_tag "${VERSION}" || ! is_docker_tag "${VERSION}-image-v${IMAGE_VERSION}"; then
+if ! is_docker_tag "${VERSION}" || ! is_docker_tag "${VERSION}-image-v${IMAGE_VERSION}" || ! is_docker_tag "testing"; then
 	echo "Docker tag values contain invalid characters" >&2
 	exit 1
 fi
 
-docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push --build-arg "NZBGETVPN_VERSION=${IMAGE_VERSION}" -t "marc0janssen/nzbgetvpn:${VERSION}" -t "marc0janssen/nzbgetvpn:${VERSION}-image-v${IMAGE_VERSION}" -t "marc0janssen/nzbgetvpn:stable" -f ./Dockerfile .
-
-docker pushrm --file README-containers.md marc0janssen/nzbgetvpn:stable
+docker buildx build --no-cache --platform "${PLATFORM_ARG}" --push \
+	--build-arg "NZBGETVPN_VERSION=${IMAGE_VERSION}" \
+	-t "${LOCAL_REPO_ARG}:${VERSION}" \
+	-t "${LOCAL_REPO_ARG}:${VERSION}-image-v${IMAGE_VERSION}" \
+	-t "${LOCAL_REPO_ARG}:testing" \
+	-f ./Dockerfile-testing .
