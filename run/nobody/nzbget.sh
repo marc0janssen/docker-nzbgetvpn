@@ -43,6 +43,7 @@ log_vpn_selftest_setting() {
 log_nzbgetvpn_version() {
 	local nzbget_version="${NZBGET_VERSION:-unknown}"
 	local nzbgetvpn_version="unknown"
+	local base_image_tag="${BASE_IMAGE_TAG:-unknown}"
 	local log_line
 
 	if [[ -f "${NZBGETVPN_VERSION_FILE}" ]]; then
@@ -53,7 +54,7 @@ log_nzbgetvpn_version() {
 		return
 	fi
 
-	log_line="[info] NZBGetVPN ${nzbgetvpn_version} | NZBGet ${nzbget_version} | Changelog: ${NZBGETVPN_CHANGELOG_URL} | Contact page: ${NZBGETVPN_CONTACT_URL}"
+	log_line="[info] NZBGetVPN ${nzbgetvpn_version} | NZBGet ${nzbget_version} | Base image binhex/arch-int-vpn:${base_image_tag} | Changelog: ${NZBGETVPN_CHANGELOG_URL} | Contact page: ${NZBGETVPN_CONTACT_URL}"
 	printf '%s\n' "${log_line}"
 	: >"${NZBGETVPN_VERSION_LOG_MARKER}"
 }

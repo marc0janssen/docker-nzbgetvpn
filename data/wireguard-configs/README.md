@@ -5,7 +5,7 @@ Put WireGuard `*.conf` files in this directory when you want NZBGetVPN to choose
 Use this bundled script:
 
 ```text
-/data/scripts/select_random_wireguard_config.sh
+/data/scripts/container/select_random_wireguard_config.sh
 ```
 
 Common environment variables:

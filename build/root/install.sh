@@ -111,49 +111,124 @@ chmod -R 775 ${install_paths}
 
 cat <<EOF >/tmp/permissions_heredoc
 mkdir -p /data/scripts /data/wireguard-configs /data/openvpn-configs /data/backups
-mkdir -p /data/scripts/docs
-for bundled_script in /usr/local/share/nzbgetvpn/scripts/*.sh; do
-	if [[ -f "\${bundled_script}" ]]; then
-		target_script="/data/scripts/\$(basename "\${bundled_script}")"
-		if [[ ! -f "\${target_script}" ]]; then
-			echo "[info] Installing bundled script '\${target_script}'"
-			cp "\${bundled_script}" "\${target_script}"
-			chmod +x "\${target_script}"
-		elif ! cmp -s "\${bundled_script}" "\${target_script}"; then
-			echo "[info] Updating bundled script '\${target_script}'"
-			cp "\${bundled_script}" "\${target_script}"
-			chmod +x "\${target_script}"
+mkdir -p /data/scripts/docs /data/scripts/container /data/scripts/shared /data/scripts/notify /data/scripts/host
+
+bundled_sync_policy="\${BUNDLED_SYNC_POLICY:-smart}"
+case "\${bundled_sync_policy}" in
+smart | force | preserve)
+	;;
+*)
+	echo "[warn] Invalid BUNDLED_SYNC_POLICY='\${bundled_sync_policy}', falling back to 'smart'"
+	bundled_sync_policy="smart"
+	;;
+esac
+if [[ "\${bundled_sync_policy}" == "preserve" ]]; then
+	echo "[warn] BUNDLED_SYNC_POLICY=preserve enabled; bundled file updates are skipped and this can cause runtime drift or break behavior after image upgrades"
+fi
+
+has_preserve_marker() {
+	local target_file="\$1"
+	[[ -f "\${target_file}" ]] || return 1
+	grep -Eiq 'nzbgetvpn[[:space:]]*:[[:space:]]*preserve-local' "\${target_file}" 2>/dev/null
+}
+
+sync_bundled_file() {
+	local source_path="\$1"
+	local target_path="\$2"
+	local label="\$3"
+	local mode="\${4:-}"
+	local marker_policy="\${5:-allow}"
+	local target_dir preserve_reason
+
+	[[ -f "\${source_path}" ]] || return 0
+	target_dir="\$(dirname -- "\${target_path}")"
+	mkdir -p "\${target_dir}"
+
+	if [[ ! -f "\${target_path}" ]]; then
+		echo "[info] Installing bundled \${label} '\${target_path}'"
+		cp "\${source_path}" "\${target_path}"
+		if [[ -n "\${mode}" ]]; then
+			chmod "\${mode}" "\${target_path}"
 		fi
+		return 0
+	fi
+
+	if cmp -s "\${source_path}" "\${target_path}"; then
+		if [[ -n "\${mode}" ]]; then
+			chmod "\${mode}" "\${target_path}"
+		fi
+		return 0
+	fi
+
+	preserve_reason=""
+	if [[ "\${bundled_sync_policy}" == "preserve" ]]; then
+		preserve_reason="BUNDLED_SYNC_POLICY=preserve"
+	elif [[ "\${bundled_sync_policy}" == "smart" && "\${marker_policy}" == "allow" ]] && has_preserve_marker "\${target_path}"; then
+		preserve_reason="preserve marker"
+	fi
+
+	if [[ -n "\${preserve_reason}" ]]; then
+		echo "[warn] Preserving local '\${target_path}' due to \${preserve_reason}; bundled update skipped and this can break compatibility after upgrades"
+		return 0
+	fi
+
+	echo "[info] Updating bundled \${label} '\${target_path}'"
+	cp "\${source_path}" "\${target_path}"
+	if [[ -n "\${mode}" ]]; then
+		chmod "\${mode}" "\${target_path}"
+	fi
+}
+
+sync_bundled_script_tree() {
+	local source_dir="\$1"
+	local target_dir="\$2"
+	local script_path rel_path
+
+	[[ -d "\${source_dir}" ]] || return 0
+	while IFS= read -r -d '' script_path; do
+		rel_path="\${script_path#\${source_dir}/}"
+		sync_bundled_file "\${script_path}" "\${target_dir}/\${rel_path}" "script" "755" "allow"
+	done < <(find "\${source_dir}" -type f -name '*.sh' -print0)
+}
+
+sync_bundled_script_tree /usr/local/share/nzbgetvpn/scripts/container /data/scripts/container
+sync_bundled_script_tree /usr/local/share/nzbgetvpn/scripts/shared /data/scripts/shared
+sync_bundled_script_tree /usr/local/share/nzbgetvpn/scripts/notify /data/scripts/notify
+sync_bundled_script_tree /usr/local/share/nzbgetvpn/scripts/host /data/scripts/host
+sync_bundled_file /usr/local/share/nzbgetvpn/scripts/lib.sh /data/scripts/lib.sh "script library" "" "allow"
+
+# Remove legacy flat bundled script copies from /data/scripts root.
+# Keep subfolders (/data/scripts/{container,shared,notify,host}) as the
+# supported location for bundled helper scripts.
+for legacy_flat_script in \
+	/data/scripts/doctor.sh \
+	/data/scripts/get_wireguard_configs_nordvpn.sh \
+	/data/scripts/rotate_on_poor_speed.sh \
+	/data/scripts/select_random_openvpn_config.sh \
+	/data/scripts/select_random_wireguard_config.sh \
+	/data/scripts/backup_config.sh \
+	/data/scripts/benchmark_endpoints.sh \
+	/data/scripts/log_sanitizer.sh \
+	/data/scripts/upgrade_check.sh \
+	/data/scripts/notify_discord.sh \
+	/data/scripts/notify_telegram.sh \
+	/data/scripts/notify_pushover.sh \
+	/data/scripts/run-container-helper.sh; do
+	if [[ -f "\${legacy_flat_script}" ]]; then
+		echo "[info] Removing legacy flat bundled script '\${legacy_flat_script}'"
+		rm -f -- "\${legacy_flat_script}"
 	fi
 done
 for bundled_doc in /usr/local/share/nzbgetvpn/scripts/docs/*.md; do
 	if [[ -f "\${bundled_doc}" ]]; then
 		target_doc="/data/scripts/docs/\$(basename "\${bundled_doc}")"
-		if [[ ! -f "\${target_doc}" ]]; then
-			echo "[info] Installing bundled script doc '\${target_doc}'"
-			cp "\${bundled_doc}" "\${target_doc}"
-		elif ! cmp -s "\${bundled_doc}" "\${target_doc}"; then
-			echo "[info] Updating bundled script doc '\${target_doc}'"
-			cp "\${bundled_doc}" "\${target_doc}"
-		fi
+		sync_bundled_file "\${bundled_doc}" "\${target_doc}" "script doc" "" "ignore"
 	fi
 done
-if [[ -f /usr/local/share/nzbgetvpn/scripts/README.md && ! -f /data/scripts/README.md ]]; then
-	echo "[info] Installing bundled README '/data/scripts/README.md'"
-	cp /usr/local/share/nzbgetvpn/scripts/README.md /data/scripts/README.md
-fi
-if [[ -f /usr/local/share/nzbgetvpn/wireguard-configs/README.md && ! -f /data/wireguard-configs/README.md ]]; then
-	echo "[info] Installing bundled README '/data/wireguard-configs/README.md'"
-	cp /usr/local/share/nzbgetvpn/wireguard-configs/README.md /data/wireguard-configs/README.md
-fi
-if [[ -f /usr/local/share/nzbgetvpn/openvpn-configs/README.md && ! -f /data/openvpn-configs/README.md ]]; then
-	echo "[info] Installing bundled README '/data/openvpn-configs/README.md'"
-	cp /usr/local/share/nzbgetvpn/openvpn-configs/README.md /data/openvpn-configs/README.md
-fi
-if [[ -f /usr/local/share/nzbgetvpn/backups/README.md && ! -f /data/backups/README.md ]]; then
-	echo "[info] Installing bundled README '/data/backups/README.md'"
-	cp /usr/local/share/nzbgetvpn/backups/README.md /data/backups/README.md
-fi
+sync_bundled_file /usr/local/share/nzbgetvpn/scripts/README.md /data/scripts/README.md "README" "" "ignore"
+sync_bundled_file /usr/local/share/nzbgetvpn/wireguard-configs/README.md /data/wireguard-configs/README.md "README" "" "ignore"
+sync_bundled_file /usr/local/share/nzbgetvpn/openvpn-configs/README.md /data/openvpn-configs/README.md "README" "" "ignore"
+sync_bundled_file /usr/local/share/nzbgetvpn/backups/README.md /data/backups/README.md "README" "" "ignore"
 # get previous puid/pgid (if first run then will be empty string)
 previous_puid=\$(cat "/root/puid" 2>/dev/null || true)
 previous_pgid=\$(cat "/root/pgid" 2>/dev/null || true)

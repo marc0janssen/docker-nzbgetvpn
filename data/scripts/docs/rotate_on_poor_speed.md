@@ -10,7 +10,7 @@ Defaults below are generated from the shared runtime defaults in `data/scripts/l
 
 ```text
 ROTATE_MODE=auto
-ROTATE_SPEEDTEST_URLS=https://speed.cloudflare.com/__down?bytes=4000000,https://proof.ovh.net/files/10Mb.dat
+ROTATE_SPEEDTEST_URLS=https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_1OMB_MP3.mp3,https://proof.ovh.net/files/10Mb.dat
 ROTATE_SPEEDTEST_WEIGHTS=0.60,0.40
 ROTATE_SPEEDTEST_TIMEOUT=20
 ROTATE_SPEEDTEST_ATTEMPTS=1
@@ -22,7 +22,7 @@ ROTATE_COOLDOWN_SECONDS=1800
 ROTATE_POST_ROTATION_ACTION=none
 ROTATE_ON_POOR_SPEED_ENABLED=yes
 ROTATE_ON_POOR_SPEED_SCHEDULE=*/20 * * * *
-ROTATE_ON_POOR_SPEED_SCRIPT=/data/scripts/rotate_on_poor_speed.sh
+ROTATE_ON_POOR_SPEED_SCRIPT=/data/scripts/container/rotate_on_poor_speed.sh
 ROTATE_ON_POOR_SPEED_TIMEOUT=90
 ```
 <!-- END ROTATE_DEFAULTS -->

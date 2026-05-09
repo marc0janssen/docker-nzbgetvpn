@@ -1,5 +1,5 @@
 #FROM binhex/arch-int-vpn:2025100101
-ARG BASE_IMAGE_TAG=2026032801
+ARG BASE_IMAGE_TAG=2026050402
 FROM binhex/arch-int-vpn:${BASE_IMAGE_TAG}
 
 ARG BASE_IMAGE_TAG
@@ -13,6 +13,7 @@ LABEL org.opencontainers.image.title="NZBGetVPN" \
       org.opencontainers.image.version="${NZBGETVPN_VERSION}" \
       org.opencontainers.image.base.name="binhex/arch-int-vpn:${BASE_IMAGE_TAG}"
 
+ENV BASE_IMAGE_TAG=${BASE_IMAGE_TAG}
 ENV NZBGET_VERSION=26.1
 ENV NZBGET_VERSION_DIR=v26.1
 ENV NZBGET_SHA256=d91c3268adebc1ef826c28d591b143963b3ec559c1e9eb4a6e6dae503d34e769
@@ -34,7 +35,15 @@ ADD run/nobody/*.sh /home/nobody/
 
 # add bundled user script templates
 ADD VERSION /usr/local/share/nzbgetvpn/VERSION
-ADD data/scripts/*.sh /usr/local/share/nzbgetvpn/scripts/
+ADD data/scripts/lib.sh /usr/local/share/nzbgetvpn/scripts/
+ADD data/scripts/container/*.sh /usr/local/share/nzbgetvpn/scripts/
+ADD data/scripts/shared/*.sh /usr/local/share/nzbgetvpn/scripts/
+ADD data/scripts/notify/*.sh /usr/local/share/nzbgetvpn/scripts/
+ADD data/scripts/host/*.sh /usr/local/share/nzbgetvpn/scripts/
+ADD data/scripts/container/*.sh /usr/local/share/nzbgetvpn/scripts/container/
+ADD data/scripts/shared/*.sh /usr/local/share/nzbgetvpn/scripts/shared/
+ADD data/scripts/notify/*.sh /usr/local/share/nzbgetvpn/scripts/notify/
+ADD data/scripts/host/*.sh /usr/local/share/nzbgetvpn/scripts/host/
 ADD data/scripts/README.md /usr/local/share/nzbgetvpn/scripts/README.md
 ADD data/scripts/docs/*.md /usr/local/share/nzbgetvpn/scripts/docs/
 ADD data/wireguard-configs/README.md /usr/local/share/nzbgetvpn/wireguard-configs/README.md

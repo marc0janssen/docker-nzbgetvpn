@@ -45,7 +45,6 @@ nzbgetvpn_log_emit() {
 	local level="$1"
 	local message="$2"
 	local tag="${NZBGETVPN_LOG_TAG:-}"
-
 	if [[ -n "${tag}" ]]; then
 		printf '[%s] [%s] %s\n' "${level}" "${tag}" "${message}"
 	else
@@ -68,7 +67,7 @@ nzbgetvpn_log_crit() {
 nzbgetvpn_get_default() {
 	case "${1:-}" in
 	ROTATE_MODE) echo "auto" ;;
-	ROTATE_SPEEDTEST_URLS) echo "https://speed.cloudflare.com/__down?bytes=4000000,https://proof.ovh.net/files/10Mb.dat" ;;
+	ROTATE_SPEEDTEST_URLS) echo "https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_1OMB_MP3.mp3,https://proof.ovh.net/files/10Mb.dat" ;;
 	ROTATE_SPEEDTEST_WEIGHTS) echo "0.60,0.40" ;;
 	ROTATE_SPEEDTEST_TIMEOUT) echo "20" ;;
 	ROTATE_SPEEDTEST_ATTEMPTS) echo "1" ;;
@@ -78,15 +77,15 @@ nzbgetvpn_get_default() {
 	ROTATE_FAIL_STREAK) echo "3" ;;
 	ROTATE_COOLDOWN_SECONDS) echo "1800" ;;
 	ROTATE_STATE_FILE) echo "/data/rotate-on-poor-speed-state" ;;
-	ROTATE_WIREGUARD_SCRIPT) echo "/data/scripts/select_random_wireguard_config.sh" ;;
-	ROTATE_OPENVPN_SCRIPT) echo "/data/scripts/select_random_openvpn_config.sh" ;;
-	ROTATE_WIREGUARD_REFRESH_SCRIPT) echo "/data/scripts/get_wireguard_configs_nordvpn.sh" ;;
+	ROTATE_WIREGUARD_SCRIPT) echo "/data/scripts/container/select_random_wireguard_config.sh" ;;
+	ROTATE_OPENVPN_SCRIPT) echo "/data/scripts/container/select_random_openvpn_config.sh" ;;
+	ROTATE_WIREGUARD_REFRESH_SCRIPT) echo "/data/scripts/container/get_wireguard_configs_nordvpn.sh" ;;
 	ROTATE_WIREGUARD_REFRESH_ENABLED) echo "no" ;;
 	ROTATE_POST_ROTATION_ACTION) echo "none" ;;
 	ROTATE_RESTART_REQUEST_FILE) echo "/tmp/rotate-on-poor-speed-exit-watchdog" ;;
 	ROTATE_ON_POOR_SPEED_ENABLED) echo "yes" ;;
 	ROTATE_ON_POOR_SPEED_SCHEDULE) echo "*/20 * * * *" ;;
-	ROTATE_ON_POOR_SPEED_SCRIPT) echo "/data/scripts/rotate_on_poor_speed.sh" ;;
+	ROTATE_ON_POOR_SPEED_SCRIPT) echo "/data/scripts/container/rotate_on_poor_speed.sh" ;;
 	ROTATE_ON_POOR_SPEED_TIMEOUT) echo "90" ;;
 	ROTATE_RESTART_EXIT_DELAY) echo "5" ;;
 	*) return 1 ;;

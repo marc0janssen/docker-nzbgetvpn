@@ -4,10 +4,13 @@ set -Eeuo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 shared_lib="${script_dir}/lib.sh"
 if [[ ! -r "${shared_lib}" ]]; then
+	shared_lib="${script_dir}/../lib.sh"
+fi
+if [[ ! -r "${shared_lib}" ]]; then
 	shared_lib="/usr/local/share/nzbgetvpn/scripts/lib.sh"
 fi
 if [[ ! -r "${shared_lib}" ]]; then
-	printf '[crit] [doctor] Shared helper library not found at %s or /usr/local/share/nzbgetvpn/scripts/lib.sh\n' "${script_dir}/lib.sh" >&2
+	printf '[crit] [doctor] Shared helper library not found at %s, %s, or /usr/local/share/nzbgetvpn/scripts/lib.sh\n' "${script_dir}/lib.sh" "${script_dir}/../lib.sh" >&2
 	exit 1
 fi
 # shellcheck source=/dev/null
@@ -43,6 +46,17 @@ warn() {
 fail() {
 	fail_count=$((fail_count + 1))
 	log_crit "FAIL: $*"
+}
+
+print_usage() {
+	cat <<'EOF'
+Usage: doctor.sh [--heal] [--help]
+
+Options:
+  --heal   Force-resync managed bundled templates from image copies into /data
+           (creates backups for replaced files under /data/backups/doctor-heal-<timestamp>)
+  --help   Show this help text and exit
+EOF
 }
 
 command_exists() {
@@ -221,7 +235,146 @@ check_vpn_client_config() {
 	esac
 }
 
+heal_copy_file() {
+	local source_path="$1"
+	local target_path="$2"
+	local mode="${3:-}"
+	local backup_root="$4"
+	local target_dir backup_target
+
+	[[ -f "${source_path}" ]] || return 0
+	target_dir="$(dirname -- "${target_path}")"
+	mkdir -p "${target_dir}"
+
+	if [[ -f "${target_path}" ]] && cmp -s "${source_path}" "${target_path}"; then
+		return 0
+	fi
+
+	if [[ -f "${target_path}" ]]; then
+		backup_target="${backup_root}${target_path}"
+		mkdir -p "$(dirname -- "${backup_target}")"
+		cp "${target_path}" "${backup_target}"
+	fi
+
+	cp "${source_path}" "${target_path}"
+	if [[ -n "${mode}" ]]; then
+		chmod "${mode}" "${target_path}"
+	fi
+}
+
+heal_copy_tree() {
+	local source_dir="$1"
+	local target_dir="$2"
+	local mode="${3:-}"
+	local backup_root="$4"
+	local pattern="${5:-*}"
+	local source_path rel_path
+
+	[[ -d "${source_dir}" ]] || return 0
+	while IFS= read -r -d '' source_path; do
+		rel_path="${source_path#${source_dir}/}"
+		heal_copy_file "${source_path}" "${target_dir}/${rel_path}" "${mode}" "${backup_root}"
+	done < <(find "${source_dir}" -type f -name "${pattern}" -print0)
+}
+
+run_heal_mode() {
+	local backup_root
+	local ts
+	local legacy_flat_script
+
+	ts="$(date +%Y%m%d-%H%M%S)"
+	backup_root="/data/backups/doctor-heal-${ts}"
+
+	if [[ ! -d /data ]]; then
+		fail "Cannot run --heal because '/data' does not exist"
+		return
+	fi
+	if [[ ! -w /data ]]; then
+		fail "Cannot run --heal because '/data' is not writable"
+		return
+	fi
+	mkdir -p /data/backups
+	mkdir -p "${backup_root}"
+
+	log_warn "Heal mode enabled: forcing bundled template resync from image copy; local managed changes can be overwritten"
+	log_info "Heal backups for replaced files are stored under '${backup_root}'"
+
+	heal_copy_tree /usr/local/share/nzbgetvpn/scripts/container /data/scripts/container 755 "${backup_root}" "*.sh"
+	heal_copy_tree /usr/local/share/nzbgetvpn/scripts/shared /data/scripts/shared 755 "${backup_root}" "*.sh"
+	heal_copy_tree /usr/local/share/nzbgetvpn/scripts/notify /data/scripts/notify 755 "${backup_root}" "*.sh"
+	heal_copy_tree /usr/local/share/nzbgetvpn/scripts/host /data/scripts/host 755 "${backup_root}" "*.sh"
+	heal_copy_file /usr/local/share/nzbgetvpn/scripts/lib.sh /data/scripts/lib.sh "" "${backup_root}"
+
+	heal_copy_tree /usr/local/share/nzbgetvpn/scripts/docs /data/scripts/docs "" "${backup_root}" "*.md"
+	heal_copy_file /usr/local/share/nzbgetvpn/scripts/README.md /data/scripts/README.md "" "${backup_root}"
+	heal_copy_file /usr/local/share/nzbgetvpn/wireguard-configs/README.md /data/wireguard-configs/README.md "" "${backup_root}"
+	heal_copy_file /usr/local/share/nzbgetvpn/openvpn-configs/README.md /data/openvpn-configs/README.md "" "${backup_root}"
+	heal_copy_file /usr/local/share/nzbgetvpn/backups/README.md /data/backups/README.md "" "${backup_root}"
+
+	for legacy_flat_script in \
+		/data/scripts/doctor.sh \
+		/data/scripts/get_wireguard_configs_nordvpn.sh \
+		/data/scripts/rotate_on_poor_speed.sh \
+		/data/scripts/select_random_openvpn_config.sh \
+		/data/scripts/select_random_wireguard_config.sh \
+		/data/scripts/backup_config.sh \
+		/data/scripts/benchmark_endpoints.sh \
+		/data/scripts/log_sanitizer.sh \
+		/data/scripts/upgrade_check.sh \
+		/data/scripts/notify_discord.sh \
+		/data/scripts/notify_telegram.sh \
+		/data/scripts/notify_pushover.sh \
+		/data/scripts/run-container-helper.sh; do
+		if [[ -f "${legacy_flat_script}" ]]; then
+			backup_target="${backup_root}${legacy_flat_script}"
+			mkdir -p "$(dirname -- "${backup_target}")"
+			cp "${legacy_flat_script}" "${backup_target}"
+			rm -f -- "${legacy_flat_script}"
+		fi
+	done
+
+	pass "Heal mode completed bundled template resync"
+}
+
+check_bundled_sync_preserve_state() {
+	local bundled_sync_policy_raw="${BUNDLED_SYNC_POLICY:-smart}"
+	local bundled_sync_policy
+	local runtime_file
+	local runtime_marker_count=0
+	local -a runtime_managed_files=(
+		"/data/scripts/lib.sh"
+	)
+
+	bundled_sync_policy="$(printf '%s' "${bundled_sync_policy_raw}" | tr '[:upper:]' '[:lower:]')"
+	case "${bundled_sync_policy}" in
+	smart | force | preserve)
+		pass "BUNDLED_SYNC_POLICY='${bundled_sync_policy}' is valid"
+		;;
+	*)
+		warn "BUNDLED_SYNC_POLICY='${bundled_sync_policy_raw}' is invalid (expected smart/force/preserve); startup falls back to smart"
+		bundled_sync_policy="smart"
+		;;
+	esac
+
+	if [[ "${bundled_sync_policy}" == "preserve" ]]; then
+		warn "BUNDLED_SYNC_POLICY=preserve keeps local managed files unchanged; this can cause template drift and break behavior after image upgrades"
+	fi
+
+	for runtime_file in "${runtime_managed_files[@]}"; do
+		[[ -f "${runtime_file}" ]] || continue
+		if grep -Eiq 'nzbgetvpn[[:space:]]*:[[:space:]]*preserve-local' "${runtime_file}" 2>/dev/null; then
+			runtime_marker_count=$((runtime_marker_count + 1))
+			warn "Preserve marker detected in '${runtime_file}'; managed updates for this runtime file can be skipped and may break behavior after upgrades"
+		fi
+	done
+
+	if [[ "${runtime_marker_count}" -eq 0 && "${bundled_sync_policy}" != "preserve" ]]; then
+		pass "No preserve markers detected in runtime-managed bundled files"
+	fi
+}
+
 main() {
+	local heal_mode="no"
 	local data_dir="${DOCTOR_DATA_DIR:-/data}"
 	local config_dir="${DOCTOR_CONFIG_DIR:-/config}"
 	local openvpn_dir="${DOCTOR_OPENVPN_DIR:-${config_dir}/openvpn}"
@@ -232,6 +385,23 @@ main() {
 	local internet_check_enabled
 	local dns_server
 	local dns_entries_found=0
+
+	while [[ "$#" -gt 0 ]]; do
+		case "$1" in
+		--heal)
+			heal_mode="yes"
+			;;
+		--help | -h)
+			print_usage
+			exit 0
+			;;
+		*)
+			log_crit "Unknown argument '$1' (use --help for usage)"
+			exit 2
+			;;
+		esac
+		shift
+	done
 
 	log_info "Starting NZBGetVPN doctor checks"
 	validate_absolute_path "${data_dir}" || fail "DOCTOR_DATA_DIR must be an absolute path without '..'"
@@ -245,11 +415,16 @@ main() {
 	is_positive_integer "${internet_check_timeout}" || fail "DOCTOR_INTERNET_CHECK_TIMEOUT must be a positive integer"
 	[[ "${internet_check_url}" == http://* || "${internet_check_url}" == https://* ]] || fail "DOCTOR_INTERNET_CHECK_URL must start with http:// or https://"
 
+	if [[ "${heal_mode}" == "yes" ]]; then
+		run_heal_mode
+	fi
+
 	check_command awk
 	check_command curl
 	check_optional_command ip
 	check_directory_rw "${data_dir}" "Data"
 	check_directory_rw "${config_dir}" "Config"
+	check_bundled_sync_preserve_state
 	check_default_route
 	check_nameservers
 	while IFS= read -r dns_server; do

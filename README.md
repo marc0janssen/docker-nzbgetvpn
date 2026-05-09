@@ -30,9 +30,11 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 4.24.28
+* NZBGetVPN image/codebase version: 5.3.6
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260508
+* Base image stable tag: binhex/arch-int-vpn:2026050402
+* Base image testing tag: binhex/arch-int-vpn:2026050402
 
 The NZBGetVPN image/codebase version is stored in `VERSION`.
 
@@ -115,6 +117,7 @@ Ready-to-edit examples live in [`examples/`](examples/).
 | `ENABLE_PRIVOXY` | No | `yes` | Enables Privoxy on `8118/tcp`. |
 | `PUID` / `PGID` | No | `1000` | Runtime ownership. |
 | `UMASK` | No | `000` | File creation mask. |
+| `BUNDLED_SYNC_POLICY` | No | `smart`, `force`, `preserve` | Controls startup sync behavior for bundled `/data` templates (default `smart`; docs still sync in smart mode). |
 
 Boolean-style toggles across this project accept `yes`/`no`, `true`/`false`, and `1`/`0`.
 
@@ -125,7 +128,10 @@ Script details are split into smaller files to reduce maintenance overhead and m
 - Index: [`data/scripts/README.md`](data/scripts/README.md)
 - Per-script docs under [`data/scripts/docs/`](data/scripts/docs/)
 - Bundled script docs are also synced into the container at `/data/scripts/docs/`.
-- For quick local diagnostics, run `/data/scripts/doctor.sh` inside the container.
+- Add `nzbgetvpn: preserve-local` in managed runtime script files (for example `/data/scripts/lib.sh`) to keep local custom edits when `BUNDLED_SYNC_POLICY=smart`; README/docs files ignore this marker and still update.
+- For quick local diagnostics, run `/data/scripts/container/doctor.sh` inside the container.
+- To force-restore managed bundled templates and then run diagnostics, use `/data/scripts/container/doctor.sh --heal` (creates backups under `/data/backups/doctor-heal-<timestamp>/`).
+- For host-side execution via a running container, use `./data/scripts/host/run-container-helper.sh`.
 
 ## Provider Setup
 

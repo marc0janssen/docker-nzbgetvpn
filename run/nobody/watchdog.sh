@@ -494,7 +494,7 @@ handle_vpn_cron_script() {
 
 handle_backup_cron_script() {
 	local schedule="${BACKUP_CRON_SCHEDULE:-}"
-	local script="${BACKUP_CRON_SCRIPT:-/data/scripts/backup_config.sh}"
+	local script="${BACKUP_CRON_SCRIPT:-/data/scripts/shared/backup_config.sh}"
 	local timeout_secs="${BACKUP_CRON_SCRIPT_TIMEOUT:-300}"
 	local current_run_minute
 

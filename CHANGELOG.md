@@ -4,6 +4,214 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.3.6] - 2026-05-09
+
+### Changed
+
+- Updated `scripts/update-base-image.sh` to also refresh the `Base image stable/testing tag` lines in `README.md` and `README-containers.md` when a Dockerfile base image tag is changed.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.3.5] - 2026-05-09
+
+### Changed
+
+- Added base-image version lines to the `Versions` section in `README.md` and `README-containers.md`, showing stable and testing `binhex/arch-int-vpn` tags.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.3.4] - 2026-05-09
+
+### Changed
+
+- Updated Dockerfile base image tag from `binhex/arch-int-vpn:2026032801` to `binhex/arch-int-vpn:2026050402` via `--base newest`.
+- Automatically bumped version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+
+## [5.3.3] - 2026-05-09
+
+### Changed
+
+- Expanded `data/scripts/docs/doctor.md` with a troubleshooting section that explains common `doctor.sh` warnings for disabled internet reachability checks and missing `VPN_DEVICE_TYPE`, including concrete commands to enable those checks.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.3.2] - 2026-05-09
+
+### Changed
+
+- Updated `scripts/update-base-image.sh` to automatically insert a changelog entry when `--base newest` resolves to a new base-image tag and triggers a patch version bump.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.3.1] - 2026-05-09
+
+### Changed
+
+- Added runtime `BASE_IMAGE_TAG` environment export in `Dockerfile` and `Dockerfile-testing` so scripts can reliably report the inherited base-image tag.
+- Updated startup version log line in `run/nobody/nzbget.sh` to include `Base image binhex/arch-int-vpn:<tag>`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.3.0] - 2026-05-09
+
+### Added
+
+- Added `--heal` mode to `data/scripts/container/doctor.sh` to force-resync managed bundled templates from image copies before running diagnostics.
+- `doctor.sh --heal` now creates safety backups for replaced files under `/data/backups/doctor-heal-<timestamp>/`.
+
+### Changed
+
+- Updated helper documentation in `README.md`, `README-containers.md`, `data/scripts/README.md`, and `data/scripts/docs/doctor.md` with `doctor.sh --heal` usage guidance.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.2.2] - 2026-05-09
+
+### Changed
+
+- Removed README/docs preserve-marker diagnostics from `doctor.sh`; preserve-marker checks now target runtime-managed files only.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.2.1] - 2026-05-09
+
+### Changed
+
+- Refined bundled-file preserve behavior so preserve markers are only honored for managed runtime script files (`*.sh` and `/data/scripts/lib.sh`) in `BUNDLED_SYNC_POLICY=smart`.
+- Bundled docs/README templates now keep syncing in `smart` mode even when they contain a preserve marker, preventing documentation drift from stale local markers.
+- Updated `doctor.sh` preserve-marker diagnostics to warn for runtime files and treat README-marker hits as informational-only.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.2.0] - 2026-05-09
+
+### Added
+
+- Added startup bundled-file sync policy `BUNDLED_SYNC_POLICY` in `build/root/install.sh` with modes: `smart` (default), `force`, and `preserve`.
+- Added preserve-marker support (`nzbgetvpn: preserve-local`) for managed `/data` bundled files when `BUNDLED_SYNC_POLICY=smart`.
+
+### Changed
+
+- Startup now logs explicit warnings whenever bundled file updates are skipped due to preserve policy or preserve marker, including a note that preserving local files can break behavior after image upgrades.
+- Added `doctor.sh` checks for `BUNDLED_SYNC_POLICY` and preserve markers, including warnings that preserved managed files can drift and break behavior after upgrades.
+- Updated script documentation and environment-variable docs for bundled sync behavior in `README.md`, `README-containers.md`, and `data/scripts/README.md`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.1.0] - 2026-05-09
+
+### Changed
+
+- Updated startup sync in `build/root/install.sh` to also sync `/data/scripts/lib.sh` from the bundled image copy whenever it differs.
+- Updated startup sync logic for bundled README files under `/data/{scripts,wireguard-configs,openvpn-configs,backups}/` so existing files are refreshed when they differ from image templates.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.0.4] - 2026-05-09
+
+### Changed
+
+- Bumped NZBGetVPN image/codebase patch version to `5.0.4`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.0.3] - 2026-05-09
+
+### Changed
+
+- Default `ROTATE_SPEEDTEST_URLS` primary endpoint is now `https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_1OMB_MP3.mp3` instead of Cloudflare `speed.cloudflare.com/__down`; OVH `proof.ovh.net` remains the weighted secondary (backup) mirror.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.0.2] - 2026-05-09
+
+### Changed
+
+- Default `ROTATE_SPEEDTEST_URLS` uses Cloudflare `speed.cloudflare.com/__down` as the primary endpoint and keeps OVH `proof.ovh.net` only as the weighted secondary (backup) mirror; Hetzner `speed.hetzner.de` is no longer in the default list.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.0.1] - 2026-05-09
+
+### Changed
+
+- Default `ROTATE_SPEEDTEST_URLS` now uses European HTTP download mirrors (Hetzner `speed.hetzner.de`, OVH `proof.ovh.net`) instead of Cloudflare `speed.cloudflare.com/__down`, which has no region-specific URL and often exits far from Europe.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.0.0] - 2026-05-08
+
+### Breaking
+
+- Removed legacy flat bundled helper paths in `/data/scripts/*.sh`; bundled scripts are now only managed in categorized folders under `/data/scripts/{container,shared,notify,host}/`. Existing setups that reference flat script paths must update to category paths.
+
+### Fixed
+
+- Corrected POSIX shell compatibility in `data/scripts/host/run-container-helper.sh` by replacing Bash-specific `[[ ... ]]` with portable `[ ... ]`, fixing runtime errors on systems where `/bin/sh` is `dash`.
+
+### Changed
+
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [4.24.36] - 2026-05-08
+
+### Changed
+
+- Removed bundled flat script compatibility in `/data/scripts/*.sh`; startup sync now keeps only categorized helper paths under `/data/scripts/{container,shared,notify,host}/` and removes legacy flat bundled copies.
+- Updated helper defaults and runtime references to categorized paths (`data/scripts/lib.sh`, `run/nobody/watchdog.sh`) and updated host helper lookup in `data/scripts/host/run-container-helper.sh` to resolve scripts across category folders.
+- Updated helper-path documentation in `README.md`, `README-containers.md`, `data/scripts/README.md`, `data/openvpn-configs/README.md`, and `data/wireguard-configs/README.md`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [4.24.35] - 2026-05-08
+
+### Changed
+
+- Removed repository wrapper `scripts/run-container-helper.sh` and standardized host-helper usage/documentation on the source path `data/scripts/host/run-container-helper.sh`, which is bundled into the image and synced to `/data/scripts/host/`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [4.24.34] - 2026-05-08
+
+### Added
+
+- Added bundled host helper source `data/scripts/host/run-container-helper.sh` so host-side wrapper logic is included in the image templates and synced to `/data/scripts/host/`.
+
+### Changed
+
+- Updated startup sync in `build/root/install.sh` to include `/data/scripts/host/` from bundled image templates.
+- Updated both Dockerfiles and `.gitignore` for the new `data/scripts/host/*.sh` source path.
+- Updated script documentation (`data/scripts/README.md`, `AGENTS.md`) to include the `host` category and host-only run context.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [4.24.33] - 2026-05-08
+
+### Changed
+
+- Updated startup script sync in `build/root/install.sh` to populate `/data/scripts/{container,shared,notify}/` from bundled image templates while still maintaining flat `/data/scripts/<name>.sh` compatibility copies for existing scheduler/hook paths.
+- Updated both Dockerfiles to include category-specific bundled script paths under `/usr/local/share/nzbgetvpn/scripts/{container,shared,notify}/` so category sync sources are present in the image.
+- Clarified bundled script install behavior in `data/scripts/README.md` and `AGENTS.md`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [4.24.32] - 2026-05-08
+
+### Added
+
+- Added host-side helper `scripts/run-container-helper.sh` to run bundled `/data/scripts/*.sh` safely inside a running container via `docker exec`, with container state checks and script-name validation.
+
+### Changed
+
+- Updated helper-script usage docs in `data/scripts/README.md`, `README.md`, and `README-containers.md` to include host-side wrapper usage.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [4.24.31] - 2026-05-08
+
+### Changed
+
+- Renamed helper source folder `data/scripts/portable/` to `data/scripts/shared/` for clearer intent, and updated Docker build inputs plus repository documentation (`Dockerfile`, `Dockerfile-testing`, `data/scripts/README.md`, `AGENTS.md`) accordingly.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [4.24.30] - 2026-05-08
+
+### Changed
+
+- Reorganized bundled helper script sources into category folders under `data/scripts/` (`container/`, `portable/`, `notify/`) while preserving runtime compatibility by continuing to install helpers into flat `/usr/local/share/nzbgetvpn/scripts/*.sh` and `/data/scripts/*.sh` paths.
+- Updated Docker build inputs (`Dockerfile`, `Dockerfile-testing`) and shell-quality validation (`scripts/ci-quality-checks.sh`, `AGENTS.md`) to include the new helper-script source layout.
+- Expanded `data/scripts/README.md` with a source-layout section that explains repository organization versus flattened runtime install paths.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [4.24.29] - 2026-05-08
+
+### Changed
+
+- Updated `data/scripts/README.md` with explicit run-context classification per helper script (`Container-only`, `Host-or-container`, `Container-first`, and `Internal library`) so operators can quickly see where each script should be executed.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [4.24.28] - 2026-05-08
 
 ### Changed

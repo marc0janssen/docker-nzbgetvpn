@@ -12,9 +12,11 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 4.24.28
+* NZBGetVPN image/codebase version: 5.3.6
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260508
+* Base image stable tag: binhex/arch-int-vpn:2026050402
+* Base image testing tag: binhex/arch-int-vpn:2026050402
 
 ## Tags
 
@@ -85,12 +87,20 @@ Bundled script docs are synced to `/data/scripts/docs`.
 | `ENABLE_PRIVOXY` | `yes` | Privoxy on `8118/tcp` |
 | `PUID` / `PGID` | `1000` | File ownership |
 | `UMASK` | `000` | File creation mask |
+| `BUNDLED_SYNC_POLICY` | `smart`, `force`, `preserve` | Startup sync policy for bundled `/data` templates (default `smart`; docs still sync in smart mode) |
+
+Preserve marker behavior for managed bundled files:
+- Add `nzbgetvpn: preserve-local` inside managed runtime script files (for example `/data/scripts/lib.sh`) to keep local edits when `BUNDLED_SYNC_POLICY=smart`.
+- README/docs templates ignore this marker and continue syncing in `smart` mode.
+- Startup logs will warn when files are preserved, because this can cause template drift and break behavior after image upgrades.
 
 ## Helper Script Documentation
 
 - Script index: [`data/scripts/README.md`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/data/scripts/README.md)
 - Per-script docs: [`data/scripts/docs/`](https://github.com/marc0janssen/nzbgetvpn/tree/develop/data/scripts/docs)
-- Quick diagnostics helper: run `/data/scripts/doctor.sh` inside the container.
+- Quick diagnostics helper: run `/data/scripts/container/doctor.sh` inside the container.
+- Repair managed bundled templates and run diagnostics with `/data/scripts/container/doctor.sh --heal` (creates backups under `/data/backups/doctor-heal-<timestamp>/`).
+- Host wrapper for running bundled scripts via `docker exec`: `./data/scripts/host/run-container-helper.sh`.
 
 ## Full Documentation
 

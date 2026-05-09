@@ -40,9 +40,15 @@ The base image owns the VPN framework, provider setup, OpenVPN/WireGuard startup
 
 ## Bundled `/data` Scripts
 
-Bundled helper scripts live in `data/scripts/*.sh`.
+Bundled helper scripts live in:
 
-They are copied into `/data/scripts` at container startup from `/usr/local/share/nzbgetvpn/scripts`. Existing bundled scripts in a mounted `/data/scripts` are updated when they differ from the image template.
+- `data/scripts/container/*.sh`
+- `data/scripts/shared/*.sh`
+- `data/scripts/notify/*.sh`
+- `data/scripts/host/*.sh`
+- shared library: `data/scripts/lib.sh`
+
+They are copied into `/data/scripts` at container startup from `/usr/local/share/nzbgetvpn/scripts`. Category folders under `/data/scripts` are synced from matching source folders, and flat `/data/scripts/<name>.sh` compatibility copies are also maintained. Existing bundled scripts in a mounted `/data/scripts` are updated when they differ from the image template.
 
 When adding a bundled helper script:
 
@@ -144,7 +150,7 @@ Before finishing changes, run the checks that apply:
 ```sh
 sh -n build.sh build-testing.sh scripts/*.sh
 bash -n build/root/install.sh run/root/iptable.sh run/nobody/watchdog.sh run/nobody/nzbget.sh
-bash -n data/scripts/*.sh
+bash -n data/scripts/*.sh data/scripts/*/*.sh
 wc -c README-containers.md
 git status --short
 ```
