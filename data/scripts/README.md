@@ -43,6 +43,13 @@ Script sources are organized by category
 
 At image build/startup, bundled helpers are installed under category paths in `/data/scripts/{container,shared,notify,host}/`. Legacy flat `/data/scripts/<name>.sh` bundled copies are removed automatically.
 
+Bundled file sync behavior is controlled by `BUNDLED_SYNC_POLICY`:
+- `smart` (default): update managed files; preserve marker is honored for managed runtime script files (`*.sh` and `lib.sh`) and ignored for docs/README templates.
+- `force`: always overwrite managed files from image templates.
+- `preserve`: keep local managed files as-is.
+
+When files are preserved (marker or `preserve` policy), startup logs warn that this can cause drift and may break behavior after image upgrades.
+
 ## Execution Context
 
 - **Container-only**: relies on container runtime behavior and standard container paths like `/config`, `/data`, VPN env vars, or scheduler hooks (`VPN_CRON_*`, `VPN_UNHEALTHY_*`).
@@ -70,6 +77,12 @@ Host helper from bind-mounted `/data`:
 
 ```sh
 /path/to/data/scripts/host/run-container-helper.sh --container nzbgetvpn doctor.sh
+```
+
+Repair managed bundled templates and run diagnostics:
+
+```sh
+docker exec -it nzbgetvpn /data/scripts/container/doctor.sh --heal
 ```
 
 Scheduled (`VPN_CRON_*`):

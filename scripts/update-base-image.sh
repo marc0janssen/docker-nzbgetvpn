@@ -6,6 +6,9 @@ REPO_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 VERSION_FILE="${REPO_DIR}/VERSION"
 README="${REPO_DIR}/README.md"
 CONTAINER_README="${REPO_DIR}/README-containers.md"
+CHANGELOG_FILE="${REPO_DIR}/CHANGELOG.md"
+BUMPED_FROM=""
+BUMPED_TO=""
 
 show_help() {
 	cat <<EOF
@@ -49,6 +52,8 @@ bump_patch_version() {
 ${current_version}
 EOF_VERSION
 	new_version="${major}.${minor}.$((patch + 1))"
+	BUMPED_FROM="${current_version}"
+	BUMPED_TO="${new_version}"
 
 	printf '%s\n' "${new_version}" >"${VERSION_FILE}"
 	sed_in_place "s|^\\* NZBGetVPN image/codebase version: .*|* NZBGetVPN image/codebase version: ${new_version}|" "${README}"
@@ -57,6 +62,50 @@ EOF_VERSION
 	fi
 
 	echo "[info] Bumped NZBGetVPN image/codebase version from ${current_version} to ${new_version}"
+}
+
+insert_changelog_entry_for_base_bump() {
+	dockerfile_path="$1"
+	old_tag="$2"
+	new_tag="$3"
+	today="$(date +%Y-%m-%d)"
+	dockerfile_name="$(basename -- "${dockerfile_path}")"
+	tmp_file="$(mktemp)"
+
+	if [ ! -f "${CHANGELOG_FILE}" ]; then
+		echo "[warn] ${CHANGELOG_FILE} not found; skipping changelog update" >&2
+		return 0
+	fi
+	if [ -z "${BUMPED_TO}" ]; then
+		echo "[warn] Missing bumped version; skipping changelog update" >&2
+		return 0
+	fi
+	if grep -q "^## \[${BUMPED_TO}\] - " "${CHANGELOG_FILE}"; then
+		echo "[info] Changelog already contains ${BUMPED_TO}; skipping automatic changelog insert"
+		return 0
+	fi
+
+	awk -v version="${BUMPED_TO}" -v date_value="${today}" -v file_name="${dockerfile_name}" -v old_value="${old_tag}" -v new_value="${new_tag}" '
+BEGIN { inserted=0 }
+{
+	print $0
+	if (!inserted && $0 ~ /^This project uses semantic versioning/) {
+		print ""
+		print "## [" version "] - " date_value
+		print ""
+		print "### Changed"
+		print ""
+		print "- Updated " file_name " base image tag from `binhex/arch-int-vpn:" old_value "` to `binhex/arch-int-vpn:" new_value "` via `--base newest`."
+		print "- Automatically bumped version metadata in `VERSION`, `README.md`, and `README-containers.md`."
+		print ""
+		inserted=1
+	}
+}
+' "${CHANGELOG_FILE}" >"${tmp_file}"
+
+	cp "${tmp_file}" "${CHANGELOG_FILE}"
+	rm -f "${tmp_file}"
+	echo "[info] Added changelog entry for version ${BUMPED_TO}"
 }
 
 case "${1:-}" in
@@ -104,6 +153,7 @@ echo "[info] Updated ${dockerfile} base image to binhex/arch-int-vpn:${tag}"
 
 if [ "${requested_tag}" = "newest" ] && [ "${current_tag}" != "${tag}" ]; then
 	bump_patch_version
+	insert_changelog_entry_for_base_bump "${dockerfile}" "${current_tag}" "${tag}"
 elif [ "${requested_tag}" = "newest" ]; then
 	echo "[info] Base image tag is already ${tag}; VERSION not bumped"
 fi

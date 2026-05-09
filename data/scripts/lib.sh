@@ -45,7 +45,6 @@ nzbgetvpn_log_emit() {
 	local level="$1"
 	local message="$2"
 	local tag="${NZBGETVPN_LOG_TAG:-}"
-
 	if [[ -n "${tag}" ]]; then
 		printf '[%s] [%s] %s\n' "${level}" "${tag}" "${message}"
 	else

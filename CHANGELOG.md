@@ -4,6 +4,86 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.3.4] - 2026-05-09
+
+### Changed
+
+- Updated Dockerfile base image tag from `binhex/arch-int-vpn:2026032801` to `binhex/arch-int-vpn:2026050402` via `--base newest`.
+- Automatically bumped version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+
+## [5.3.3] - 2026-05-09
+
+### Changed
+
+- Expanded `data/scripts/docs/doctor.md` with a troubleshooting section that explains common `doctor.sh` warnings for disabled internet reachability checks and missing `VPN_DEVICE_TYPE`, including concrete commands to enable those checks.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.3.2] - 2026-05-09
+
+### Changed
+
+- Updated `scripts/update-base-image.sh` to automatically insert a changelog entry when `--base newest` resolves to a new base-image tag and triggers a patch version bump.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.3.1] - 2026-05-09
+
+### Changed
+
+- Added runtime `BASE_IMAGE_TAG` environment export in `Dockerfile` and `Dockerfile-testing` so scripts can reliably report the inherited base-image tag.
+- Updated startup version log line in `run/nobody/nzbget.sh` to include `Base image binhex/arch-int-vpn:<tag>`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.3.0] - 2026-05-09
+
+### Added
+
+- Added `--heal` mode to `data/scripts/container/doctor.sh` to force-resync managed bundled templates from image copies before running diagnostics.
+- `doctor.sh --heal` now creates safety backups for replaced files under `/data/backups/doctor-heal-<timestamp>/`.
+
+### Changed
+
+- Updated helper documentation in `README.md`, `README-containers.md`, `data/scripts/README.md`, and `data/scripts/docs/doctor.md` with `doctor.sh --heal` usage guidance.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.2.2] - 2026-05-09
+
+### Changed
+
+- Removed README/docs preserve-marker diagnostics from `doctor.sh`; preserve-marker checks now target runtime-managed files only.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.2.1] - 2026-05-09
+
+### Changed
+
+- Refined bundled-file preserve behavior so preserve markers are only honored for managed runtime script files (`*.sh` and `/data/scripts/lib.sh`) in `BUNDLED_SYNC_POLICY=smart`.
+- Bundled docs/README templates now keep syncing in `smart` mode even when they contain a preserve marker, preventing documentation drift from stale local markers.
+- Updated `doctor.sh` preserve-marker diagnostics to warn for runtime files and treat README-marker hits as informational-only.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.2.0] - 2026-05-09
+
+### Added
+
+- Added startup bundled-file sync policy `BUNDLED_SYNC_POLICY` in `build/root/install.sh` with modes: `smart` (default), `force`, and `preserve`.
+- Added preserve-marker support (`nzbgetvpn: preserve-local`) for managed `/data` bundled files when `BUNDLED_SYNC_POLICY=smart`.
+
+### Changed
+
+- Startup now logs explicit warnings whenever bundled file updates are skipped due to preserve policy or preserve marker, including a note that preserving local files can break behavior after image upgrades.
+- Added `doctor.sh` checks for `BUNDLED_SYNC_POLICY` and preserve markers, including warnings that preserved managed files can drift and break behavior after upgrades.
+- Updated script documentation and environment-variable docs for bundled sync behavior in `README.md`, `README-containers.md`, and `data/scripts/README.md`.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.1.0] - 2026-05-09
+
+### Changed
+
+- Updated startup sync in `build/root/install.sh` to also sync `/data/scripts/lib.sh` from the bundled image copy whenever it differs.
+- Updated startup sync logic for bundled README files under `/data/{scripts,wireguard-configs,openvpn-configs,backups}/` so existing files are refreshed when they differ from image templates.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.0.4] - 2026-05-09
 
 ### Changed

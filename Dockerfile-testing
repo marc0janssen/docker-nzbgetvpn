@@ -1,5 +1,5 @@
 #FROM binhex/arch-int-vpn:2025100101
-ARG BASE_IMAGE_TAG=2026032801
+ARG BASE_IMAGE_TAG=2026050402
 FROM binhex/arch-int-vpn:${BASE_IMAGE_TAG}
 
 ARG BASE_IMAGE_TAG
@@ -13,6 +13,7 @@ LABEL org.opencontainers.image.title="NZBGetVPN" \
       org.opencontainers.image.version="${NZBGETVPN_VERSION}" \
       org.opencontainers.image.base.name="binhex/arch-int-vpn:${BASE_IMAGE_TAG}"
 
+ENV BASE_IMAGE_TAG=${BASE_IMAGE_TAG}
 ENV NZBGET_VERSION=26.2-testing-20260508
 ENV NZBGET_VERSION_DIR=testing
 ENV NZBGET_SHA256=a6472399bbf0ba36e924b34ab0ef6594fd696de4c140bba2d5dbbe464ebc0434
