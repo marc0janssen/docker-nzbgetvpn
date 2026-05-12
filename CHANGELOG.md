@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.6.4] - 2026-05-12
+
+### Changed
+
+- `docs.yml`: before `deploy-pages`, run **Verify GitHub Pages uses Actions** (`actions/github-script`) calling `GET /repos/{owner}/{repo}/pages` so a misconfigured Pages source fails with an explicit message (`build_type` must be `workflow`) instead of only `createPagesDeployment` 404.
+- `README.md`: note the new verify step in Pages troubleshooting.
+
 ## [5.6.3] - 2026-05-12
 
 ### Changed

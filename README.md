@@ -35,7 +35,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 5.6.3
+* NZBGetVPN image/codebase version: 5.6.4
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260508
 * Base image stable tag: binhex/arch-int-vpn:2026050402
@@ -338,6 +338,6 @@ Also check:
 - **Private repository:** GitHub Pages from a private repo needs a plan that includes Pages for private repositories; otherwise Pages may stay unavailable.
 - **Organization:** an org owner may need to allow GitHub Pages under organization policies.
 
-Until **Source** is **GitHub Actions** and saved, `actions/deploy-pages` cannot create a deployment; the **build** job can still succeed and upload an artifact.
+Until **Source** is **GitHub Actions** and saved, `actions/deploy-pages` cannot create a deployment; the **build** job can still succeed and upload an artifact. The **Docs** workflow runs a **Verify GitHub Pages uses Actions** step before deploy: if that step fails, read its log line (it states the current `build_type` from the API).
 
 A log line like `DeprecationWarning: The punycode module is deprecated` comes from a Node dependency inside `deploy-pages`; it does not cause the failure and can be ignored until GitHub updates the action.
