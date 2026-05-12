@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.6.9] - 2026-05-12
+
+### Fixed
+
+- `data/scripts/lib.sh`: actually commit the `ROTATE_SPEEDTEST_*` default changes that `5.6.8` documented but omitted from git; `rotate_on_poor_speed.md` re-synced so `./scripts/sync-rotate-defaults-doc.sh check` passes.
+
+### Changed
+
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.6.8] - 2026-05-12
 
 ### Changed
