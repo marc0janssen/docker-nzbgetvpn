@@ -126,6 +126,18 @@ The following lines in README files are intentionally machine-updated. Preserve 
 * NZBGET Current testing version:
 ```
 
+## MkDocs (published documentation site)
+
+The browsable site is built with **Material for MkDocs** (`mkdocs.yml`, `docs/requirements.txt`, `docs/` symlinks into repository markdown). CI runs `mkdocs build --strict` on the **Docs** workflow.
+
+**Keep MkDocs in sync with documentation changes:**
+
+- After edits to `README.md`, `README-containers.md`, `CHANGELOG.md`, `SECURITY.md`, `data/**/*.md`, `ci/**/*.md`, `examples/**/*.md`, or any path listed under `nav` in `mkdocs.yml`, ensure the **published site** still builds: run `mkdocs build --strict --site-dir site` (see **Validation Checklist**).
+- When you add or rename **user-facing** Markdown that should appear on the site, update **`mkdocs.yml` `nav`** (and `exclude_docs` if needed) so pages are not orphaned and strict mode stays green.
+- When you change how documentation is organized (new sections, renamed files), adjust **`mkdocs.yml`** (titles, `nav`, `site_description`) so the site matches the repository.
+
+Do not leave MkDocs navigation or strict build failures unresolved after changing tracked documentation.
+
 ## Build And Update Scripts
 
 - `build.sh` builds stable.
@@ -155,7 +167,7 @@ wc -c README-containers.md
 git status --short
 ```
 
-When changing `mkdocs.yml`, `docs/`, or Markdown paths included in the MkDocs navigation, install `docs/requirements.txt` and run `mkdocs build --strict --site-dir site` (the Docs workflow runs the same build in CI).
+When changing `mkdocs.yml`, `docs/`, or Markdown paths included in the MkDocs navigation, install `docs/requirements.txt` and run `mkdocs build --strict --site-dir site` (the Docs workflow runs the same build in CI). See **MkDocs (published documentation site)** above for when updates are required.
 
 ```sh
 python3 -m pip install -q -r docs/requirements.txt

@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.6.7] - 2026-05-12
+
+### Changed
+
+- `AGENTS.md`: new **MkDocs (published documentation site)** section — agents must keep `mkdocs.yml` / `nav` and strict builds aligned with documentation changes; validation checklist cross-references this section.
+
 ## [5.6.6] - 2026-05-12
 
 ### Changed
