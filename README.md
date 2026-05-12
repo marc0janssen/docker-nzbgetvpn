@@ -61,7 +61,7 @@ A `DeprecationWarning: punycode` line in deploy logs comes from a Node dependenc
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 5.6.7
+* NZBGetVPN image/codebase version: 5.6.8
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260508
 * Base image stable tag: binhex/arch-int-vpn:2026050402

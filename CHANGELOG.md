@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.6.8] - 2026-05-12
+
+### Changed
+
+- `data/scripts/lib.sh`: default `ROTATE_SPEEDTEST_URLS` / `ROTATE_SPEEDTEST_WEIGHTS` for `rotate_on_poor_speed` now use smaller public test files (MP3 + OVH 10 MB) with two-endpoint weights `0.60,0.40`; `data/scripts/docs/rotate_on_poor_speed.md` regenerated via `./scripts/sync-rotate-defaults-doc.sh write`.
+- `build.env.example`: `DOCKER_IMAGE_REPO` placeholder aligned with `build-testing.env.example` (`otheruser/nzbgetvpn`).
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.6.7] - 2026-05-12
 
 ### Changed
