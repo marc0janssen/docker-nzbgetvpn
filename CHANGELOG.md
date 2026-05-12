@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.6.2] - 2026-05-12
+
+### Changed
+
+- `docs.yml`: set `permissions` (`pages: write`, `id-token: write`) on the **deploy** job explicitly, matching the `actions/deploy-pages` documentation.
+- `README.md`: **Pages deploy troubleshooting** for `createPagesDeployment` 404 (Pages source must be **GitHub Actions**) and a short note on the harmless Node `punycode` deprecation warning from `deploy-pages`.
+
 ## [5.6.1] - 2026-05-12
 
 ### Changed

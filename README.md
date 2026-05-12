@@ -35,7 +35,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 5.6.1
+* NZBGetVPN image/codebase version: 5.6.2
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260508
 * Base image stable tag: binhex/arch-int-vpn:2026050402
@@ -321,3 +321,15 @@ mkdocs build --strict --site-dir site
 ```
 
 The generated `site/` directory and `.venv-docs/` are gitignored.
+
+### Pages deploy troubleshooting
+
+If the **Docs** workflow fails on **Deploy to GitHub Pages** with `HttpError: Not Found` (status 404) or *Failed to create deployment*, the GitHub API has no Actions-based Pages site for this repository yet. Fix it in the repo settings (repo admin):
+
+1. Open [Pages settings](https://github.com/marc0janssen/nzbgetvpn/settings/pages).
+2. Under **Build and deployment**, set **Source** to **GitHub Actions** (not *Deploy from a branch*). Save.
+3. Re-run the failed workflow (or push to `main` again). If GitHub prompts to configure the **`github-pages` environment**, approve it once.
+
+Until Source is **GitHub Actions**, `actions/deploy-pages` cannot create a deployment; the build job can still succeed.
+
+A log line like `DeprecationWarning: The punycode module is deprecated` comes from a Node dependency inside `deploy-pages`; it does not cause the failure and can be ignored until GitHub updates the action.
