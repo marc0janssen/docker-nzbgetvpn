@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.6.4] - 2026-05-12
+
+### Changed
+
+- `docs.yml`: before `deploy-pages`, run **Verify GitHub Pages uses Actions** (`actions/github-script`) calling `GET /repos/{owner}/{repo}/pages` so a misconfigured Pages source fails with an explicit message (`build_type` must be `workflow`) instead of only `createPagesDeployment` 404.
+- `README.md`: note the new verify step in Pages troubleshooting.
+
+## [5.6.3] - 2026-05-12
+
+### Changed
+
+- `docs.yml`: allow **Deploy** on `workflow_dispatch` when the branch is `main` (so you can redeploy from the Actions tab after fixing Pages settings without an empty commit); restrict **Upload Pages artifact** to `main` only; set Pages concurrency `cancel-in-progress: false` to match GitHub’s starter guidance; add `contents: read` to the deploy job permissions alongside `pages: write` and `id-token: write`.
+- `README.md`: expand **Pages deploy troubleshooting** (official docs link, private repo / org notes, manual **Run workflow** on `main`).
+
 ## [5.6.2] - 2026-05-12
 
 ### Changed

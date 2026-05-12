@@ -39,7 +39,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -68,23 +68,58 @@ jobs:
           mkdocs build --strict --site-dir site
 
       - name: Upload Pages artifact
-        if: github.event_name != 'pull_request'
+        if: |
+          github.event_name != 'pull_request' &&
+          github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: |
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: build
     runs-on: ubuntu-latest
     # Match actions/deploy-pages README: token scopes for this job only.
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Verify GitHub Pages uses Actions (REST build_type)
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const settingsUrl = `https://github.com/${owner}/${repo}/settings/pages`;
+            let pages;
+            try {
+              ({ data: pages } = await github.rest.repos.getPages({ owner, repo }));
+            } catch (err) {
+              const status = err.status ?? err.response?.status;
+              if (status === 404) {
+                core.setFailed(
+                  `No GitHub Pages site for this repository (GET /repos/${owner}/${repo}/pages returned 404). ` +
+                  `Enable Pages and set Build and deployment Source to "GitHub Actions", then save: ${settingsUrl}`
+                );
+                return;
+              }
+              throw err;
+            }
+            const buildType = pages.build_type;
+            core.info(`GitHub Pages build_type from API: ${buildType ?? 'null'}`);
+            if (buildType !== 'workflow') {
+              core.setFailed(
+                `Pages publishing source must be GitHub Actions (REST build_type must be "workflow", got ${JSON.stringify(buildType)}). ` +
+                `Open ${settingsUrl}, set Source to GitHub Actions (not "Deploy from a branch"), save, then re-run this workflow.`
+              );
+            }
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5

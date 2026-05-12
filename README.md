@@ -35,7 +35,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 5.6.2
+* NZBGetVPN image/codebase version: 5.6.4
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260508
 * Base image stable tag: binhex/arch-int-vpn:2026050402
@@ -324,12 +324,20 @@ The generated `site/` directory and `.venv-docs/` are gitignored.
 
 ### Pages deploy troubleshooting
 
-If the **Docs** workflow fails on **Deploy to GitHub Pages** with `HttpError: Not Found` (status 404) or *Failed to create deployment*, the GitHub API has no Actions-based Pages site for this repository yet. Fix it in the repo settings (repo admin):
+If the **Docs** workflow fails on **Deploy to GitHub Pages** with `HttpError: Not Found` (status 404) or *Failed to create deployment*, GitHub’s Pages API does not see an **Actions-based** Pages site for this repository. This is **not** fixed by changing YAML alone; a repo admin must adjust **Settings → Pages** once.
+
+Follow GitHub’s steps: [Publishing with a custom GitHub Actions workflow](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site#publishing-with-a-custom-github-actions-workflow) (short version):
 
 1. Open [Pages settings](https://github.com/marc0janssen/nzbgetvpn/settings/pages).
-2. Under **Build and deployment**, set **Source** to **GitHub Actions** (not *Deploy from a branch*). Save.
-3. Re-run the failed workflow (or push to `main` again). If GitHub prompts to configure the **`github-pages` environment**, approve it once.
+2. Under **Build and deployment** → **Source**, choose **GitHub Actions** (not *Deploy from a branch*). **Save** the page. If Source still shows a branch or `/ (root)` / `/docs`, Actions deploy will keep returning 404.
+3. After saving, trigger a deploy again: push to `main`, or use **Actions → Docs → Run workflow** on branch `main` (the workflow allows manual runs on `main` for this).
+4. If GitHub asks to configure or approve the **`github-pages`** environment, do that once.
 
-Until Source is **GitHub Actions**, `actions/deploy-pages` cannot create a deployment; the build job can still succeed.
+Also check:
+
+- **Private repository:** GitHub Pages from a private repo needs a plan that includes Pages for private repositories; otherwise Pages may stay unavailable.
+- **Organization:** an org owner may need to allow GitHub Pages under organization policies.
+
+Until **Source** is **GitHub Actions** and saved, `actions/deploy-pages` cannot create a deployment; the **build** job can still succeed and upload an artifact. The **Docs** workflow runs a **Verify GitHub Pages uses Actions** step before deploy: if that step fails, read its log line (it states the current `build_type` from the API).
 
 A log line like `DeprecationWarning: The punycode module is deprecated` comes from a Node dependency inside `deploy-pages`; it does not cause the failure and can be ignored until GitHub updates the action.
