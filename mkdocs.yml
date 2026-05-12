@@ -1,7 +1,8 @@
 site_name: NZBGetVPN
 site_description: >-
-  Docker image for NZBGet with VPN leak protection, OpenVPN/WireGuard, Privoxy,
-  SOCKS support, and operational hooks on binhex/arch-int-vpn.
+  Browseable documentation for the NZBGetVPN Docker image (NZBGet + VPN on
+  binhex/arch-int-vpn): live site with search and tabs; environment variables,
+  scripts, Compose, CI, changelog, and security.
 site_url: https://marc0janssen.github.io/nzbgetvpn/
 site_author: Marco Janssen
 copyright: Copyright &copy; 2024-2026 Marco Janssen

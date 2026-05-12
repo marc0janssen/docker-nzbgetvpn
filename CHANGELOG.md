@@ -4,6 +4,29 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.6.6] - 2026-05-12
+
+### Changed
+
+- `README.md`: moved **Documentation** to the top (prominent website link, what the site contains, local preview, GitHub Pages one-time setup); TOC and **Script Docs** now point readers to the published site; removed the duplicate trailing documentation section.
+- `mkdocs.yml`: refreshed `site_description` to match the documentation-first positioning.
+- `README-containers.md`: Docs workflow badge and a bold documentation link under the intro.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
+## [5.6.5] - 2026-05-12
+
+### Changed
+
+- `docs.yml`: clearer multi-line failure text for Pages verify (404 vs wrong `build_type`) so the settings URL is not glued to the next log line; explain that GET `/pages` stays 404 until Pages settings are saved once.
+- `README.md`: note correct Pages URL path and that the API has no site record until the first Save.
+
+## [5.6.4] - 2026-05-12
+
+### Changed
+
+- `docs.yml`: before `deploy-pages`, run **Verify GitHub Pages uses Actions** (`actions/github-script`) calling `GET /repos/{owner}/{repo}/pages` so a misconfigured Pages source fails with an explicit message (`build_type` must be `workflow`) instead of only `createPagesDeployment` 404.
+- `README.md`: note the new verify step in Pages troubleshooting.
+
 ## [5.6.3] - 2026-05-12
 
 ### Changed

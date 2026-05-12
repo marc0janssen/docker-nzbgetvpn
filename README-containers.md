@@ -5,6 +5,7 @@
 [![Security Scan](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/security-scan.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/security-scan.yml)
 [![Drift Radar](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/drift-radar.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/drift-radar.yml)
 [![Release Orchestration](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/release-orchestration.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/release-orchestration.yml)
+[![Docs](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/docs.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/docs.yml)
 
 Docker image for [NZBGet](https://github.com/nzbgetcom/nzbget) with OpenVPN/WireGuard, Privoxy, SOCKS support and VPN leak protection.
 
@@ -13,11 +14,11 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 - base image handles VPN/provider lifecycle
 - this repository adds NZBGet integration, validation and helper workflows
 
-Browseable documentation (Material for MkDocs): [https://marc0janssen.github.io/nzbgetvpn/](https://marc0janssen.github.io/nzbgetvpn/)
+**Full documentation (search, guides): [https://marc0janssen.github.io/nzbgetvpn/](https://marc0janssen.github.io/nzbgetvpn/)**
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 5.6.3
+* NZBGetVPN image/codebase version: 5.6.6
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260508
 * Base image stable tag: binhex/arch-int-vpn:2026050402

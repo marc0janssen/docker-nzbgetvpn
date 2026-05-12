@@ -6,6 +6,32 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 [Thanks for the tip!](https://ko-fi.com/marc0janssen)
 
+## Documentation
+
+**Live documentation (search, navigation, dark mode): [https://marc0janssen.github.io/nzbgetvpn/](https://marc0janssen.github.io/nzbgetvpn/)**
+
+That site is this repository rendered with **Material for MkDocs** on **GitHub Pages** — same content as here, but easier to browse: tabs for **Scripts**, **Guides** (CI, Compose examples), **Data directories**, and **Reference** (changelog, security). Prefer the website when you need to look something up; keep using this `README.md` when you need a single file in the repo or on Docker Hub.
+
+Build and deploy: [`.github/workflows/docs.yml`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/.github/workflows/docs.yml) runs `mkdocs build --strict` on every relevant push and pull request; merges to `main` publish the site. Layout and tooling follow the same pattern as [restic-backup-helper](https://github.com/marc0janssen/restic-backup-helper) (`mkdocs.yml`, `docs/requirements.txt`, `docs/` with symlinks into existing markdown so relative links keep working).
+
+### Preview on your machine
+
+```sh
+python3 -m venv .venv-docs
+source .venv-docs/bin/activate   # or: source .venv-docs/bin/activate.fish
+pip install -r docs/requirements.txt
+mkdocs serve                      # http://127.0.0.1:8000
+# mkdocs build --strict --site-dir site
+```
+
+On Windows, clone with symlink support if you build locally, for example `git clone -c core.symlinks=true …`. The `site/` output and `.venv-docs/` are gitignored.
+
+### Enable GitHub Pages (once per repository)
+
+If the live URL returns nothing or the **Docs** workflow fails verification, a repo admin must save Pages settings once: [Settings → Pages](https://github.com/marc0janssen/nzbgetvpn/settings/pages) → **Build and deployment** → **Source** → **GitHub Actions** → **Save**. Until then the GitHub API has no site record (`GET /repos/.../pages` returns **404**). Then push to `main` or run **Actions → Docs → Run workflow** on `main`. See GitHub’s guide: [Publishing with a custom GitHub Actions workflow](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site#publishing-with-a-custom-github-actions-workflow). Private repositories and organization policies can block Pages.
+
+A `DeprecationWarning: punycode` line in deploy logs comes from a Node dependency inside GitHub’s `deploy-pages` action; it is not the cause of deploy failures.
+
 ## CI Status
 
 [![Quality Checks](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/quality-checks.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/quality-checks.yml)
@@ -17,6 +43,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 
 ## Table of Contents
 
+- [Documentation](#documentation)
 - [CI Status](#ci-status)
 - [Versions](#versions)
 - [Quick Start](#quick-start)
@@ -29,13 +56,12 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 - [Build and Update](#build-and-update) (includes [Docker Hub builds](#docker-hub-builds), [local registry build](#local-registry-build))
 - [Troubleshooting](#troubleshooting)
 - [Security](#security)
-- [Documentation site](#documentation-site-material-for-mkdocs)
 
 ## Versions
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 5.6.3
+* NZBGetVPN image/codebase version: 5.6.6
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260508
 * Base image stable tag: binhex/arch-int-vpn:2026050402
@@ -128,7 +154,7 @@ Boolean-style toggles across this project accept `yes`/`no`, `true`/`false`, and
 
 ## Script Docs
 
-Script details are split into smaller files to reduce maintenance overhead and merge conflicts.
+Script details are split into smaller files to reduce maintenance overhead and merge conflicts. The same pages are available on **[the documentation website](https://marc0janssen.github.io/nzbgetvpn/)** under **Scripts**.
 
 - Index: [`data/scripts/README.md`](data/scripts/README.md)
 - Per-script docs under [`data/scripts/docs/`](data/scripts/README.md#per-script-docs)
@@ -302,42 +328,3 @@ On Apple Silicon or other non-amd64 hosts, use `SMOKE_PLATFORM=linux/amd64`.
 
 See [`SECURITY.md`](SECURITY.md).  
 Do not commit secrets, VPN profiles, keys, tokens, or `.env` files.
-
-## Documentation site (Material for MkDocs)
-
-A browsable documentation site is built with [MkDocs](https://www.mkdocs.org/) and [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/), following the same approach as [restic-backup-helper](https://github.com/marc0janssen/restic-backup-helper). The workflow [`.github/workflows/docs.yml`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/.github/workflows/docs.yml) runs `mkdocs build --strict` on pushes and pull requests; pushes to `main` deploy to GitHub Pages at [https://marc0janssen.github.io/nzbgetvpn/](https://marc0janssen.github.io/nzbgetvpn/) once **Settings → Pages → Build and deployment → Source** is set to **GitHub Actions** for this repository.
-
-Source markdown stays in the repository tree; `docs/` holds `requirements.txt`, stylesheets, and **symbolic links** into `README.md`, `CHANGELOG.md`, `data/`, `ci/`, and `examples/` so relative links keep working. On Windows, clone with symlink support if you build the site locally (for example `git clone -c core.symlinks=true …`).
-
-Local preview:
-
-```sh
-python3 -m venv .venv-docs
-source .venv-docs/bin/activate   # or: source .venv-docs/bin/activate.fish
-pip install -r docs/requirements.txt
-mkdocs serve                      # http://127.0.0.1:8000
-# or
-mkdocs build --strict --site-dir site
-```
-
-The generated `site/` directory and `.venv-docs/` are gitignored.
-
-### Pages deploy troubleshooting
-
-If the **Docs** workflow fails on **Deploy to GitHub Pages** with `HttpError: Not Found` (status 404) or *Failed to create deployment*, GitHub’s Pages API does not see an **Actions-based** Pages site for this repository. This is **not** fixed by changing YAML alone; a repo admin must adjust **Settings → Pages** once.
-
-Follow GitHub’s steps: [Publishing with a custom GitHub Actions workflow](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site#publishing-with-a-custom-github-actions-workflow) (short version):
-
-1. Open [Pages settings](https://github.com/marc0janssen/nzbgetvpn/settings/pages).
-2. Under **Build and deployment** → **Source**, choose **GitHub Actions** (not *Deploy from a branch*). **Save** the page. If Source still shows a branch or `/ (root)` / `/docs`, Actions deploy will keep returning 404.
-3. After saving, trigger a deploy again: push to `main`, or use **Actions → Docs → Run workflow** on branch `main` (the workflow allows manual runs on `main` for this).
-4. If GitHub asks to configure or approve the **`github-pages`** environment, do that once.
-
-Also check:
-
-- **Private repository:** GitHub Pages from a private repo needs a plan that includes Pages for private repositories; otherwise Pages may stay unavailable.
-- **Organization:** an org owner may need to allow GitHub Pages under organization policies.
-
-Until **Source** is **GitHub Actions** and saved, `actions/deploy-pages` cannot create a deployment; the **build** job can still succeed and upload an artifact.
-
-A log line like `DeprecationWarning: The punycode module is deprecated` comes from a Node dependency inside `deploy-pages`; it does not cause the failure and can be ignored until GitHub updates the action.
