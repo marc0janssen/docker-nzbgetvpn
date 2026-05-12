@@ -104,8 +104,14 @@ jobs:
               const status = err.status ?? err.response?.status;
               if (status === 404) {
                 core.setFailed(
-                  `No GitHub Pages site for this repository (GET /repos/${owner}/${repo}/pages returned 404). ` +
-                  `Enable Pages and set Build and deployment Source to "GitHub Actions", then save: ${settingsUrl}`
+                  [
+                    `GitHub Pages has no site record yet for ${owner}/${repo} (GET /repos/${owner}/${repo}/pages returned 404).`,
+                    'The API only returns data after you save Pages settings at least once.',
+                    'Fix: open the link below → Build and deployment → Source → choose "GitHub Actions" → Save.',
+                    '',
+                    settingsUrl,
+                    ''
+                  ].join('\n')
                 );
                 return;
               }
@@ -115,8 +121,13 @@ jobs:
             core.info(`GitHub Pages build_type from API: ${buildType ?? 'null'}`);
             if (buildType !== 'workflow') {
               core.setFailed(
-                `Pages publishing source must be GitHub Actions (REST build_type must be "workflow", got ${JSON.stringify(buildType)}). ` +
-                `Open ${settingsUrl}, set Source to GitHub Actions (not "Deploy from a branch"), save, then re-run this workflow.`
+                [
+                  `Pages publishing source must be GitHub Actions (REST build_type must be "workflow", got ${JSON.stringify(buildType)}).`,
+                  'Fix: open the link below → set Source to GitHub Actions (not "Deploy from a branch") → Save → re-run this workflow.',
+                  '',
+                  settingsUrl,
+                  ''
+                ].join('\n')
               );
             }
 
