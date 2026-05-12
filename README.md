@@ -13,6 +13,7 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 [![Security Scan](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/security-scan.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/security-scan.yml)
 [![Drift Radar](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/drift-radar.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/drift-radar.yml)
 [![Release Orchestration](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/release-orchestration.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/release-orchestration.yml)
+[![Docs](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/docs.yml/badge.svg?branch=develop)](https://github.com/marc0janssen/nzbgetvpn/actions/workflows/docs.yml)
 
 ## Table of Contents
 
@@ -28,12 +29,13 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 - [Build and Update](#build-and-update) (includes [Docker Hub builds](#docker-hub-builds), [local registry build](#local-registry-build))
 - [Troubleshooting](#troubleshooting)
 - [Security](#security)
+- [Documentation site](#documentation-site-material-for-mkdocs)
 
 ## Versions
 
 [NZBGet release information](https://github.com/nzbgetcom/nzbget/releases)
 
-* NZBGetVPN image/codebase version: 5.5.21
+* NZBGetVPN image/codebase version: 5.6.0
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260508
 * Base image stable tag: binhex/arch-int-vpn:2026050402
@@ -98,7 +100,7 @@ docker run -d \
 
 ## Compose
 
-Ready-to-edit examples live in [`examples/`](examples/).
+Ready-to-edit examples live in [`examples/`](examples/README.md).
 
 ## Volumes
 
@@ -129,7 +131,7 @@ Boolean-style toggles across this project accept `yes`/`no`, `true`/`false`, and
 Script details are split into smaller files to reduce maintenance overhead and merge conflicts.
 
 - Index: [`data/scripts/README.md`](data/scripts/README.md)
-- Per-script docs under [`data/scripts/docs/`](data/scripts/docs/)
+- Per-script docs under [`data/scripts/docs/`](data/scripts/README.md#per-script-docs)
 - Bundled script docs are also synced into the container at `/data/scripts/docs/`.
 - Add `nzbgetvpn: preserve-local` in managed runtime script files (for example `/data/scripts/lib.sh`) to keep local custom edits when `BUNDLED_SYNC_POLICY=smart`; README/docs files ignore this marker and still update.
 - For quick local diagnostics, run `/data/scripts/container/doctor.sh` inside the container.
@@ -300,3 +302,22 @@ On Apple Silicon or other non-amd64 hosts, use `SMOKE_PLATFORM=linux/amd64`.
 
 See [`SECURITY.md`](SECURITY.md).  
 Do not commit secrets, VPN profiles, keys, tokens, or `.env` files.
+
+## Documentation site (Material for MkDocs)
+
+A browsable documentation site is built with [MkDocs](https://www.mkdocs.org/) and [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/), following the same approach as [restic-backup-helper](https://github.com/marc0janssen/restic-backup-helper). The workflow [`.github/workflows/docs.yml`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/.github/workflows/docs.yml) runs `mkdocs build --strict` on pushes and pull requests; pushes to `main` deploy to GitHub Pages at [https://marc0janssen.github.io/nzbgetvpn/](https://marc0janssen.github.io/nzbgetvpn/) once **Settings → Pages → Build and deployment → Source** is set to **GitHub Actions** for this repository.
+
+Source markdown stays in the repository tree; `docs/` holds `requirements.txt`, stylesheets, and **symbolic links** into `README.md`, `CHANGELOG.md`, `data/`, `ci/`, and `examples/` so relative links keep working. On Windows, clone with symlink support if you build the site locally (for example `git clone -c core.symlinks=true …`).
+
+Local preview:
+
+```sh
+python3 -m venv .venv-docs
+source .venv-docs/bin/activate   # or: source .venv-docs/bin/activate.fish
+pip install -r docs/requirements.txt
+mkdocs serve                      # http://127.0.0.1:8000
+# or
+mkdocs build --strict --site-dir site
+```
+
+The generated `site/` directory and `.venv-docs/` are gitignored.

@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.6.0] - 2026-05-12
+
+### Added
+
+- Material for MkDocs documentation site: `mkdocs.yml`, `docs/requirements.txt`, `docs/stylesheets/extra.css`, symlinked `docs/` entries into existing markdown, GitHub Actions workflow [`.github/workflows/docs.yml`](https://github.com/marc0janssen/nzbgetvpn/blob/develop/.github/workflows/docs.yml) (strict build on PR/push to `main`/`develop`, deploy to GitHub Pages from `main`). Site URL: [https://marc0janssen.github.io/nzbgetvpn/](https://marc0janssen.github.io/nzbgetvpn/).
+- Repository root `index.md` symlink to `README.md` so the Compose examples README can link to the main documentation with a path that resolves both on GitHub and in the MkDocs build.
+
+### Changed
+
+- `README.md`: clearer relative links for MkDocs strict mode (`examples/README.md`, script docs overview anchor), Docs CI badge, and a **Documentation site** section describing local preview and Pages setup.
+- `examples/README.md`: main documentation link now targets `../index.md` (same content as `README.md` via the root symlink).
+- `.gitignore`: ignore `site/` and `.venv-docs/`.
+
 ## [5.5.21] - 2026-05-09
 
 ### Changed

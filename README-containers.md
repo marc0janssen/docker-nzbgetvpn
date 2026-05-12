@@ -13,9 +13,11 @@ Built on top of [`binhex/arch-int-vpn`](https://github.com/binhex/arch-int-vpn):
 - base image handles VPN/provider lifecycle
 - this repository adds NZBGet integration, validation and helper workflows
 
+Browseable documentation (Material for MkDocs): [https://marc0janssen.github.io/nzbgetvpn/](https://marc0janssen.github.io/nzbgetvpn/)
+
 ## Versions
 
-* NZBGetVPN image/codebase version: 5.5.21
+* NZBGetVPN image/codebase version: 5.6.0
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260508
 * Base image stable tag: binhex/arch-int-vpn:2026050402

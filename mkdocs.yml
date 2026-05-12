@@ -1,0 +1,149 @@
+site_name: NZBGetVPN
+site_description: >-
+  Docker image for NZBGet with VPN leak protection, OpenVPN/WireGuard, Privoxy,
+  SOCKS support, and operational hooks on binhex/arch-int-vpn.
+site_url: https://marc0janssen.github.io/nzbgetvpn/
+site_author: Marco Janssen
+copyright: Copyright &copy; 2024-2026 Marco Janssen
+
+repo_name: marc0janssen/nzbgetvpn
+repo_url: https://github.com/marc0janssen/nzbgetvpn
+edit_uri: edit/develop/
+
+docs_dir: docs
+
+use_directory_urls: false
+
+theme:
+  name: material
+  language: en
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - navigation.tracking
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.action.edit
+    - content.action.view
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+
+extra_css:
+  - stylesheets/extra.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/marc0janssen/nzbgetvpn
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/r/marc0janssen/nzbgetvpn
+  status:
+    new: Recently added
+    deprecated: Deprecated
+
+plugins:
+  - search
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      title: On this page
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      check_paths: true
+      base_path:
+        - .
+        - docs
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+exclude_docs: |
+  requirements.txt
+
+nav:
+  - Home: index.md
+  - Docker Hub description: README-containers.md
+  - Scripts:
+      - Overview: data/scripts/README.md
+      - backup_config: data/scripts/docs/backup_config.md
+      - benchmark_endpoints: data/scripts/docs/benchmark_endpoints.md
+      - doctor: data/scripts/docs/doctor.md
+      - get_wireguard_configs_nordvpn: data/scripts/docs/get_wireguard_configs_nordvpn.md
+      - log_sanitizer: data/scripts/docs/log_sanitizer.md
+      - notification_scripts: data/scripts/docs/notification_scripts.md
+      - rotate_on_poor_speed: data/scripts/docs/rotate_on_poor_speed.md
+      - select_random_openvpn_config: data/scripts/docs/select_random_openvpn_config.md
+      - select_random_wireguard_config: data/scripts/docs/select_random_wireguard_config.md
+      - upgrade_check: data/scripts/docs/upgrade_check.md
+  - Guides:
+      - CI and smoke tests: ci/README.md
+      - Compose examples: examples/README.md
+  - Data directories:
+      - OpenVPN configs: data/openvpn-configs/README.md
+      - WireGuard configs: data/wireguard-configs/README.md
+      - Backups: data/backups/README.md
+  - Reference:
+      - Changelog: CHANGELOG.md
+      - Security: SECURITY.md
