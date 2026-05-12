@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 This project uses semantic versioning for the NZBGetVPN image/codebase version stored in `VERSION`.
 
+## [5.6.1] - 2026-05-12
+
+### Changed
+
+- GitHub Actions: bump `actions/upload-artifact` to v6 (Node 24 runtime) in quality-checks, smoke-test, security-scan, and release-orchestration workflows to clear the Node 20 deprecation warning.
+- Docs workflow: `actions/upload-pages-artifact@v5` and `actions/deploy-pages@v5` (aligned with artifact upload v7 / Node 24); drop `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` now that these actions target Node 24 natively.
+- Updated version metadata in `VERSION`, `README.md`, and `README-containers.md`.
+
 ## [5.6.0] - 2026-05-12
 
 ### Added
