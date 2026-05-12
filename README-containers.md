@@ -17,7 +17,7 @@ Browseable documentation (Material for MkDocs): [https://marc0janssen.github.io/
 
 ## Versions
 
-* NZBGetVPN image/codebase version: 5.6.2
+* NZBGetVPN image/codebase version: 5.6.3
 * NZBGET Current stable version: 26.1
 * NZBGET Current testing version: 26.2-testing-20260508
 * Base image stable tag: binhex/arch-int-vpn:2026050402

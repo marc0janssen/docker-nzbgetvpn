@@ -39,7 +39,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -68,17 +68,22 @@ jobs:
           mkdocs build --strict --site-dir site
 
       - name: Upload Pages artifact
-        if: github.event_name != 'pull_request'
+        if: |
+          github.event_name != 'pull_request' &&
+          github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: |
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: build
     runs-on: ubuntu-latest
     # Match actions/deploy-pages README: token scopes for this job only.
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
