@@ -29,4 +29,4 @@ The testing example is now a complete standalone compose file (same defaults as 
 
 Do not commit provider credentials, VPN profiles, private keys, tokens or `.env` files. Put credentials in a local untracked `examples/.env` file, Docker secrets, or your orchestrator's secret store. Docker Compose reads `examples/.env` automatically when using these files. The example `.gitignore` excludes local `config`, `data` and `.env` files.
 
-See the main [README](../README.md) for all environment variables, provider notes, bundled scripts and troubleshooting.
+See the main [README](../index.md) for all environment variables, provider notes, bundled scripts and troubleshooting.

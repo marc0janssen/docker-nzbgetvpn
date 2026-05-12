@@ -54,6 +54,10 @@ data/openvpn-configs/*
 data/backups/*
 !data/backups/README.md
 
+# MkDocs (local preview / build output)
+site/
+.venv-docs/
+
 # Logs and temporary files
 *.log
 *.tmp

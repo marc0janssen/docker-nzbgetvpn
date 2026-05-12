@@ -155,6 +155,13 @@ wc -c README-containers.md
 git status --short
 ```
 
+When changing `mkdocs.yml`, `docs/`, or Markdown paths included in the MkDocs navigation, install `docs/requirements.txt` and run `mkdocs build --strict --site-dir site` (the Docs workflow runs the same build in CI).
+
+```sh
+python3 -m pip install -q -r docs/requirements.txt
+mkdocs build --strict --site-dir site
+```
+
 For script behavior changes, add a small local dry-run using temporary directories where possible.
 
 Do not run Docker builds or pushes unless explicitly requested.
